@@ -1,0 +1,129 @@
+# AgentCarry
+
+Continue an existing coding task in another agent—with evidence and explicit loss.
+
+AgentCarry is a local-first, open-source CLI for carrying work from an existing
+Codex, Claude Code, OpenCode, Gemini CLI, or Pi session into a new session in
+another coding agent.
+
+It does not pretend that proprietary sessions are interchangeable. AgentCarry
+builds a neutral **Work Capsule** containing the current objective, constraints,
+decisions, completed work, pending work, workspace facts, validations, and
+references to the original evidence. Before launch, it prints a **loss receipt**
+for state that cannot be transferred.
+
+> Status: design and benchmark phase. The first vertical slice is
+> Codex → Claude Code with `--dry-run`.
+
+[简体中文](README.zh-CN.md)
+
+## Why AgentCarry
+
+Coding-agent users already switch tools because of model quality, price,
+limits, and specialized capabilities. Today, the usual handoff is to paste a
+long transcript and hope the next agent understands it.
+
+AgentCarry focuses on one job:
+
+```text
+existing local session
+        ↓
+evidence-backed Work Capsule
+        ↓
+loss receipt + workspace freshness
+        ↓
+new session in another coding agent
+```
+
+The intended command is deliberately small:
+
+```powershell
+agentcarry continue --to claude
+agentcarry continue --to claude --dry-run
+agentcarry inspect --session <id> --json
+agentcarry doctor --json
+```
+
+AgentCarry never installs coding agents, manages provider credentials, changes
+permissions, mutates the source session, or silently uploads transcripts.
+
+## Product wedge
+
+Adjacent tools already cover transcript search, raw transcript injection,
+real-time agent messaging, and ACP orchestration. AgentCarry is narrower:
+
+- retroactive: it starts from sessions that already exist on the local machine;
+- evidence-backed: capsule facts point to source events or current workspace facts;
+- fail-closed: uncertain critical state stops a handoff unless explicitly forced;
+- honest: unsupported state is listed in a loss receipt;
+- measurable: continuation quality is compared with a visible-transcript baseline;
+- portable: adapters cover Windows, macOS, and Linux without changing the core verb.
+
+See [Product boundary](docs/decisions/0001-product-boundary.md) and
+[Competitive landscape](docs/competitive-landscape.md).
+
+## Roadmap
+
+- **Phase 0:** twelve controlled continuity fixtures and a public scorer.
+- **v0.1:** Codex → Claude Code, including dry-run, secret redaction, and loss receipt.
+- **v0.2:** Claude Code → OpenCode.
+- **v0.3:** bidirectional Codex, Claude Code, and OpenCode adapters.
+- **v0.4:** Pi and Gemini CLI.
+- **v0.5:** repository Skill and cross-history discovery.
+- **v0.6:** optional ACP runtime for sessions created through AgentCarry.
+
+Full scope and release gates: [Roadmap](docs/roadmap.md).
+
+## Work Capsule
+
+The schema is versioned independently from the CLI. Capsule v1 includes:
+
+```text
+source, workspace, currentUserMessage, objective, constraints, decisions,
+failedAttempts, completed, pending, files, commands, validations,
+openQuestions, evidenceRefs, losses, lineage
+```
+
+Critical facts are never silently truncated. Current workspace and Git facts
+win over stale transcript claims and are timestamped. See
+[`work-capsule.v1.schema.json`](schema/work-capsule.v1.schema.json).
+
+## Benchmark before claims
+
+AgentCarry will not claim that a capsule preserves continuity merely because it
+looks plausible. The Phase 0 benchmark runs twelve controlled tasks in three
+handoff modes:
+
+1. visible user and assistant messages only;
+2. deterministic Work Capsule;
+3. source-assisted Work Capsule.
+
+The benchmark scores critical constraints, objective and state, decisions and
+failed attempts, completed and pending work, workspace evidence, and the next
+correct action. See [Continuity benchmark](docs/benchmarks/continuity-benchmark.md).
+
+## Security and privacy
+
+- local-only by default;
+- zero AgentCarry telemetry;
+- no transcript or crash uploads;
+- high-confidence secrets are redacted before rendering or launch;
+- capsules are ephemeral unless `--output` or `--keep-capsule` is explicit;
+- source sessions are read-only;
+- target permissions, model, skills, MCP configuration, and authentication remain
+  owned by the target agent and the user.
+
+See [SECURITY.md](SECURITY.md) and [PRIVACY.md](PRIVACY.md).
+
+## Contributing
+
+Agent adapters are the long-term maintenance cost and the main contribution
+surface. An adapter must ship with version metadata and sanitized fixtures. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+Apache-2.0. The CLI, official adapters, capsule schema, benchmark fixtures,
+scorer, results, lineage format, and repository Skill are all intended to remain
+open source.
+
