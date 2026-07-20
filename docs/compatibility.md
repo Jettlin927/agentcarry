@@ -4,6 +4,16 @@ AgentCarry uses the least private integration available. A status of
 `experimental` means fixtures and local verification exist, but the upstream
 format is private and can change without notice.
 
+## Runtime support
+
+Node.js 22 is the minimum supported runtime. CI exercises Node.js 22 and 24 on
+Windows, macOS, and Ubuntu. Other Node.js releases at or above the minimum are
+best-effort until added to that matrix. Odd-numbered and end-of-life releases do
+not extend the support window.
+
+The matrix below is checked against version metadata exported by the official
+adapters on every CI run.
+
 | Agent | Reader | Launcher | Access tier | Observed version | Status |
 | --- | --- | --- | --- | --- | --- |
 | Codex | Local JSONL | Planned | Private local-storage fallback | 0.145.0-alpha.18 | Experimental |

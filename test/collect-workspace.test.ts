@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { collectWorkspaceEvidence } from "../src/workspace/collect-workspace.js";
@@ -42,6 +42,7 @@ describe("collectWorkspaceEvidence", () => {
   it("collects current Git and instruction hashes without changing the repository", async () => {
     const root = await repository();
     const cwd = join(root, "src", "nested");
+    const canonicalRoot = resolve((await git(root, ["rev-parse", "--show-toplevel"])).trim());
     const before = await git(root, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]);
 
     const evidence = await collectWorkspaceEvidence(cwd, {
@@ -51,7 +52,7 @@ describe("collectWorkspaceEvidence", () => {
     const after = await git(root, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]);
     expect(after).toBe(before);
     expect(evidence.workspace).toMatchObject({
-      primaryRoot: root,
+      primaryRoot: canonicalRoot,
       capturedAt: "2026-07-21T00:00:00.000Z",
       git: { branch: "main", dirty: true }
     });

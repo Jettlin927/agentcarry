@@ -29,7 +29,8 @@
     "benchmark:validate": "tsx scripts/validate-benchmark.ts benchmark/fixtures",
     "benchmark:score": "tsx scripts/score-benchmark.ts",
     "benchmark:input": "tsx scripts/build-benchmark-input.ts",
-    "demo:tracer": "npm run build && tsx scripts/demo-tracer.ts"
+    "demo:tracer": "npm run build && tsx scripts/demo-tracer.ts",
+    "compatibility:check": "tsx scripts/check-compatibility.ts"
   },
   "dependencies": {
     "ajv": "^8.20.0"

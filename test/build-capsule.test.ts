@@ -187,4 +187,19 @@ describe("buildWorkCapsule", () => {
       "duplicate evidence id event-user-1"
     );
   });
+
+  it("preserves PowerShell commands with variables, spaces, and Chinese paths", () => {
+    const events = sourceEvents();
+    const powershell = "$ErrorActionPreference = 'Stop'; Get-ChildItem -LiteralPath 'C:\\Users\\dev\\中文 项目'";
+    events[1] = {
+      ...events[1]!,
+      text: JSON.stringify({ cmd: `pwsh -NoProfile -Command \"${powershell}\"` })
+    };
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.commands).toContainEqual(expect.objectContaining({
+      command: `pwsh -NoProfile -Command \"${powershell}\"`
+    }));
+  });
 });
