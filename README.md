@@ -91,6 +91,7 @@ openQuestions, evidenceRefs, losses, lineage
 Critical facts are never silently truncated. Current workspace and Git facts
 win over stale transcript claims and are timestamped. See
 [`work-capsule.v1.schema.json`](schema/work-capsule.v1.schema.json).
+Fail-closed behavior is defined in [Loss receipt semantics](docs/loss-semantics.md).
 
 ## Benchmark before claims
 
