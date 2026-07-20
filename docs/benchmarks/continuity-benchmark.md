@@ -110,3 +110,31 @@ npm run --silent benchmark:report -- <result-set.json> --format json
 The report prints PASS or FAIL for fidelity, critical constraints, correct next
 action, repeated failed paths, unsupported claims, token ratio, each capsule
 mode, and the overall Phase 0 gate.
+
+## Reproducible target collection
+
+Inspect the exact 36-run plan without starting Claude Code or writing an output
+directory:
+
+```shell
+npm run --silent benchmark:collect -- benchmark/fixtures --model <exact-model> --plan
+```
+
+After target authentication is independently working, collect raw inputs and
+outputs locally:
+
+```shell
+npm run --silent benchmark:collect -- benchmark/fixtures --model <exact-model> --output <directory>
+```
+
+Every target run is a fresh Claude Code print session with one fixed system
+prompt, no tools, no persistence, no slash commands, an empty strict MCP set,
+plan permission mode, one turn, and no setting sources. The runner records the
+raw response plus normal, cache-creation, and cache-read input tokens. It writes
+each generated input before its target call and creates each initial result with
+exclusive-write semantics. A failed later call leaves earlier evidence intact;
+re-running the same plan skips validated results and never overwrites them.
+
+The collector does not install Claude Code, log in, repair credentials, review
+outputs, score facts, or hide failed runs. Human review and deterministic scoring
+remain separate steps.

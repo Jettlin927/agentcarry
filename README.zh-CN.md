@@ -107,6 +107,7 @@ Phase 0 使用 12 个受控任务，对每个任务比较三种交接：
 3. source-assisted Work Capsule。
 
 评分覆盖关键约束、目标与状态、决策与失败尝试、已完成与待办、工作区证据和正确下一步。规则见[连续性 benchmark](docs/benchmarks/continuity-benchmark.md)。
+仓库还提供不会启动 Agent 的 36-run plan，以及可断点续跑且不覆盖 initial result 的 raw-output collector，固定记录 target model、settings、原始回复与所有 input token 类别。
 
 ## 隐私与安全
 

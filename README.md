@@ -140,7 +140,9 @@ handoff modes:
 
 The benchmark scores critical constraints, objective and state, decisions and
 failed attempts, completed and pending work, workspace evidence, and the next
-correct action. See [Continuity benchmark](docs/benchmarks/continuity-benchmark.md).
+correct action. A dry 36-run plan and resumable raw-output collector keep target
+model, settings, response text, and exact input-token categories auditable. See
+[Continuity benchmark](docs/benchmarks/continuity-benchmark.md).
 
 ## Security and privacy
 

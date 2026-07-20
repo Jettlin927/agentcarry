@@ -9,6 +9,7 @@ import {
   type BenchmarkSourceFixture,
   type HandoffInputArtifact
 } from "./build-handoff-input.js";
+import { totalInputTokens, type ClaudeUsage } from "./claude-usage.js";
 
 export interface ProcessResult {
   readonly exitCode: number;
@@ -95,7 +96,7 @@ export async function createSourceAssistedInvocation(
 interface ClaudeEnvelope {
   readonly structured_output?: unknown;
   readonly result?: string;
-  readonly usage?: { readonly input_tokens?: number };
+  readonly usage?: ClaudeUsage;
 }
 
 export async function runSourceAssisted(
@@ -117,12 +118,9 @@ export async function runSourceAssisted(
     const envelope = JSON.parse(result.stdout) as ClaudeEnvelope;
     const capsule = envelope.structured_output
       ?? (envelope.result === undefined ? undefined : JSON.parse(envelope.result));
-    const inputTokens = envelope.usage?.input_tokens;
+    const inputTokens = totalInputTokens(envelope.usage);
     if (capsule === undefined) {
       throw new Error("source-assisted summarizer returned no structured output");
-    }
-    if (inputTokens === undefined) {
-      throw new Error("source-assisted summarizer returned no input token count");
     }
     return sourceAssistedArtifact(fixture, model, capsule, inputTokens);
   } finally {
