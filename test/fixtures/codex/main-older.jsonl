@@ -1,0 +1,6 @@
+{"timestamp":"2026-07-20T00:00:00Z","type":"session_meta","payload":{"id":"session-main-older","cwd":"C:\\Users\\dev\\中文 项目","cli_version":"0.145.0-alpha.18","source":"vscode","thread_source":"user"}}
+{"timestamp":"2026-07-20T00:00:01Z","type":"event_msg","payload":{"type":"task_started"}}
+{"timestamp":"2026-07-20T00:00:02Z","type":"event_msg","payload":{"type":"user_message","message":"Older task."}}
+{"timestamp":"2026-07-20T00:00:03Z","type":"event_msg","payload":{"type":"agent_message","message":"Older answer."}}
+{"timestamp":"2026-07-20T00:00:04Z","type":"event_msg","payload":{"type":"task_complete"}}
+

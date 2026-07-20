@@ -44,6 +44,7 @@ AgentCarry 不安装 Agent、不管理认证、不替用户切换模型或权限
 - Windows、PowerShell、中文路径与 macOS/Linux 都是一等测试环境。
 
 详细边界见[产品边界 ADR](docs/decisions/0001-product-boundary.md)和[竞品地图](docs/competitive-landscape.md)。
+当前 adapter 的真实验证范围见[兼容矩阵](docs/compatibility.md)。
 
 ## 路线图
 
