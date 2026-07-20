@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "runId": "example-deterministic-01",
+  "fixtureId": "debugging-01-invoice-total",
+  "mode": "deterministic-capsule",
+  "target": {
+    "agent": "claude",
+    "model": "controlled-example",
+    "settings": { "temperature": 0 }
+  },
+  "tokens": {
+    "input": 400,
+    "visibleTranscriptBaseline": 1000
+  },
+  "review": {
+    "humanReviewer": "benchmark-reviewer",
+    "reviewedAt": "2026-07-21T00:00:00Z"
+  },
+  "categories": {
+    "criticalConstraints": [
+      { "factId": "d01-constraint-api", "verdict": "preserved", "note": "Public API constraint is explicit." },
+      { "factId": "d01-constraint-currency", "verdict": "preserved", "note": "Decimal-string representation is explicit." }
+    ],
+    "objectiveAndState": [
+      { "factId": "d01-objective", "verdict": "preserved", "note": "Objective and unverified parser state are both present." }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "factId": "d01-decision-parser", "verdict": "preserved", "note": "Negative adjustments are identified as the cause." },
+      { "factId": "d01-failed-cache", "verdict": "preserved", "note": "The cache path is explicitly rejected." }
+    ],
+    "completedAndPending": [
+      { "factId": "d01-progress", "verdict": "preserved", "note": "Parser completion and pending test are distinguished." }
+    ],
+    "workspaceEvidence": [
+      { "factId": "d01-workspace", "verdict": "preserved", "note": "Dirty parser path and branch are present." }
+    ],
+    "nextAction": [
+      { "factId": "d01-next", "verdict": "preserved", "note": "The focused regression is the first action." }
+    ]
+  },
+  "repeatedFailedPaths": [],
+  "unsupportedClaims": []
+}
+
