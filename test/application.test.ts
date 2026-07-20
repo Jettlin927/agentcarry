@@ -8,6 +8,7 @@ import type {
 import type { TargetLauncher } from "../src/adapters/target-launcher.js";
 import { ClaudeTargetLauncher } from "../src/adapters/claude/target-launcher.js";
 import type { CollectedWorkspaceEvidence } from "../src/workspace/collect-workspace.js";
+import type { DoctorReport } from "../src/diagnostics/doctor.js";
 
 const session: SourceSession = {
   agent: "codex",
@@ -98,29 +99,41 @@ describe("AgentCarry production handlers", () => {
   });
 
   it("keeps target diagnostics separate and non-mutating", async () => {
-    const diagnose = vi.fn(async () => ({
-      agent: "claude",
-      available: false,
-      version: null,
-      authentication: "unknown" as const,
-      details: ["not found"]
-    }));
+    const report: DoctorReport = {
+      schemaVersion: "1.0.0",
+      checks: [{
+        id: "claude-cli",
+        available: false,
+        version: null,
+        compatibility: "unsupported",
+        authentication: "unknown",
+        detail: "not found"
+      }],
+      storage: [],
+      policies: {
+        installsAgents: false,
+        managesAuthentication: false,
+        mutatesConfiguration: false,
+        networkTelemetry: false,
+        updateCheck: false
+      }
+    };
+    const diagnose = vi.fn(async () => report);
     const handlers = createAgentCarryHandlers({
       cwd: "C:\\repo",
       codexReader: reader(),
       collectWorkspace: async () => workspace,
-      createClaudeLauncher: () => ({
-        prepare: vi.fn(),
-        diagnose
-      })
+      diagnose
     });
 
     await expect(handlers.doctor()).resolves.toMatchObject({
       ok: true,
       data: {
         checks: [{ available: false }],
-        installsAgents: false,
-        managesAuthentication: false
+        policies: {
+          installsAgents: false,
+          managesAuthentication: false
+        }
       }
     });
     expect(diagnose).toHaveBeenCalledOnce();

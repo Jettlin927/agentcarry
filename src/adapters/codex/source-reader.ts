@@ -42,7 +42,7 @@ export const codexAdapterMetadata = {
   sourceMutation: "never"
 } as const;
 
-function codexSessionRoot(options: CodexSourceReaderOptions): string {
+export function resolveCodexSessionRoot(options: CodexSourceReaderOptions = {}): string {
   if (options.sessionRoot !== undefined) {
     return resolve(options.sessionRoot);
   }
@@ -311,7 +311,7 @@ export class CodexSourceReader implements SourceReader {
   readonly #sessionRoot: string;
 
   constructor(options: CodexSourceReaderOptions = {}) {
-    this.#sessionRoot = codexSessionRoot(options);
+    this.#sessionRoot = resolveCodexSessionRoot(options);
   }
 
   async discover(): Promise<readonly SourceSession[]> {
