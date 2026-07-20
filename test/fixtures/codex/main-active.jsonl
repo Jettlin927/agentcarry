@@ -1,0 +1,7 @@
+{"timestamp":"2026-07-21T00:00:00Z","type":"session_meta","payload":{"id":"session-main-active","cwd":"C:\\Users\\dev\\active","cli_version":"0.145.0-alpha.18","source":"vscode","thread_source":"user"}}
+{"timestamp":"2026-07-21T00:00:01Z","type":"event_msg","payload":{"type":"task_started"}}
+{"timestamp":"2026-07-21T00:00:02Z","type":"event_msg","payload":{"type":"user_message","message":"Still running."}}
+{"timestamp":"2026-07-21T00:00:03Z","type":"response_item","payload":{"type":"custom_tool_call","call_id":"call-active","name":"exec_command","input":"long command"}}
+{"timestamp":"2026-07-21T00:00:04Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call-active","output":"partial"}}
+{"timestamp":"2026-07-21T00:00:05Z","type":"event_msg","payload":{"type":"agent_message","message":"Working."}}
+

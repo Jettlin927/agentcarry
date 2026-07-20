@@ -61,6 +61,7 @@ real-time agent messaging, and ACP orchestration. AgentCarry is narrower:
 
 See [Product boundary](docs/decisions/0001-product-boundary.md) and
 [Competitive landscape](docs/competitive-landscape.md).
+Current adapter evidence is tracked in the [compatibility matrix](docs/compatibility.md).
 
 ## Roadmap
 
