@@ -187,6 +187,10 @@ export async function collectWorkspaceEvidence(
     };
   }
   const absoluteRepoRoot = resolve(repoRoot);
+  const prefix = await successfulOutput(runGit, absoluteCwd, ["rev-parse", "--show-prefix"]);
+  const canonicalCwd = prefix === undefined
+    ? absoluteRepoRoot
+    : resolve(absoluteRepoRoot, prefix);
 
   const branch = await successfulOutput(runGit, absoluteRepoRoot, ["branch", "--show-current"]);
   const head = await successfulOutput(runGit, absoluteRepoRoot, ["rev-parse", "HEAD"]);
@@ -217,7 +221,7 @@ export async function collectWorkspaceEvidence(
         ...(base === undefined ? {} : { base }),
         dirty: files.length > 0
       },
-      instructionFiles: await instructionFiles(absoluteRepoRoot, absoluteCwd)
+      instructionFiles: await instructionFiles(absoluteRepoRoot, canonicalCwd)
     },
     files
   };
