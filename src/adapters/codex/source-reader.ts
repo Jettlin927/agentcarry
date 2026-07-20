@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { open, opendir, stat } from "node:fs/promises";
+import { open, opendir, realpath, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, isAbsolute, join, relative, resolve, win32 } from "node:path";
 import { StringDecoder } from "node:string_decoder";
@@ -278,19 +278,35 @@ async function inspectSession(path: string): Promise<SourceSession | undefined> 
   };
 }
 
-function sameWorkspace(left: string, right: string): boolean {
-  const windowsPath = /^[A-Za-z]:[\\/]/;
-  if (windowsPath.test(left) || windowsPath.test(right)) {
-    return win32.resolve(left).toLowerCase() === win32.resolve(right).toLowerCase();
+async function canonicalWorkspace(path: string): Promise<string> {
+  try {
+    return await realpath(path);
+  } catch {
+    return path;
   }
-  return resolve(left) === resolve(right);
 }
 
-function relatedWorkspace(left: string, right: string): boolean {
+async function sameWorkspace(left: string, right: string): Promise<boolean> {
+  const [canonicalLeft, canonicalRight] = await Promise.all([
+    canonicalWorkspace(left),
+    canonicalWorkspace(right)
+  ]);
   const windowsPath = /^[A-Za-z]:[\\/]/;
-  if (windowsPath.test(left) || windowsPath.test(right)) {
-    const leftPath = win32.resolve(left).toLowerCase();
-    const rightPath = win32.resolve(right).toLowerCase();
+  if (windowsPath.test(canonicalLeft) || windowsPath.test(canonicalRight)) {
+    return win32.resolve(canonicalLeft).toLowerCase() === win32.resolve(canonicalRight).toLowerCase();
+  }
+  return resolve(canonicalLeft) === resolve(canonicalRight);
+}
+
+async function relatedWorkspace(left: string, right: string): Promise<boolean> {
+  const [canonicalLeft, canonicalRight] = await Promise.all([
+    canonicalWorkspace(left),
+    canonicalWorkspace(right)
+  ]);
+  const windowsPath = /^[A-Za-z]:[\\/]/;
+  if (windowsPath.test(canonicalLeft) || windowsPath.test(canonicalRight)) {
+    const leftPath = win32.resolve(canonicalLeft).toLowerCase();
+    const rightPath = win32.resolve(canonicalRight).toLowerCase();
     const candidates = [
       win32.relative(leftPath, rightPath),
       win32.relative(rightPath, leftPath)
@@ -299,8 +315,8 @@ function relatedWorkspace(left: string, right: string): boolean {
       candidate === "" || (!candidate.startsWith("..") && !win32.isAbsolute(candidate))
     );
   }
-  const leftPath = resolve(left);
-  const rightPath = resolve(right);
+  const leftPath = resolve(canonicalLeft);
+  const rightPath = resolve(canonicalRight);
   const candidates = [relative(leftPath, rightPath), relative(rightPath, leftPath)];
   return candidates.some((candidate) =>
     candidate === "" || (!candidate.startsWith("..") && !isAbsolute(candidate))
@@ -467,14 +483,15 @@ export class CodexSourceReader implements SourceReader {
       return selected;
     }
 
-    const candidates = sessions.filter((session) =>
+    const workspaceMatches = await Promise.all(sessions.map(async (session) =>
       session.kind === "main"
       && session.activity === requiredActivity
       && session.hasMessages
       && (requiredActivity === "active"
-        ? relatedWorkspace(session.cwd, selection.cwd)
-        : sameWorkspace(session.cwd, selection.cwd))
-    );
+        ? await relatedWorkspace(session.cwd, selection.cwd)
+        : await sameWorkspace(session.cwd, selection.cwd))
+    ));
+    const candidates = sessions.filter((_session, index) => workspaceMatches[index]);
     if (candidates.length === 0) {
       throw new SourceSelectionError(
         "NO_SESSION_IN_WORKSPACE",
