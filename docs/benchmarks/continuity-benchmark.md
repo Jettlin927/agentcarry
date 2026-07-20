@@ -18,6 +18,15 @@ Facts are deliberately distributed across early messages, late messages, and
 tool results. Fixtures are synthetic or fully sanitized and contain no user
 credentials or proprietary source.
 
+The machine-readable contract is
+[`continuity-fixture.v1.schema.json`](../../benchmark/schema/continuity-fixture.v1.schema.json).
+Every fixture must also satisfy the
+[sanitization policy](../../benchmark/SANITIZATION.md) and pass:
+
+```shell
+npm run benchmark:validate
+```
+
 ## Modes
 
 Each fixture is continued in the same target model/settings using:
@@ -54,4 +63,3 @@ judge may assist but is never the only evaluator.
 - capsule input uses no more than 40% of baseline tokens.
 
 Results must be published even if a gate fails.
-

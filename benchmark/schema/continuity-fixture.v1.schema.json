@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jettlin927/agentcarry/blob/main/benchmark/schema/continuity-fixture.v1.schema.json",
+  "title": "AgentCarry Continuity Benchmark Fixture v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "archetype",
+    "source",
+    "workspace",
+    "groundTruth",
+    "sanitization"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "$ref": "#/$defs/id" },
+    "title": { "$ref": "#/$defs/nonEmptyString" },
+    "archetype": {
+      "enum": ["debugging", "multi-file-refactor", "half-complete-feature", "architecture-performance"]
+    },
+    "source": { "$ref": "#/$defs/source" },
+    "workspace": { "$ref": "#/$defs/workspace" },
+    "groundTruth": { "$ref": "#/$defs/groundTruth" },
+    "sanitization": { "$ref": "#/$defs/sanitization" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidenceIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/id" },
+      "uniqueItems": true
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent", "agentVersion", "events"],
+      "properties": {
+        "agent": { "enum": ["codex", "claude", "opencode", "gemini", "pi", "synthetic"] },
+        "agentVersion": { "$ref": "#/$defs/nonEmptyString" },
+        "events": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/event" }
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "text"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["user-message", "assistant-message", "tool-call", "tool-result", "context"] },
+        "text": { "$ref": "#/$defs/nonEmptyString" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root", "files", "git"],
+      "properties": {
+        "root": { "$ref": "#/$defs/nonEmptyString" },
+        "files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workspaceFile" }
+        },
+        "git": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["branch", "head", "dirty"],
+          "properties": {
+            "branch": { "$ref": "#/$defs/nonEmptyString" },
+            "head": { "$ref": "#/$defs/nonEmptyString" },
+            "dirty": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "workspaceFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "state"],
+      "properties": {
+        "path": { "$ref": "#/$defs/nonEmptyString" },
+        "state": { "enum": ["modified", "created", "deleted", "unchanged"] },
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+      }
+    },
+    "expectedFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text", "evidenceRefs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "text": { "$ref": "#/$defs/nonEmptyString" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" },
+        "critical": { "type": "boolean", "default": false }
+      }
+    },
+    "expectedFacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/expectedFact" }
+    },
+    "groundTruth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "criticalConstraints",
+        "objectiveAndState",
+        "decisionsAndFailedAttempts",
+        "completedAndPending",
+        "workspaceEvidence",
+        "nextAction"
+      ],
+      "properties": {
+        "criticalConstraints": { "$ref": "#/$defs/expectedFacts" },
+        "objectiveAndState": { "$ref": "#/$defs/expectedFacts" },
+        "decisionsAndFailedAttempts": { "$ref": "#/$defs/expectedFacts" },
+        "completedAndPending": { "$ref": "#/$defs/expectedFacts" },
+        "workspaceEvidence": { "$ref": "#/$defs/expectedFacts" },
+        "nextAction": { "$ref": "#/$defs/expectedFact" }
+      }
+    },
+    "sanitization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["synthetic", "humanReviewed", "checkedAt"],
+      "properties": {
+        "synthetic": { "type": "boolean" },
+        "humanReviewed": { "type": "boolean", "const": true },
+        "checkedAt": { "type": "string", "format": "date-time" },
+        "sanitizedBy": { "type": "string", "minLength": 1 },
+        "sourceFingerprint": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "synthetic": { "const": false } },
+            "required": ["synthetic"]
+          },
+          "then": {
+            "properties": {
+              "sanitizedBy": { "type": "string", "minLength": 1 },
+              "sourceFingerprint": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+            },
+            "required": ["sanitizedBy", "sourceFingerprint"]
+          }
+        }
+      ]
+    }
+  }
+}
