@@ -1,0 +1,4 @@
+interface:
+  display_name: "AgentCarry Handoff"
+  short_description: "Carry coding tasks across agents safely"
+  default_prompt: "Use $agentcarry to prepare a read-only handoff of this coding task to another agent."

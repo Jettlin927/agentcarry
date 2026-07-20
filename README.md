@@ -92,6 +92,20 @@ Codex session, prints the loss and exact Claude commands, proves that no Claude
 process starts, and verifies the source hash is unchanged. See the
 [Codex to Claude Code dry-run demo](docs/demos/codex-to-claude-dry-run.md).
 
+## Install the repository Skill
+
+First ask the coding agent that will use the Skill:
+
+```text
+Review https://github.com/Jettlin927/agentcarry/tree/main/skills/agentcarry and install the agentcarry Skill into your own user-level Skill directory. Do not install or update AgentCarry or another coding agent, and do not change authentication. Tell me the exact destination and every file you changed.
+```
+
+The canonical Skill lives at [`skills/agentcarry/SKILL.md`](skills/agentcarry/SKILL.md).
+Manual Codex, Claude Code, OpenCode, Gemini CLI, and Pi paths—and an optional
+telemetry-disabled interactive `npx skills add` command—are documented in
+[Skill installation](docs/skill-installation.md). AgentCarry itself has no Skill
+installer command.
+
 ## Work Capsule
 
 The schema is versioned independently from the CLI. Capsule v1 includes:

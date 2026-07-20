@@ -73,6 +73,19 @@ npm run demo:tracer
 CLI，输出损失项和精确的 Claude 命令，证明未启动 Claude 进程，并校验源文件
 哈希不变。详见 [Codex 到 Claude Code dry-run demo](docs/demos/codex-to-claude-dry-run.md)。
 
+## 安装仓库 Skill
+
+首先直接告诉当前 Coding Agent：
+
+```text
+Review https://github.com/Jettlin927/agentcarry/tree/main/skills/agentcarry and install the agentcarry Skill into your own user-level Skill directory. Do not install or update AgentCarry or another coding agent, and do not change authentication. Tell me the exact destination and every file you changed.
+```
+
+唯一的 Skill 源文件是 [`skills/agentcarry/SKILL.md`](skills/agentcarry/SKILL.md)。Codex、
+Claude Code、OpenCode、Gemini CLI 和 Pi 的手动路径，以及关闭第三方匿名遥测的
+交互式 `npx skills add` 方式见 [Skill 安装说明](docs/skill-installation.md)。
+AgentCarry CLI 本身不提供 Skill 安装命令。
+
 ## Work Capsule
 
 Work Capsule 不是另一种完整 transcript 格式。它只携带续作必需的状态：当前用户消息、目标、约束、决策、失败路径、已完成、待办、文件与 Git 状态、执行过的命令、验证结果、开放问题、证据引用、损失和 lineage。
