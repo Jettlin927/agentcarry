@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { cp, mkdtemp, readFile, stat, utimes } from "node:fs/promises";
+import { cp, mkdtemp, readFile, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -145,5 +145,51 @@ describe("CodexSourceReader", () => {
     expect(events.length).toBeGreaterThan(0);
     expect(await hash(path)).toBe(before);
     expect((await stat(path)).size).toBe(sizeBefore);
+  });
+
+  it("selects an exact WSL workspace path", async () => {
+    const root = await testRoot();
+    const path = join(root, "wsl-main.jsonl");
+    const lines = [
+      { timestamp: "2026-07-21T00:00:00Z", type: "session_meta", payload: { id: "session-wsl", cwd: "/mnt/c/Users/dev/agent carry", cli_version: "0.145.0-alpha.18", source: "vscode", thread_source: "user" } },
+      { timestamp: "2026-07-21T00:00:01Z", type: "event_msg", payload: { type: "task_started" } },
+      { timestamp: "2026-07-21T00:00:02Z", type: "event_msg", payload: { type: "user_message", message: "Continue from WSL." } },
+      { timestamp: "2026-07-21T00:00:03Z", type: "event_msg", payload: { type: "agent_message", message: "Ready." } },
+      { timestamp: "2026-07-21T00:00:04Z", type: "event_msg", payload: { type: "task_complete" } }
+    ];
+    await writeFile(path, `${lines.map((line) => JSON.stringify(line)).join("\n")}\n`, "utf8");
+    const reader = new CodexSourceReader({ sessionRoot: root });
+
+    const selected = await reader.select({ cwd: "/mnt/c/Users/dev/agent carry" });
+
+    expect(selected.id).toBe("session-wsl");
+  });
+
+  it("streams a large completed JSONL without mutating it", async () => {
+    const root = await testRoot();
+    const path = join(root, "large-main.jsonl");
+    const messages = Array.from({ length: 5_000 }, (_, index) => ({
+      timestamp: "2026-07-21T00:00:03Z",
+      type: "event_msg",
+      payload: { type: "agent_message", message: `Evidence ${index}` }
+    }));
+    const lines = [
+      { timestamp: "2026-07-21T00:00:00Z", type: "session_meta", payload: { id: "session-large", cwd: "/tmp/agentcarry-large", cli_version: "0.145.0-alpha.18", source: "vscode", thread_source: "user" } },
+      { timestamp: "2026-07-21T00:00:01Z", type: "event_msg", payload: { type: "task_started" } },
+      { timestamp: "2026-07-21T00:00:02Z", type: "event_msg", payload: { type: "user_message", message: "Read a large session." } },
+      ...messages,
+      { timestamp: "2026-07-21T00:00:04Z", type: "event_msg", payload: { type: "task_complete" } }
+    ];
+    await writeFile(path, `${lines.map((line) => JSON.stringify(line)).join("\n")}\n`, "utf8");
+    const before = await hash(path);
+    const reader = new CodexSourceReader({ sessionRoot: root });
+    const session = await reader.select({ cwd: "/tmp/agentcarry-large" });
+    let count = 0;
+    for await (const _event of reader.events(session)) {
+      count += 1;
+    }
+
+    expect(count).toBe(5_003);
+    expect(await hash(path)).toBe(before);
   });
 });
