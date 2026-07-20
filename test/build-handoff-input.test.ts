@@ -90,7 +90,11 @@ describe("benchmark handoff inputs", () => {
         exitCode: 0,
         stdout: JSON.stringify({
           structured_output: deterministicCapsule,
-          usage: { input_tokens: 321 }
+          usage: {
+            input_tokens: 321,
+            cache_creation_input_tokens: 10,
+            cache_read_input_tokens: 20
+          }
         }),
         stderr: ""
       };
@@ -98,7 +102,7 @@ describe("benchmark handoff inputs", () => {
 
     const artifact = await runSourceAssisted(fixture, "controlled-model", runner);
 
-    expect(artifact.generation.summarizerInputTokens).toBe(321);
+    expect(artifact.generation.summarizerInputTokens).toBe(351);
     expect(artifact.generation.persistence).toBe("disabled");
     expect(artifact.generation.tools).toBe("disabled");
   });
