@@ -22,6 +22,11 @@ import {
   collectWorkspaceEvidence,
   type CollectedWorkspaceEvidence
 } from "./workspace/collect-workspace.js";
+import {
+  diagnoseDoctor,
+  renderDoctorReport,
+  type DoctorReport
+} from "./diagnostics/doctor.js";
 
 type WorkspaceCollector = (cwd: string) => Promise<CollectedWorkspaceEvidence>;
 type ClaudeLauncherFactory = (cwd: string) => Pick<TargetLauncher, "prepare" | "diagnose">;
@@ -31,6 +36,7 @@ export interface AgentCarryHandlerOptions {
   readonly codexReader?: SourceReader;
   readonly collectWorkspace?: WorkspaceCollector;
   readonly createClaudeLauncher?: ClaudeLauncherFactory;
+  readonly diagnose?: () => Promise<DoctorReport>;
 }
 
 function failure(
@@ -141,16 +147,16 @@ export function createAgentCarryHandlers(options: AgentCarryHandlerOptions = {})
     },
 
     async doctor() {
-      const diagnostic = await createClaudeLauncher(cwd).diagnose();
+      const report = options.diagnose === undefined
+        ? await diagnoseDoctor({
+            codexReader,
+            diagnoseClaude: async () => await createClaudeLauncher(cwd).diagnose()
+          })
+        : await options.diagnose();
       return {
         ok: true,
-        data: {
-          checks: [diagnostic],
-          installsAgents: false,
-          managesAuthentication: false,
-          telemetry: false,
-          updateCheck: false
-        }
+        data: report,
+        human: renderDoctorReport(report)
       };
     }
   };

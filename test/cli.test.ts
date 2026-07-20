@@ -116,4 +116,26 @@ describe("AgentCarry CLI contract", () => {
       telemetry: false
     });
   });
+
+  it("uses human doctor rendering without adding it to stable JSON", async () => {
+    const handlers = successfulHandlers();
+    handlers.doctor = vi.fn(async () => ({
+      ok: true as const,
+      data: { checks: [] },
+      human: "AgentCarry doctor\nall local"
+    }));
+    const human = harness();
+    const machine = harness();
+
+    expect(await runCli(["doctor"], human.io, handlers)).toBe(ExitCode.success);
+    expect(human.stdout.join("")).toBe("AgentCarry doctor\nall local\n");
+    expect(await runCli(["doctor", "--json"], machine.io, handlers)).toBe(ExitCode.success);
+    expect(JSON.parse(machine.stdout.join(""))).toEqual({
+      schemaVersion: "1.0.0",
+      command: "doctor",
+      ok: true,
+      data: { checks: [] }
+    });
+    expect(machine.stdout.join("")).not.toContain("all local");
+  });
 });

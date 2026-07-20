@@ -48,6 +48,23 @@ Internally, preparation and launch are separate seams. The CLI returns after
 `prepareContinue` during dry-run and therefore cannot rely on an adapter to
 remember not to launch.
 
+## Doctor compatibility
+
+`doctor` reports Node.js, AgentCarry, Codex CLI, Claude Code CLI, the Codex
+Reader, the Claude Launcher, Codex session storage, and prospective lineage
+storage. Compatibility has four stable values:
+
+- `supported`: the exact upstream version or storage shape is covered by local
+  verification;
+- `degraded`: the component exists, but its version or shape is not covered;
+- `unsupported`: a required executable or storage permission is missing;
+- `unknown`: there is not enough evidence to classify it.
+
+`reported-authenticated` is only the target CLI's local self-report. It is not
+evidence that a live provider request will succeed. For a lineage path that does
+not exist yet, doctor checks the nearest existing parent directory and creates
+nothing.
+
 ## Non-goals
 
 The CLI does not install or update coding agents, manage provider credentials,

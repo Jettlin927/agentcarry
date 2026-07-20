@@ -23,6 +23,7 @@ export interface ContinueOptions {
 export interface CommandSuccess {
   readonly ok: true;
   readonly data: unknown;
+  readonly human?: string;
 }
 
 export interface CommandFailure {
@@ -47,9 +48,9 @@ export interface CliIo {
   readonly stderr: { write(value: string): void };
 }
 
-const version = "0.0.0-development";
+export const agentCarryVersion = "0.0.0-development";
 
-const help = `AgentCarry ${version}
+const help = `AgentCarry ${agentCarryVersion}
 
 Continue coding tasks across agents with evidence and explicit loss.
 
@@ -176,7 +177,9 @@ function jsonEnvelope(command: string | undefined, result: CommandResult): strin
   return `${JSON.stringify({
     schemaVersion: "1.0.0",
     command: command ?? null,
-    ...result
+    ...(result.ok
+      ? { ok: true, data: result.data }
+      : result)
   })}\n`;
 }
 
@@ -192,7 +195,7 @@ function writeResult(
       io.stderr.write(`${result.code}: ${result.message}\n`);
     }
   } else if (result.ok) {
-    io.stdout.write(`${typeof result.data === "string" ? result.data : JSON.stringify(result.data, null, 2)}\n`);
+    io.stdout.write(`${result.human ?? (typeof result.data === "string" ? result.data : JSON.stringify(result.data, null, 2))}\n`);
   } else {
     io.stderr.write(`${result.code}: ${result.message}\n`);
   }
@@ -215,13 +218,13 @@ export async function runCli(
       );
     }
     if (parsed.version) {
-      const result = success({ version });
+      const result = success({ version: agentCarryVersion });
       return parsed.json
         ? writeResult(io, parsed.command, result, true)
-        : (io.stdout.write(`${version}\n`), ExitCode.success);
+        : (io.stdout.write(`${agentCarryVersion}\n`), ExitCode.success);
     }
     if (parsed.help || parsed.command === undefined) {
-      const result = success({ help, version });
+      const result = success({ help, version: agentCarryVersion });
       return parsed.json
         ? writeResult(io, parsed.command, result, true)
         : (io.stdout.write(help), ExitCode.success);
