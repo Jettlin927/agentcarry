@@ -74,6 +74,9 @@ See [Product boundary](docs/decisions/0001-product-boundary.md) and
 
 Full scope and release gates: [Roadmap](docs/roadmap.md).
 
+The stable command envelope and exit codes are documented in the
+[CLI contract](docs/cli-contract.md).
+
 ## Work Capsule
 
 The schema is versioned independently from the CLI. Capsule v1 includes:
@@ -126,4 +129,3 @@ surface. An adapter must ship with version metadata and sanitized fixtures. See
 Apache-2.0. The CLI, official adapters, capsule schema, benchmark fixtures,
 scorer, results, lineage format, and repository Skill are all intended to remain
 open source.
-
