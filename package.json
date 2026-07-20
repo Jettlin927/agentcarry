@@ -5,11 +5,26 @@
   "type": "module",
   "private": true,
   "license": "Apache-2.0",
+  "bin": {
+    "agentcarry": "dist/cli-main.js"
+  },
+  "files": [
+    "dist/",
+    "schema/",
+    "docs/",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE",
+    "SECURITY.md",
+    "PRIVACY.md"
+  ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "check": "npm run typecheck && npm test && npm run build",
     "test": "vitest run",
     "benchmark:validate": "tsx scripts/validate-benchmark.ts benchmark/fixtures",
     "benchmark:score": "tsx scripts/score-benchmark.ts",

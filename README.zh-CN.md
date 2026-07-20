@@ -57,6 +57,8 @@ AgentCarry 不安装 Agent、不管理认证、不替用户切换模型或权限
 
 版本门槛见[路线图](docs/roadmap.md)。
 
+稳定 JSON envelope、退出码与 dry-run 不启动保证见 [CLI 契约](docs/cli-contract.md)。
+
 ## Work Capsule
 
 Work Capsule 不是另一种完整 transcript 格式。它只携带续作必需的状态：当前用户消息、目标、约束、决策、失败路径、已完成、待办、文件与 Git 状态、执行过的命令、验证结果、开放问题、证据引用、损失和 lineage。
@@ -87,4 +89,3 @@ Phase 0 使用 12 个受控任务，对每个任务比较三种交接：
 ## 开源范围
 
 CLI、官方 adapter、Capsule schema、benchmark fixture/scorer/results、lineage 格式和仓库 Skill 全部采用 Apache-2.0 开源，不保留未来闭源的核心模块。
-
