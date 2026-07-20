@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "debug-minimal",
+  "title": "Do not repeat the rejected cache hypothesis",
+  "archetype": "debugging",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      {
+        "id": "event-user-1",
+        "kind": "user-message",
+        "text": "Fix the stale total without changing the public API."
+      },
+      {
+        "id": "event-tool-1",
+        "kind": "tool-result",
+        "text": "The cache is disabled and the stale total still reproduces."
+      },
+      {
+        "id": "event-assistant-1",
+        "kind": "assistant-message",
+        "text": "The parser drops adjustment rows; the next step is a focused parser test."
+      }
+    ]
+  },
+  "workspace": {
+    "root": "C:\\Users\\dev\\示例项目",
+    "files": [
+      {
+        "path": "src/parser.ts",
+        "state": "modified"
+      }
+    ],
+    "git": {
+      "branch": "fix/stale-total",
+      "head": "0123456789abcdef",
+      "dirty": true
+    }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      {
+        "id": "truth-constraint-1",
+        "text": "Do not change the public API.",
+        "evidenceRefs": ["event-user-1"],
+        "critical": true
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "id": "truth-objective-1",
+        "text": "Fix the stale total; the bug still reproduces.",
+        "evidenceRefs": ["event-user-1", "event-tool-1"]
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "id": "truth-failure-1",
+        "text": "Do not retry the cache hypothesis because disabling it did not fix the bug.",
+        "evidenceRefs": ["event-tool-1"]
+      }
+    ],
+    "completedAndPending": [
+      {
+        "id": "truth-pending-1",
+        "text": "A focused parser regression test is still pending.",
+        "evidenceRefs": ["event-assistant-1"]
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "id": "truth-workspace-1",
+        "text": "src/parser.ts is modified on fix/stale-total.",
+        "evidenceRefs": ["event-assistant-1"]
+      }
+    ],
+    "nextAction": {
+      "id": "truth-next-1",
+      "text": "Write a focused regression test for dropped adjustment rows.",
+      "evidenceRefs": ["event-assistant-1"]
+    }
+  },
+  "sanitization": {
+    "synthetic": true,
+    "humanReviewed": true,
+    "checkedAt": "2026-07-21T00:00:00Z"
+  }
+}
+

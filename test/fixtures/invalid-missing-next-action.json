@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "invalid-missing-next",
+  "title": "Invalid fixture",
+  "archetype": "debugging",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "event-1", "kind": "user-message", "text": "Do the work." },
+      { "id": "event-2", "kind": "assistant-message", "text": "Work started." }
+    ]
+  },
+  "workspace": {
+    "root": "/Users/dev/example",
+    "files": [],
+    "git": { "branch": "main", "head": "abc", "dirty": false }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "fact-1", "text": "Keep the interface.", "evidenceRefs": ["event-1"] }
+    ],
+    "objectiveAndState": [
+      { "id": "fact-2", "text": "Work started.", "evidenceRefs": ["event-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "fact-3", "text": "No failed path yet.", "evidenceRefs": ["event-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "fact-4", "text": "Implementation is pending.", "evidenceRefs": ["event-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "fact-5", "text": "Workspace is clean.", "evidenceRefs": ["event-2"] }
+    ]
+  },
+  "sanitization": {
+    "synthetic": true,
+    "humanReviewed": true,
+    "checkedAt": "2026-07-21T00:00:00Z"
+  }
+}
+
