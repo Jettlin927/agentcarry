@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "architecture-01-streaming-log",
+  "title": "Continue a bounded-memory event-log reader decision",
+  "archetype": "architecture-performance",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "a01-user-1", "kind": "user-message", "text": "Read multi-gigabyte JSONL logs with peak memory below 100 MiB and preserve event order." },
+      { "id": "a01-assistant-1", "kind": "assistant-message", "text": "The existing readFile plus split implementation peaks above 2 GiB." },
+      { "id": "a01-tool-1", "kind": "tool-result", "text": "A SQLite import prototype takes 48 seconds before the first event is available." },
+      { "id": "a01-user-2", "kind": "user-message", "text": "Reject pre-indexing for the first read. Use streaming lines and allow an optional later index." },
+      { "id": "a01-assistant-2", "kind": "assistant-message", "text": "src/log/stream-events.ts yields ordered events and stays at 42 MiB on the sample; malformed-line recovery is implemented." },
+      { "id": "a01-tool-2", "kind": "tool-result", "text": "Throughput meets the target, but the slow-consumer backpressure test hangs." }
+    ]
+  },
+  "workspace": {
+    "root": "/home/dev/event-reader",
+    "files": [
+      { "path": "src/log/stream-events.ts", "state": "created" },
+      { "path": "src/log/read-events.ts", "state": "modified" },
+      { "path": "test/backpressure.test.ts", "state": "created" }
+    ],
+    "git": { "branch": "perf/stream-jsonl", "head": "a0100001", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "a01-constraint-memory", "text": "Peak memory must remain below 100 MiB.", "evidenceRefs": ["a01-user-1"], "critical": true },
+      { "id": "a01-constraint-order", "text": "Preserve source event order.", "evidenceRefs": ["a01-user-1"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "a01-objective", "text": "Replace whole-file JSONL loading with an ordered bounded-memory stream; backpressure is still broken.", "evidenceRefs": ["a01-assistant-1", "a01-assistant-2", "a01-tool-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "a01-failed-sqlite", "text": "Mandatory SQLite pre-indexing was rejected because time-to-first-event was 48 seconds.", "evidenceRefs": ["a01-tool-1", "a01-user-2"] },
+      { "id": "a01-decision-stream", "text": "Stream lines on first read; a later index may remain optional.", "evidenceRefs": ["a01-user-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "a01-progress", "text": "Ordered parsing, memory target, throughput, and malformed recovery pass; slow-consumer backpressure hangs.", "evidenceRefs": ["a01-assistant-2", "a01-tool-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "a01-workspace", "text": "The streaming reader and backpressure test are new; the old reader is modified.", "evidenceRefs": ["a01-assistant-2", "a01-tool-2"] }
+    ],
+    "nextAction": { "id": "a01-next", "text": "Diagnose and fix the hanging slow-consumer backpressure test without buffering the full log.", "evidenceRefs": ["a01-tool-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "debugging-01-invoice-total",
+  "title": "Continue after rejecting the invoice cache hypothesis",
+  "archetype": "debugging",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "d01-user-1", "kind": "user-message", "text": "Fix stale invoice totals without changing the public API; currency values must remain decimal strings." },
+      { "id": "d01-assistant-1", "kind": "assistant-message", "text": "The first hypothesis is a stale total cache in InvoiceService." },
+      { "id": "d01-tool-1", "kind": "tool-result", "text": "Disabling the cache does not change the failing total test." },
+      { "id": "d01-tool-2", "kind": "tool-result", "text": "The parser drops negative adjustment rows before aggregation." },
+      { "id": "d01-assistant-2", "kind": "assistant-message", "text": "src/invoice/parser.ts now retains negative adjustments; the focused regression test is not written yet." },
+      { "id": "d01-user-2", "kind": "user-message", "text": "Do not retry the cache path; prove the parser fix with a regression test next." }
+    ]
+  },
+  "workspace": {
+    "root": "C:\\Users\\dev\\账单 示例",
+    "files": [
+      { "path": "src/invoice/parser.ts", "state": "modified" },
+      { "path": "test/invoice-total.test.ts", "state": "unchanged" }
+    ],
+    "git": { "branch": "fix/invoice-total", "head": "d0100001", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "d01-constraint-api", "text": "Keep the public API unchanged.", "evidenceRefs": ["d01-user-1"], "critical": true },
+      { "id": "d01-constraint-currency", "text": "Keep currency values as decimal strings.", "evidenceRefs": ["d01-user-1"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "d01-objective", "text": "Fix stale invoice totals; the parser change is present but unverified.", "evidenceRefs": ["d01-user-1", "d01-assistant-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "d01-failed-cache", "text": "The cache hypothesis was rejected because disabling it did not fix the test.", "evidenceRefs": ["d01-tool-1", "d01-user-2"] },
+      { "id": "d01-decision-parser", "text": "Negative adjustment rows are the identified cause.", "evidenceRefs": ["d01-tool-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "d01-progress", "text": "Parser retention is implemented; the focused regression test remains pending.", "evidenceRefs": ["d01-assistant-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "d01-workspace", "text": "src/invoice/parser.ts is modified on fix/invoice-total.", "evidenceRefs": ["d01-assistant-2"] }
+    ],
+    "nextAction": { "id": "d01-next", "text": "Write and run the focused negative-adjustment regression test.", "evidenceRefs": ["d01-user-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "feature-01-pagination",
+  "title": "Continue a half-complete cursor pagination feature",
+  "archetype": "half-complete-feature",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "f01-user-1", "kind": "user-message", "text": "Add cursor pagination without breaking the existing single-page list method. Do not prefetch pages." },
+      { "id": "f01-assistant-1", "kind": "assistant-message", "text": "The response parser now returns items plus nextCursor, and list() still returns only the first page." },
+      { "id": "f01-tool-1", "kind": "tool-result", "text": "Parser and backward-compatibility tests pass." },
+      { "id": "f01-assistant-2", "kind": "assistant-message", "text": "An eager collectAll() helper was drafted and deleted because it prefetched every page." },
+      { "id": "f01-user-2", "kind": "user-message", "text": "Expose an async iterator named pages(); each next() should fetch exactly one page." },
+      { "id": "f01-tool-2", "kind": "tool-result", "text": "src/client.ts and src/response.ts are modified; no pages() implementation or iterator test exists." }
+    ]
+  },
+  "workspace": {
+    "root": "/home/dev/paged-client",
+    "files": [
+      { "path": "src/client.ts", "state": "modified" },
+      { "path": "src/response.ts", "state": "modified" },
+      { "path": "test/pages.test.ts", "state": "unchanged" }
+    ],
+    "git": { "branch": "feature/cursor-pages", "head": "f0100001", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "f01-constraint-compat", "text": "Keep the existing single-page list method compatible.", "evidenceRefs": ["f01-user-1"], "critical": true },
+      { "id": "f01-constraint-prefetch", "text": "Do not prefetch pages; one iterator step fetches one page.", "evidenceRefs": ["f01-user-1", "f01-user-2"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "f01-objective", "text": "Add cursor pagination; response parsing is done and the async iterator is missing.", "evidenceRefs": ["f01-assistant-1", "f01-tool-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "f01-failed-eager", "text": "Eager collectAll was deleted because it violated the no-prefetch constraint.", "evidenceRefs": ["f01-assistant-2"] },
+      { "id": "f01-decision-iterator", "text": "The new interface is an async iterator named pages().", "evidenceRefs": ["f01-user-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "f01-progress", "text": "Cursor parsing and list compatibility pass; pages() and its tests remain pending.", "evidenceRefs": ["f01-tool-1", "f01-tool-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "f01-workspace", "text": "client.ts and response.ts are modified; pages.test.ts is unchanged.", "evidenceRefs": ["f01-tool-2"] }
+    ],
+    "nextAction": { "id": "f01-next", "text": "Write the one-page-per-next iterator test, then implement pages().", "evidenceRefs": ["f01-user-2", "f01-tool-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+

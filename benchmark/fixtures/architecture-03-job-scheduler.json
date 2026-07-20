@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "architecture-03-job-scheduler",
+  "title": "Continue a bounded-concurrency scheduler design",
+  "archetype": "architecture-performance",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "a03-user-1", "kind": "user-message", "text": "Schedule jobs with FIFO start order, maximum concurrency four, and cancellation before a queued job starts." },
+      { "id": "a03-assistant-1", "kind": "assistant-message", "text": "A 250 ms polling loop was prototyped to look for free slots." },
+      { "id": "a03-tool-1", "kind": "tool-result", "text": "Polling adds 247 ms median start latency and makes fake-timer tests flaky." },
+      { "id": "a03-user-2", "kind": "user-message", "text": "Reject polling. Release the next FIFO waiter directly when a running job finishes." },
+      { "id": "a03-assistant-2", "kind": "assistant-message", "text": "The semaphore queue starts at most four jobs and preserves FIFO in the normal test." },
+      { "id": "a03-tool-2", "kind": "tool-result", "text": "Cancelling the second queued job still starts it after the first running job releases a slot." }
+    ]
+  },
+  "workspace": {
+    "root": "/Users/dev/Scheduler Lab",
+    "files": [
+      { "path": "src/scheduler.ts", "state": "modified" },
+      { "path": "test/scheduler-fifo.test.ts", "state": "created" },
+      { "path": "test/scheduler-cancel.test.ts", "state": "created" }
+    ],
+    "git": { "branch": "architecture/bounded-scheduler", "head": "a0300003", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "a03-constraint-limit", "text": "Never run more than four jobs concurrently.", "evidenceRefs": ["a03-user-1"], "critical": true },
+      { "id": "a03-constraint-order", "text": "Preserve FIFO start order among non-cancelled jobs.", "evidenceRefs": ["a03-user-1"], "critical": true },
+      { "id": "a03-constraint-cancel", "text": "A queued job can be cancelled before it starts.", "evidenceRefs": ["a03-user-1"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "a03-objective", "text": "Implement a bounded FIFO scheduler; concurrency and normal FIFO pass, queued cancellation fails.", "evidenceRefs": ["a03-assistant-2", "a03-tool-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "a03-failed-polling", "text": "Polling was rejected because of start latency and flaky timing tests.", "evidenceRefs": ["a03-assistant-1", "a03-tool-1", "a03-user-2"] },
+      { "id": "a03-decision-release", "text": "A completed job directly releases the next FIFO waiter.", "evidenceRefs": ["a03-user-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "a03-progress", "text": "Semaphore concurrency and normal FIFO pass; cancelled waiters are not removed correctly.", "evidenceRefs": ["a03-assistant-2", "a03-tool-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "a03-workspace", "text": "scheduler.ts is modified and separate FIFO and cancellation tests are new.", "evidenceRefs": ["a03-assistant-2", "a03-tool-2"] }
+    ],
+    "nextAction": { "id": "a03-next", "text": "Fix queued-waiter removal so cancellation test passes without weakening FIFO or concurrency four.", "evidenceRefs": ["a03-tool-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+

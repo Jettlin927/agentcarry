@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "feature-02-deploy-dry-run",
+  "title": "Continue a deployment dry-run that must have zero side effects",
+  "archetype": "half-complete-feature",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "f02-user-1", "kind": "user-message", "text": "Add deploy --dry-run. It must make no network requests and write no files, while showing the exact planned operations." },
+      { "id": "f02-assistant-1", "kind": "assistant-message", "text": "Planning is separated from execution and the human plan renderer is complete." },
+      { "id": "f02-tool-1", "kind": "tool-result", "text": "The side-effect test fails because dry-run still creates a temporary bundle directory." },
+      { "id": "f02-assistant-2", "kind": "assistant-message", "text": "Mocking the filesystem in the CLI test hid the write and was reverted." },
+      { "id": "f02-tool-2", "kind": "tool-result", "text": "Bundle preparation now returns planned paths without creating them; the focused unit test passes." },
+      { "id": "f02-user-2", "kind": "user-message", "text": "Wire --dry-run into the CLI next and assert the executor is never constructed." }
+    ]
+  },
+  "workspace": {
+    "root": "C:\\Users\\dev\\Deploy Demo",
+    "files": [
+      { "path": "src/deploy/plan.ts", "state": "created" },
+      { "path": "src/deploy/bundle.ts", "state": "modified" },
+      { "path": "src/cli/deploy.ts", "state": "unchanged" }
+    ],
+    "git": { "branch": "feature/deploy-dry-run", "head": "f0200002", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "f02-constraint-network", "text": "Dry-run makes no network requests.", "evidenceRefs": ["f02-user-1"], "critical": true },
+      { "id": "f02-constraint-files", "text": "Dry-run writes no files or directories.", "evidenceRefs": ["f02-user-1"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "f02-objective", "text": "Add deploy --dry-run; planning and side-effect-free bundle preparation exist, CLI wiring does not.", "evidenceRefs": ["f02-assistant-1", "f02-tool-2", "f02-user-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "f02-failed-mock", "text": "Filesystem mocking in the CLI test was rejected because it hid real writes.", "evidenceRefs": ["f02-assistant-2"] },
+      { "id": "f02-decision-plan", "text": "Planning must be pure and separate from executor construction.", "evidenceRefs": ["f02-assistant-1", "f02-user-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "f02-progress", "text": "Plan rendering and pure bundle preparation pass; CLI flag wiring and executor-construction assertion remain.", "evidenceRefs": ["f02-tool-2", "f02-user-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "f02-workspace", "text": "plan.ts is new, bundle.ts is modified, and cli/deploy.ts is unchanged.", "evidenceRefs": ["f02-tool-2", "f02-user-2"] }
+    ],
+    "nextAction": { "id": "f02-next", "text": "Add the CLI dry-run test that proves the executor is never constructed, then wire the flag.", "evidenceRefs": ["f02-user-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+

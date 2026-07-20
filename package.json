@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "benchmark:validate": "tsx scripts/validate-benchmark.ts benchmark/examples"
+    "benchmark:validate": "tsx scripts/validate-benchmark.ts benchmark/fixtures"
   },
   "dependencies": {
     "ajv": "^8.20.0"

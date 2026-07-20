@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "refactor-02-cli-renderers",
+  "title": "Continue splitting human and JSON CLI renderers",
+  "archetype": "multi-file-refactor",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "r02-user-1", "kind": "user-message", "text": "Separate CLI rendering from command logic. Existing human output must stay compatible; JSON mode must write JSON only to stdout." },
+      { "id": "r02-assistant-1", "kind": "assistant-message", "text": "Command handlers now return result objects and the text renderer reproduces existing snapshots." },
+      { "id": "r02-tool-1", "kind": "tool-result", "text": "The JSON snapshot contains ANSI color codes and one diagnostic line before the JSON document." },
+      { "id": "r02-assistant-2", "kind": "assistant-message", "text": "A global no-color flag fixed the snapshot but broke human color output, so that change was reverted." },
+      { "id": "r02-user-2", "kind": "user-message", "text": "Renderers own formatting. Diagnostics go to stderr; do not special-case commands." },
+      { "id": "r02-tool-2", "kind": "tool-result", "text": "src/cli/commands.ts and src/cli/text-renderer.ts are modified; json-renderer.ts exists but has no diagnostic routing test." }
+    ]
+  },
+  "workspace": {
+    "root": "C:\\Users\\dev\\CLI 工具",
+    "files": [
+      { "path": "src/cli/commands.ts", "state": "modified" },
+      { "path": "src/cli/text-renderer.ts", "state": "created" },
+      { "path": "src/cli/json-renderer.ts", "state": "created" }
+    ],
+    "git": { "branch": "refactor/cli-renderers", "head": "r0200002", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "r02-constraint-human", "text": "Preserve existing human-readable output.", "evidenceRefs": ["r02-user-1"], "critical": true },
+      { "id": "r02-constraint-json", "text": "JSON mode writes JSON only to stdout and diagnostics to stderr.", "evidenceRefs": ["r02-user-1", "r02-user-2"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "r02-objective", "text": "Separate command results from rendering; text mode passes while JSON diagnostic routing is incomplete.", "evidenceRefs": ["r02-assistant-1", "r02-tool-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "r02-failed-global-color", "text": "A global no-color flag was reverted because it broke human output.", "evidenceRefs": ["r02-assistant-2"] },
+      { "id": "r02-decision-renderers", "text": "Formatting belongs in renderers, with no command-specific branches.", "evidenceRefs": ["r02-user-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "r02-progress", "text": "Result-returning handlers and text snapshots are complete; JSON stderr routing still needs a test and fix.", "evidenceRefs": ["r02-assistant-1", "r02-tool-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "r02-workspace", "text": "commands.ts is modified and both renderer files are new.", "evidenceRefs": ["r02-tool-2"] }
+    ],
+    "nextAction": { "id": "r02-next", "text": "Add the JSON diagnostic-routing test, then remove ANSI and diagnostic text from stdout in the JSON renderer path.", "evidenceRefs": ["r02-tool-1", "r02-user-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+

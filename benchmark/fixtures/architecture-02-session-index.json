@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "architecture-02-session-index",
+  "title": "Continue an offline session-index storage decision",
+  "archetype": "architecture-performance",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "a02-user-1", "kind": "user-message", "text": "Design a local session index that works offline on Windows, macOS, and Linux with no native dependency." },
+      { "id": "a02-assistant-1", "kind": "assistant-message", "text": "SQLite gives good queries, but the chosen driver requires native binaries on Windows." },
+      { "id": "a02-tool-1", "kind": "tool-result", "text": "The clean Windows install fails while compiling the SQLite binding." },
+      { "id": "a02-user-2", "kind": "user-message", "text": "Use append-only JSONL plus an in-memory index until measured startup exceeds two seconds at 10,000 sessions." },
+      { "id": "a02-assistant-2", "kind": "assistant-message", "text": "Append and startup loading are implemented in src/index/jsonl-store.ts; 10,000 synthetic sessions load in 640 ms." },
+      { "id": "a02-tool-2", "kind": "tool-result", "text": "Update churn grows the file indefinitely; compaction and crash-safe replacement are not implemented." }
+    ]
+  },
+  "workspace": {
+    "root": "C:\\Users\\dev\\Session Index",
+    "files": [
+      { "path": "src/index/jsonl-store.ts", "state": "created" },
+      { "path": "test/index-startup.test.ts", "state": "created" },
+      { "path": "src/index/compact.ts", "state": "unchanged" }
+    ],
+    "git": { "branch": "architecture/session-index", "head": "a0200002", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "a02-constraint-offline", "text": "The index must work fully offline.", "evidenceRefs": ["a02-user-1"], "critical": true },
+      { "id": "a02-constraint-native", "text": "Do not require native dependencies on supported platforms.", "evidenceRefs": ["a02-user-1"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "a02-objective", "text": "Provide a portable local session index; JSONL meets startup goals, compaction is missing.", "evidenceRefs": ["a02-user-2", "a02-assistant-2", "a02-tool-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "a02-failed-sqlite", "text": "The SQLite driver was rejected after a clean Windows native build failure.", "evidenceRefs": ["a02-assistant-1", "a02-tool-1"] },
+      { "id": "a02-decision-jsonl", "text": "Use append-only JSONL until 10,000-session startup exceeds two seconds.", "evidenceRefs": ["a02-user-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "a02-progress", "text": "Append and startup loading meet the measured threshold; crash-safe compaction remains pending.", "evidenceRefs": ["a02-assistant-2", "a02-tool-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "a02-workspace", "text": "jsonl-store.ts and its startup test are new; compact.ts is absent.", "evidenceRefs": ["a02-assistant-2", "a02-tool-2"] }
+    ],
+    "nextAction": { "id": "a02-next", "text": "Design a crash-safe compaction test before implementing atomic JSONL replacement.", "evidenceRefs": ["a02-tool-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+

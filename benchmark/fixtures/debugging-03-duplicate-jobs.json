@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "debugging-03-duplicate-jobs",
+  "title": "Continue a duplicate background-job investigation",
+  "archetype": "debugging",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "d03-user-1", "kind": "user-message", "text": "Stop duplicate invoice jobs while preserving the queue schema and at-most-once side effects." },
+      { "id": "d03-assistant-1", "kind": "assistant-message", "text": "The initial hypothesis is that the broker delivers the same message twice after a network retry." },
+      { "id": "d03-tool-1", "kind": "tool-result", "text": "Broker logs show one delivery; the worker starts the same leased job twice." },
+      { "id": "d03-tool-2", "kind": "tool-result", "text": "A slow clock test expires the lease before the first handler stores its started marker." },
+      { "id": "d03-assistant-2", "kind": "assistant-message", "text": "src/worker/lease.ts now stores the marker before handler dispatch; the deterministic fake-clock test is still missing." },
+      { "id": "d03-user-2", "kind": "user-message", "text": "Do not change queue payloads. Add the fake-clock regression before touching retry policy." }
+    ]
+  },
+  "workspace": {
+    "root": "/home/dev/invoice-worker",
+    "files": [
+      { "path": "src/worker/lease.ts", "state": "modified" },
+      { "path": "test/lease-race.test.ts", "state": "unchanged" }
+    ],
+    "git": { "branch": "fix/lease-race", "head": "d0300003", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "d03-constraint-schema", "text": "Preserve the queue schema and payloads.", "evidenceRefs": ["d03-user-1", "d03-user-2"], "critical": true },
+      { "id": "d03-constraint-effects", "text": "Side effects must remain at-most-once.", "evidenceRefs": ["d03-user-1"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "d03-objective", "text": "Stop duplicate jobs; a lease-ordering fix is present but lacks its deterministic regression.", "evidenceRefs": ["d03-user-1", "d03-assistant-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "d03-failed-broker", "text": "Duplicate broker delivery was rejected because logs show only one delivery.", "evidenceRefs": ["d03-assistant-1", "d03-tool-1"] },
+      { "id": "d03-decision-lease", "text": "Persist the started marker before handler dispatch.", "evidenceRefs": ["d03-tool-2", "d03-assistant-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "d03-progress", "text": "Lease ordering is changed; the fake-clock regression remains pending.", "evidenceRefs": ["d03-assistant-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "d03-workspace", "text": "src/worker/lease.ts is the dirty implementation file.", "evidenceRefs": ["d03-assistant-2"] }
+    ],
+    "nextAction": { "id": "d03-next", "text": "Add and run a deterministic fake-clock regression for early lease expiry.", "evidenceRefs": ["d03-user-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+

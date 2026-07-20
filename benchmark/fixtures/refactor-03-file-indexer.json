@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "refactor-03-file-indexer",
+  "title": "Continue extracting a cross-platform file indexer",
+  "archetype": "multi-file-refactor",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "r03-user-1", "kind": "user-message", "text": "Extract file indexing behind one interface; keep Windows, macOS, and Linux behavior and never load every file into memory." },
+      { "id": "r03-assistant-1", "kind": "assistant-message", "text": "Directory traversal and streamed hashing moved into src/indexer/local-indexer.ts." },
+      { "id": "r03-tool-1", "kind": "tool-result", "text": "The first recursive implementation follows a fixture symlink forever." },
+      { "id": "r03-assistant-2", "kind": "assistant-message", "text": "Resolving every path through realpath was tried and reverted because it changed reported paths on Windows junctions." },
+      { "id": "r03-tool-2", "kind": "tool-result", "text": "Tracking visited directory identities stops the loop and keeps presented paths; unit tests pass." },
+      { "id": "r03-user-2", "kind": "user-message", "text": "The remaining work is .ignore-file support. Keep ignore parsing inside the local indexer." }
+    ]
+  },
+  "workspace": {
+    "root": "/Users/dev/Indexer Sample",
+    "files": [
+      { "path": "src/indexer/index.ts", "state": "modified" },
+      { "path": "src/indexer/local-indexer.ts", "state": "created" },
+      { "path": "test/indexer-symlink.test.ts", "state": "created" }
+    ],
+    "git": { "branch": "refactor/local-indexer", "head": "r0300003", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "r03-constraint-platforms", "text": "Preserve Windows, macOS, and Linux behavior.", "evidenceRefs": ["r03-user-1"], "critical": true },
+      { "id": "r03-constraint-streaming", "text": "Do not load all file contents into memory.", "evidenceRefs": ["r03-user-1"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "r03-objective", "text": "Extract local indexing behind one interface; traversal, hashing, and cycle handling are done, ignore parsing is not.", "evidenceRefs": ["r03-assistant-1", "r03-tool-2", "r03-user-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "r03-failed-realpath", "text": "Rewriting every presented path through realpath was rejected because it changed Windows junction paths.", "evidenceRefs": ["r03-assistant-2"] },
+      { "id": "r03-decision-identity", "text": "Use visited directory identity only for cycle detection.", "evidenceRefs": ["r03-tool-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "r03-progress", "text": "Streaming traversal and symlink-cycle handling pass; ignore-file support remains pending.", "evidenceRefs": ["r03-tool-2", "r03-user-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "r03-workspace", "text": "The local indexer and symlink regression are new; the index interface is modified.", "evidenceRefs": ["r03-assistant-1", "r03-tool-2"] }
+    ],
+    "nextAction": { "id": "r03-next", "text": "Implement and test ignore-file parsing inside local-indexer.ts.", "evidenceRefs": ["r03-user-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+
