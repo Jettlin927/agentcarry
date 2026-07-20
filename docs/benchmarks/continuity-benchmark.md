@@ -92,3 +92,21 @@ npm run --silent benchmark:score -- <fixture.json> <assessment.json> --format ma
 - capsule input uses no more than 40% of baseline tokens.
 
 Results must be published even if a gate fails.
+
+## Aggregate report integrity
+
+The final report consumes exactly 36 human-reviewed initial score reports: one
+for every fixture and mode. It rejects missing or duplicate pairs and mixed
+target agents, models, or settings. Capsule gates compare every fixture with its
+visible baseline; a better mean cannot hide a regression on one fixture.
+
+Reruns are disclosed separately and never replace an initial score:
+
+```shell
+npm run --silent benchmark:report -- <result-set.json> --format markdown
+npm run --silent benchmark:report -- <result-set.json> --format json
+```
+
+The report prints PASS or FAIL for fidelity, critical constraints, correct next
+action, repeated failed paths, unsupported claims, token ratio, each capsule
+mode, and the overall Phase 0 gate.
