@@ -33,7 +33,7 @@ describe("read-only doctor diagnostics", () => {
       agent: "codex",
       discover: vi.fn(async () => [discoveredSession]),
       select: vi.fn(),
-      events: vi.fn()
+      capture: vi.fn()
     };
     const runCommand: CommandRunner = vi.fn(async () => ({
       exitCode: 0,
@@ -99,7 +99,7 @@ describe("read-only doctor diagnostics", () => {
       agent: "codex",
       discover: vi.fn(async () => []),
       select: vi.fn(),
-      events: vi.fn()
+      capture: vi.fn()
     };
     const report = await diagnoseDoctor({
       codexReader: reader,

@@ -8,6 +8,9 @@ receipt. Losses describe transfer limitations; they are not generic log messages
 These stop before a schema-valid Capsule exists and cannot be overridden:
 
 - selected source has no complete current user message;
+- an active checkpoint is invalid or its current user message differs from the
+  last complete native user event;
+- a native source prefix changes in place between verification passes;
 - evidence IDs collide or the source parser cannot establish event identity;
 - cwd/workspace collection cannot establish required fields;
 - the resulting Capsule fails its public JSON Schema.
@@ -23,12 +26,16 @@ when no complete assistant state is available. The receipt sets
 
 Warnings allow dry-run and, absent critical loss, launch. Current warnings
 include deterministic semantic heuristics, unavailable attachment transfer,
-secret redaction, and an explicit one-shot sensitive-value allowance.
+secret redaction, an explicit one-shot sensitive-value allowance, and the fact
+that an active checkpoint is source-agent-authored rather than independently
+verified.
 
 ## Information
 
 Information records expected non-portable state such as hidden reasoning, prompt
-caches, and native tool state.
+caches, and native tool state. Active capture also records append activity and
+the exclusion of partial native assistant output or an incomplete trailing
+event.
 
 ## Evidence and freshness
 

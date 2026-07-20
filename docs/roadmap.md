@@ -20,6 +20,8 @@ Exit criteria:
 
 - end-to-end dry-run and interactive launch;
 - source session remains byte-for-byte unchanged;
+- a current active task can supply one explicit stdin checkpoint after a
+  verified native snapshot, without screenshots, clipboard, or transcript files;
 - critical constraints score 100% in the benchmark;
 - capsule fidelity is no worse than the visible-transcript baseline;
 - secret redaction, fail-closed behavior, dry-run, and large/live JSONL tests;
@@ -64,4 +66,3 @@ Exit criteria:
 - real-time peer messaging or general workflow orchestration;
 - remote-control UI;
 - PNG sharing cards.
-

@@ -9,22 +9,49 @@ Use the installed `agentcarry` CLI. Do not install AgentCarry, install or update
 another coding agent, manage credentials, start a login flow, or change the
 target's model, provider, permissions, tools, skills, or MCP configuration.
 
-## Mandatory current-task guard
+## Mandatory current-task route
 
-Apply this before running any command. If the request refers to the current,
-active, ongoing, still-running, or just-finished-in-this-turn task, stop without
-running `doctor` or automatic session selection. Explain that this version
-cannot capture the active turn safely and could select an older idle session in
-the same workspace. Report
-[issue #29](https://github.com/Jettlin927/agentcarry/issues/29). Do not work
-around it with screenshots, clipboard, transcript uploads, or a guessed session.
+Apply this before automatic session selection. If the request refers to the
+current, active, ongoing, still-running, or just-finished-in-this-turn task, use
+the active checkpoint protocol below. Never omit `--active`, silently select an
+older idle session, or put checkpoint content in the shell command, clipboard,
+a screenshot, an upload, or a temporary transcript file.
+
+## Active checkpoint protocol
+
+1. Copy the visible current user message exactly; AgentCarry normalizes only its
+   terminal line ending for binding and retains the native text verbatim. Write a concise
+   `assistantCheckpoint` containing only explicit completed work, decisions,
+   failed paths, pending work, and the exact next action. Do not include hidden
+   reasoning or claim that partial native output is complete.
+2. Run `agentcarry doctor --json` and apply the prerequisite checks below.
+3. Start this one CLI command through an execution tool that supports sending
+   stdin to a running process:
+
+   ```text
+   agentcarry continue --to <target> --active --checkpoint-stdin --dry-run --json
+   ```
+
+   Add `--session <id>` only when the current session ID is known. Active mode
+   selects only a unique active main session in the current workspace and never
+   falls back to idle history.
+4. Wait for `CHECKPOINT_STDIN_READY` on stderr. Then send exactly one UTF-8 JSON
+   line on the process stdin using this schema:
+
+   ```json
+   {"schemaVersion":"1.0.0","currentUserMessage":"verbatim user message","assistantCheckpoint":"explicit completed checkpoint"}
+   ```
+
+5. If the execution tool cannot provide stdin after process start, stop and
+   report that prerequisite. Do not fall back to command-line JSON, a pipe that
+   embeds JSON in the recorded command, clipboard, screenshots, or uploads.
 
 ## Prepare a handoff
 
 1. Identify the requested source, target, workspace, and explicit session ID if
    supplied. Do not silently choose a different target.
    - Use target ID `claude` for Claude Code.
-2. Run `agentcarry doctor --json`.
+2. Run `agentcarry doctor --json` unless already run for the active protocol.
 3. Stop and report the exact missing prerequisite when:
    - AgentCarry is not executable;
    - the target CLI is unavailable;
@@ -46,10 +73,10 @@ around it with screenshots, clipboard, transcript uploads, or a guessed session.
 
 ## Fail closed
 
-- If selection returns `ACTIVE_SESSION`, stop. Explain that this version only
-  transfers confirmed-idle sessions and link to
-  [AgentCarry issue #29](https://github.com/Jettlin927/agentcarry/issues/29).
-  Do not copy a partial active transcript or ask for screenshots/uploads.
+- If active selection is missing or ambiguous, stop and show the candidates.
+  Never retry without `--active` and never fall back to an idle session.
+- If the checkpoint message does not match the last complete native
+  user message, stop and correct the checkpoint; do not use `--force`.
 - If a critical loss stops continuation, show the loss receipt. Never add
   `--force` automatically. Retry once with `--force` only after the user
   explicitly accepts those named critical losses.

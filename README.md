@@ -40,6 +40,7 @@ The intended command is deliberately small:
 ```powershell
 agentcarry continue --to claude
 agentcarry continue --to claude --dry-run
+agentcarry continue --to claude --active --checkpoint-stdin --dry-run --json
 agentcarry inspect --session <id> --json
 agentcarry doctor --json
 ```
@@ -119,6 +120,12 @@ openQuestions, evidenceRefs, losses, lineage
 Critical facts are never silently truncated. Current workspace and Git facts
 win over stale transcript claims and are timestamped. See
 [`work-capsule.v1.schema.json`](schema/work-capsule.v1.schema.json).
+An active source agent submits one explicit completed checkpoint through stdin
+using [`active-checkpoint.v1.schema.json`](schema/active-checkpoint.v1.schema.json).
+AgentCarry first verifies a stable native-session prefix and requires the
+checkpoint's visible current user message to match the last complete native
+message after terminal line-ending normalization. The native message remains
+verbatim; partial assistant output and hidden state are never claimed as moved.
 Fail-closed behavior is defined in [Loss receipt semantics](docs/loss-semantics.md).
 
 ## Benchmark before claims

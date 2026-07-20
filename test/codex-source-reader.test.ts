@@ -75,6 +75,68 @@ describe("CodexSourceReader", () => {
     })).rejects.toMatchObject({ code: "ACTIVE_SESSION" });
   });
 
+  it("selects a unique active session only when active mode is explicit", async () => {
+    const root = await testRoot();
+    const reader = new CodexSourceReader({ sessionRoot: root });
+
+    const selected = await reader.select({
+      cwd: "C:\\Users\\dev\\active\\nested-repository",
+      activity: "active"
+    });
+
+    expect(selected.id).toBe("session-main-active");
+    await expect(reader.select({
+      cwd: "C:\\Users\\dev\\中文 项目",
+      activity: "active"
+    })).rejects.toMatchObject({ code: "NO_SESSION_IN_WORKSPACE" });
+  });
+
+  it("expands the tail scan until it finds the latest activity marker", async () => {
+    const root = await testRoot();
+    const path = join(root, "long-active.jsonl");
+    const padding = Array.from({ length: 1_500 }, (_, index) => ({
+      timestamp: "2026-07-21T00:00:03Z",
+      type: "event_msg",
+      payload: { type: "agent_message", phase: "commentary", message: `Working ${index} ${"x".repeat(256)}` }
+    }));
+    const lines = [
+      { timestamp: "2026-07-21T00:00:00Z", type: "session_meta", payload: { id: "session-long-active", cwd: "/tmp/agentcarry-long-active", cli_version: "test", source: "vscode", thread_source: "user" } },
+      { timestamp: "2026-07-21T00:00:01Z", type: "event_msg", payload: { type: "task_started" } },
+      { timestamp: "2026-07-21T00:00:02Z", type: "event_msg", payload: { type: "user_message", message: "Keep this long task active." } },
+      ...padding
+    ];
+    await writeFile(path, `${lines.map((line) => JSON.stringify(line)).join("\n")}\n`, "utf8");
+    const reader = new CodexSourceReader({ sessionRoot: root });
+
+    const selected = await reader.select({
+      cwd: "/tmp/agentcarry-long-active/child",
+      activity: "active"
+    });
+
+    expect(selected).toMatchObject({ id: "session-long-active", activity: "active" });
+  });
+
+  it("captures an active session as a verified prefix without changing its bytes", async () => {
+    const root = await testRoot();
+    const path = join(root, "main-active.jsonl");
+    const before = await hash(path);
+    const reader = new CodexSourceReader({ sessionRoot: root });
+    const session = await reader.select({
+      cwd: "C:\\Users\\dev\\active",
+      activity: "active"
+    });
+
+    const captured = await reader.capture(session);
+
+    expect(captured.events.at(-1)).not.toMatchObject({ kind: "task-completed" });
+    expect(captured.snapshot).toMatchObject({
+      byteLength: (await stat(path)).size,
+      sha256: before,
+      changedDuringCapture: false
+    });
+    expect(await hash(path)).toBe(before);
+  });
+
   it("rejects explicit subagent and empty session selections", async () => {
     const reader = new CodexSourceReader({ sessionRoot: await testRoot() });
 
@@ -107,10 +169,7 @@ describe("CodexSourceReader", () => {
     const root = await testRoot();
     const reader = new CodexSourceReader({ sessionRoot: root });
     const session = await reader.select({ cwd: "C:\\Users\\dev\\中文 项目" });
-    const events = [];
-    for await (const event of reader.events(session)) {
-      events.push(event);
-    }
+    const events = (await reader.capture(session)).events;
 
     expect(events.map((event) => event.kind)).toEqual([
       "task-started",
@@ -137,12 +196,11 @@ describe("CodexSourceReader", () => {
     const sizeBefore = (await stat(path)).size;
     const reader = new CodexSourceReader({ sessionRoot: root });
     const session = (await reader.discover()).find((item) => item.id === "session-main-idle")!;
-    const events = [];
-    for await (const event of reader.events(session)) {
-      events.push(event);
-    }
+    const captured = await reader.capture(session);
+    const events = captured.events;
 
     expect(events.length).toBeGreaterThan(0);
+    expect(captured.snapshot.trailingFragmentIgnored).toBe(true);
     expect(await hash(path)).toBe(before);
     expect((await stat(path)).size).toBe(sizeBefore);
   });
@@ -184,10 +242,7 @@ describe("CodexSourceReader", () => {
     const before = await hash(path);
     const reader = new CodexSourceReader({ sessionRoot: root });
     const session = await reader.select({ cwd: "/tmp/agentcarry-large" });
-    let count = 0;
-    for await (const _event of reader.events(session)) {
-      count += 1;
-    }
+    const count = (await reader.capture(session)).events.length;
 
     expect(count).toBe(5_003);
     expect(await hash(path)).toBe(before);

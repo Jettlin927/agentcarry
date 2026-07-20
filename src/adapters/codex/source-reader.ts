@@ -2,9 +2,12 @@ import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { open, opendir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { basename, join, resolve, win32 } from "node:path";
+import { basename, isAbsolute, join, relative, resolve, win32 } from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import {
+  SourceCaptureError,
   SourceSelectionError,
+  type CapturedSource,
   type CanonicalSourceEvent,
   type SessionActivity,
   type SessionKind,
@@ -94,6 +97,72 @@ async function* completeLines(path: string): AsyncIterable<{ line: string; lineN
   }
 }
 
+async function scanSnapshotPrefix(
+  path: string,
+  byteLength: number
+): Promise<{
+  readonly events: readonly CanonicalSourceEvent[];
+  readonly sha256: string;
+  readonly bytesRead: number;
+  readonly trailingFragmentIgnored: boolean;
+}> {
+  const hash = createHash("sha256");
+  const decoder = new StringDecoder("utf8");
+  const events: CanonicalSourceEvent[] = [];
+  let pending = "";
+  let lineNumber = 0;
+  let bytesRead = 0;
+
+  if (byteLength > 0) {
+    const stream = createReadStream(path, { start: 0, end: byteLength - 1 });
+    for await (const chunk of stream) {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      bytesRead += buffer.length;
+      hash.update(buffer);
+      pending += decoder.write(buffer);
+      let newline = pending.indexOf("\n");
+      while (newline !== -1) {
+        lineNumber += 1;
+        const line = pending.slice(0, newline).replace(/\r$/, "");
+        pending = pending.slice(newline + 1);
+        if (line.length > 0) {
+          events.push(...canonicalEvents(path, lineNumber, parseEnvelope(line)));
+        }
+        newline = pending.indexOf("\n");
+      }
+    }
+  }
+  pending += decoder.end();
+  const trailing = pending.replace(/\r$/, "");
+  if (trailing.length === 0) {
+    return { events, sha256: hash.digest("hex"), bytesRead, trailingFragmentIgnored: false };
+  }
+  try {
+    lineNumber += 1;
+    events.push(...canonicalEvents(path, lineNumber, parseEnvelope(trailing)));
+    return { events, sha256: hash.digest("hex"), bytesRead, trailingFragmentIgnored: false };
+  } catch {
+    return { events, sha256: hash.digest("hex"), bytesRead, trailingFragmentIgnored: true };
+  }
+}
+
+async function hashPrefix(path: string, byteLength: number): Promise<{
+  readonly sha256: string;
+  readonly bytesRead: number;
+}> {
+  const hash = createHash("sha256");
+  let bytesRead = 0;
+  if (byteLength > 0) {
+    const stream = createReadStream(path, { start: 0, end: byteLength - 1 });
+    for await (const chunk of stream) {
+      const buffer = chunk as Buffer;
+      bytesRead += buffer.length;
+      hash.update(buffer);
+    }
+  }
+  return { sha256: hash.digest("hex"), bytesRead };
+}
+
 async function firstCompleteLine(path: string): Promise<string | undefined> {
   for await (const entry of completeLines(path)) {
     return entry.line;
@@ -127,36 +196,43 @@ function sessionKind(meta: CodexSessionMeta): SessionKind {
 
 async function tailActivity(path: string): Promise<SessionActivity> {
   const metadata = await stat(path);
-  const bytesToRead = Math.min(metadata.size, 256 * 1024);
-  if (bytesToRead === 0) {
+  if (metadata.size === 0) {
     return "unknown";
   }
   const handle = await open(path, "r");
   try {
-    const buffer = Buffer.alloc(bytesToRead);
-    await handle.read(buffer, 0, bytesToRead, metadata.size - bytesToRead);
-    const lines = buffer.toString("utf8").split(/\r?\n/);
-    if (metadata.size > bytesToRead) {
-      lines.shift();
-    }
-    let state: SessionActivity = "unknown";
-    for (const line of lines) {
-      if (line.length === 0) {
-        continue;
+    let bytesToRead = Math.min(metadata.size, 256 * 1024);
+    while (true) {
+      const start = metadata.size - bytesToRead;
+      const buffer = Buffer.alloc(bytesToRead);
+      const { bytesRead } = await handle.read(buffer, 0, bytesToRead, start);
+      const lines = buffer.subarray(0, bytesRead).toString("utf8").split(/\r?\n/);
+      if (start > 0) {
+        lines.shift();
       }
-      try {
-        const event = parseEnvelope(line);
-        const payloadType = event.payload?.type;
-        if (event.type === "event_msg" && payloadType === "task_started") {
-          state = "active";
-        } else if (event.type === "event_msg" && payloadType === "task_complete") {
-          state = "idle";
+      for (let index = lines.length - 1; index >= 0; index -= 1) {
+        const line = lines[index]!;
+        if (line.length === 0) {
+          continue;
         }
-      } catch {
-        // A partial first/last tail line does not invalidate prior complete events.
+        try {
+          const event = parseEnvelope(line);
+          const payloadType = event.payload?.type;
+          if (event.type === "event_msg" && payloadType === "task_started") {
+            return "active";
+          }
+          if (event.type === "event_msg" && payloadType === "task_complete") {
+            return "idle";
+          }
+        } catch {
+          // A partial first/last line is not an activity marker.
+        }
       }
+      if (bytesToRead === metadata.size) {
+        return "unknown";
+      }
+      bytesToRead = Math.min(metadata.size, bytesToRead * 4);
     }
-    return state;
   } finally {
     await handle.close();
   }
@@ -208,6 +284,27 @@ function sameWorkspace(left: string, right: string): boolean {
     return win32.resolve(left).toLowerCase() === win32.resolve(right).toLowerCase();
   }
   return resolve(left) === resolve(right);
+}
+
+function relatedWorkspace(left: string, right: string): boolean {
+  const windowsPath = /^[A-Za-z]:[\\/]/;
+  if (windowsPath.test(left) || windowsPath.test(right)) {
+    const leftPath = win32.resolve(left).toLowerCase();
+    const rightPath = win32.resolve(right).toLowerCase();
+    const candidates = [
+      win32.relative(leftPath, rightPath),
+      win32.relative(rightPath, leftPath)
+    ];
+    return candidates.some((candidate) =>
+      candidate === "" || (!candidate.startsWith("..") && !win32.isAbsolute(candidate))
+    );
+  }
+  const leftPath = resolve(left);
+  const rightPath = resolve(right);
+  const candidates = [relative(leftPath, rightPath), relative(rightPath, leftPath)];
+  return candidates.some((candidate) =>
+    candidate === "" || (!candidate.startsWith("..") && !isAbsolute(candidate))
+  );
 }
 
 function text(value: unknown): string | undefined {
@@ -337,6 +434,7 @@ export class CodexSourceReader implements SourceReader {
 
   async select(selection: SessionSelection): Promise<SourceSession> {
     const sessions = await this.discover();
+    const requiredActivity = selection.activity ?? "idle";
     const requestedId = selection.currentSessionId ?? selection.explicitSessionId;
     if (requestedId !== undefined) {
       const selected = sessions.find((session) => session.id === requestedId);
@@ -352,10 +450,17 @@ export class CodexSourceReader implements SourceReader {
           `Codex session ${requestedId} is not an eligible non-empty main session`
         );
       }
-      if (selected.activity !== "idle") {
+      if (selected.activity !== requiredActivity) {
+        if (requiredActivity === "idle") {
+          throw new SourceSelectionError(
+            "ACTIVE_SESSION",
+            `Codex session ${requestedId} is ${selected.activity}; only confirmed idle sessions can be transferred without an active checkpoint`,
+            [selected]
+          );
+        }
         throw new SourceSelectionError(
-          "ACTIVE_SESSION",
-          `Codex session ${requestedId} is ${selected.activity}; only confirmed idle sessions can be transferred safely`,
+          "SESSION_ACTIVITY_MISMATCH",
+          `Codex session ${requestedId} is ${selected.activity}; active checkpoint mode requires a confirmed active session`,
           [selected]
         );
       }
@@ -364,14 +469,23 @@ export class CodexSourceReader implements SourceReader {
 
     const candidates = sessions.filter((session) =>
       session.kind === "main"
-      && session.activity === "idle"
+      && session.activity === requiredActivity
       && session.hasMessages
-      && sameWorkspace(session.cwd, selection.cwd)
+      && (requiredActivity === "active"
+        ? relatedWorkspace(session.cwd, selection.cwd)
+        : sameWorkspace(session.cwd, selection.cwd))
     );
     if (candidates.length === 0) {
       throw new SourceSelectionError(
         "NO_SESSION_IN_WORKSPACE",
-        `No idle main Codex session was found in ${selection.cwd}`
+        `No ${requiredActivity} main Codex session was found in ${selection.cwd}`
+      );
+    }
+    if (requiredActivity === "active" && candidates.length > 1) {
+      throw new SourceSelectionError(
+        "AMBIGUOUS_SESSION",
+        "Multiple active Codex sessions exist in this workspace; select one explicitly",
+        candidates
       );
     }
     const latest = candidates[0]!;
@@ -386,13 +500,33 @@ export class CodexSourceReader implements SourceReader {
     return latest;
   }
 
-  async *events(session: SourceSession): AsyncIterable<CanonicalSourceEvent> {
+  async capture(session: SourceSession): Promise<CapturedSource> {
     if (session.agent !== this.agent) {
       throw new Error(`CodexSourceReader cannot read ${session.agent} sessions`);
     }
-    for await (const entry of completeLines(session.path)) {
-      const event = parseEnvelope(entry.line);
-      yield* canonicalEvents(session.path, entry.lineNumber, event);
+    const before = await stat(session.path);
+    const scanned = await scanSnapshotPrefix(session.path, before.size);
+    const verified = await hashPrefix(session.path, before.size);
+    if (
+      scanned.bytesRead !== before.size
+      || verified.bytesRead !== before.size
+      || scanned.sha256 !== verified.sha256
+    ) {
+      throw new SourceCaptureError(
+        "UNSTABLE_SOURCE_SNAPSHOT",
+        "The source changed within the captured prefix; retry after the native writer reaches an append-only state"
+      );
     }
+    const after = await stat(session.path);
+    return {
+      events: scanned.events,
+      snapshot: {
+        capturedAt: new Date().toISOString(),
+        byteLength: before.size,
+        sha256: scanned.sha256,
+        changedDuringCapture: before.size !== after.size || before.mtimeMs !== after.mtimeMs,
+        trailingFragmentIgnored: scanned.trailingFragmentIgnored
+      }
+    };
   }
 }

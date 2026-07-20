@@ -12,9 +12,12 @@ describe("repository AgentCarry Skill", () => {
     expect(skill).not.toContain("TODO");
     expect(skill).toContain("agentcarry doctor --json");
     expect(skill).toContain("agentcarry continue --to <target> --dry-run --json");
-    expect(skill).toContain("ACTIVE_SESSION");
-    expect(skill).toContain("could select an older idle session");
-    expect(skill.indexOf("Mandatory current-task guard")).toBeLessThan(
+    expect(skill).toContain("agentcarry continue --to <target> --active --checkpoint-stdin --dry-run --json");
+    expect(skill).toContain("CHECKPOINT_STDIN_READY");
+    expect(skill).toContain("currentUserMessage");
+    expect(skill).toMatch(/never\r?\n\s+falls back to idle history/);
+    expect(skill).toContain("Do not fall back to command-line JSON");
+    expect(skill.indexOf("Mandatory current-task route")).toBeLessThan(
       skill.indexOf("agentcarry doctor --json")
     );
     expect(skill).toMatch(/Never add\r?\n  `--force` automatically/);

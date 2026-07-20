@@ -48,6 +48,25 @@ Internally, preparation and launch are separate seams. The CLI returns after
 `prepareContinue` during dry-run and therefore cannot rely on an adapter to
 remember not to launch.
 
+## Active checkpoint invariant
+
+`continue --active --checkpoint-stdin` is an inseparable flag pair. It selects
+only a confirmed active main session and never falls back to idle history. The
+Reader captures and verifies a fixed native byte prefix before stderr emits
+`CHECKPOINT_STDIN_READY`. The caller then sends exactly one UTF-8 JSON line on
+stdin conforming to `schema/active-checkpoint.v1.schema.json`.
+
+Checkpoint content is never a command-line argument. The supplied
+`currentUserMessage` must match the last complete native user message after only
+CRLF/LF and one terminal newline are normalized for comparison. The native
+message itself remains verbatim in the Capsule.
+Partial assistant output, hidden reasoning, and native tool state remain loss;
+they are not reconstructed from the checkpoint.
+
+AgentCarry does not write the source file. A still-running vendor may append its
+own invocation events, but cannot alter the already verified snapshot prefix
+without making capture fail.
+
 ## Doctor compatibility
 
 `doctor` reports Node.js, AgentCarry, Codex CLI, Claude Code CLI, the Codex

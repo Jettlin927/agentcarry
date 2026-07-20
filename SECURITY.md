@@ -18,7 +18,9 @@ content, or a working exploit.
 - no default network upload or telemetry;
 - high-confidence secrets are redacted before stdout, files, or target launch;
 - `--allow-sensitive` is explicit, one-shot, and never stored as a default;
-- active source sessions are rejected during v0.1;
+- active source sessions require explicit paired flags, a verified native byte
+  prefix, and a schema-valid stdin checkpoint whose current message matches the
+  last complete native user event after terminal line-ending normalization;
 - target command and loss receipt are shown before a non-dry-run launch;
 - private native session files are never written directly.
 

@@ -8,6 +8,15 @@ Depending on the selected adapter, AgentCarry may read local coding-agent sessio
 files, repository instructions, file metadata, and read-only Git state. It reads
 only the selected session and workspace facts needed for a handoff.
 
+For an explicitly active handoff, the current source agent sends one structured
+checkpoint through process stdin after native capture. The checkpoint is
+schema-validated, evidence-hashed, redacted with the rest of the capsule, and is
+not placed in process arguments or persisted by AgentCarry.
+
+AgentCarry never opens native source storage for writing. A still-running source
+agent may append its own normal invocation events; AgentCarry treats the
+verified pre-checkpoint byte prefix as the immutable snapshot of record.
+
 Repository instruction contents are not copied into the Work Capsule. AgentCarry
 records only their path, SHA-256, and scope so the target agent can reread its
 native instructions. Dirty workspace files are represented by path, state, and a

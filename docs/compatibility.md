@@ -27,17 +27,25 @@ adapters on every CI run.
 - storage: `~/.codex/sessions/**/*.jsonl`;
 - source files are opened read-only and never locked for writing;
 - only complete JSON lines are evidence; a partial live trailing line is ignored;
-- subagent, automation, empty, other-workspace, active, and activity-unknown
-  sessions are not auto-selected;
-- an explicit session must still be a non-empty main session and confirmed idle;
+- subagent, automation, empty, other-workspace, and activity-unknown sessions
+  are not auto-selected;
+- the default path selects only confirmed-idle sessions;
+- `--active --checkpoint-stdin` selects only one confirmed-active main session
+  in the current workspace, or an explicit active session ID; it never falls
+  back to idle history;
+- active capture verifies the starting byte prefix twice, records its SHA-256
+  and length, and excludes an incomplete trailing event;
 - private event shapes are covered by sanitized fixtures carrying the observed
   Codex version;
 - unsupported or changed shapes degrade honestly instead of guessing.
 
-The local verification on 2026-07-21 discovered 152 Codex sessions and streamed
+The local verification on 2026-07-21 discovered 152 Codex sessions and captured
 213 canonical events from a real idle session while its SHA-256 remained
-unchanged. The currently active Codex Desktop session was classified as unknown
-and therefore fail-closed rather than transferred.
+unchanged. A real long-running Codex Desktop session initially failed closed
+because its latest activity marker was outside the first 256 KiB tail. After
+adding bounded expanding-tail detection and active workspace-tree selection,
+the current task reached the stdin handshake and completed a Claude dry-run with
+exit code 0. No real transcript content or session identifier is stored here.
 
 ## Claude Launcher policy
 

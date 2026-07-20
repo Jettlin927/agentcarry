@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jettlin927/agentcarry/blob/main/schema/active-checkpoint.v1.schema.json",
+  "title": "AgentCarry Active Checkpoint v1",
+  "description": "An explicit, complete source-agent checkpoint submitted through stdin after a native session snapshot is captured.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "currentUserMessage", "assistantCheckpoint"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "currentUserMessage": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 131072
+    },
+    "assistantCheckpoint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 131072
+    }
+  }
+}
