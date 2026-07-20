@@ -8,6 +8,12 @@ Depending on the selected adapter, AgentCarry may read local coding-agent sessio
 files, repository instructions, file metadata, and read-only Git state. It reads
 only the selected session and workspace facts needed for a handoff.
 
+Repository instruction contents are not copied into the Work Capsule. AgentCarry
+records only their path, SHA-256, and scope so the target agent can reread its
+native instructions. Dirty workspace files are represented by path, state, and a
+streamed SHA-256 when the file still exists; AgentCarry does not copy file bodies
+into the capsule.
+
 ## Data stored
 
 Capsules are temporary by default and deleted after target launch. With explicit
@@ -28,4 +34,3 @@ High-confidence secrets are removed before capsules are rendered or passed to a
 target. Redaction is defense in depth, not a guarantee that arbitrary transcript
 text contains no sensitive information. The loss receipt reports redactions
 without echoing secret values.
-

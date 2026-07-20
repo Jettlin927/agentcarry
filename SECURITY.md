@@ -25,3 +25,7 @@ content, or a working exploit.
 The threat model and redaction tests will be tracked as public issues without
 including real secrets.
 
+Redaction findings contain only a stable finding code and JSON location. They do
+not contain the matched value. Current high-confidence patterns cover common
+provider/package tokens, AWS access key IDs, bearer tokens, credential-bearing
+URLs, and complete private-key blocks.
