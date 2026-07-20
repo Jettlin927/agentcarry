@@ -60,6 +60,19 @@ AgentCarry 不安装 Agent、不管理认证、不替用户切换模型或权限
 
 稳定 JSON envelope、退出码与 dry-run 不启动保证见 [CLI 契约](docs/cli-contract.md)。
 
+## 试跑 tracer bullet
+
+需要 Node.js 22 或更高版本、npm 和 Git：
+
+```text
+npm ci
+npm run demo:tracer
+```
+
+这个跨平台 demo 会用临时且已脱敏的 Codex session 运行真实构建后的
+CLI，输出损失项和精确的 Claude 命令，证明未启动 Claude 进程，并校验源文件
+哈希不变。详见 [Codex 到 Claude Code dry-run demo](docs/demos/codex-to-claude-dry-run.md)。
+
 ## Work Capsule
 
 Work Capsule 不是另一种完整 transcript 格式。它只携带续作必需的状态：当前用户消息、目标、约束、决策、失败路径、已完成、待办、文件与 Git 状态、执行过的命令、验证结果、开放问题、证据引用、损失和 lineage。

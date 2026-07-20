@@ -78,6 +78,20 @@ Full scope and release gates: [Roadmap](docs/roadmap.md).
 The stable command envelope and exit codes are documented in the
 [CLI contract](docs/cli-contract.md).
 
+## Try the tracer bullet
+
+With Node.js 22 or newer, npm, and Git:
+
+```text
+npm ci
+npm run demo:tracer
+```
+
+This cross-platform demo runs the real built CLI against a temporary sanitized
+Codex session, prints the loss and exact Claude commands, proves that no Claude
+process starts, and verifies the source hash is unchanged. See the
+[Codex to Claude Code dry-run demo](docs/demos/codex-to-claude-dry-run.md).
+
 ## Work Capsule
 
 The schema is versioned independently from the CLI. Capsule v1 includes:
