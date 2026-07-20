@@ -54,9 +54,16 @@ function reader(): SourceReader {
     agent: "codex",
     discover: vi.fn(async () => [session]),
     select: vi.fn(async () => session),
-    async *events() {
-      yield* events;
-    }
+    capture: vi.fn(async () => ({
+      events,
+      snapshot: {
+        capturedAt: "2026-07-21T00:01:30Z",
+        byteLength: 100,
+        sha256: "a".repeat(64),
+        changedDuringCapture: false,
+        trailingFragmentIgnored: false
+      }
+    }))
   };
 }
 
@@ -95,6 +102,79 @@ describe("AgentCarry production handlers", () => {
         lossReceipt: { canContinue: true }
       });
       expect(JSON.stringify(result.data)).toContain("claude --resume 11111111-1111-4111-8111-111111111111");
+    }
+  });
+
+  it("captures before requesting an active checkpoint and records explicit losses", async () => {
+    const activeSession: SourceSession = { ...session, activity: "active" };
+    const ready = vi.fn();
+    const read = vi.fn(async () => JSON.stringify({
+      schemaVersion: "1.0.0",
+      currentUserMessage: "Fix the parser without changing exports.",
+      assistantCheckpoint: "The parser edit is complete. Full integration tests remain pending."
+    }));
+    const capture = vi.fn(async () => {
+      expect(ready).not.toHaveBeenCalled();
+      return {
+        events: [events[0]!],
+        snapshot: {
+          capturedAt: "2026-07-21T00:01:30Z",
+          byteLength: 100,
+          sha256: "b".repeat(64),
+          changedDuringCapture: true,
+          trailingFragmentIgnored: true
+        }
+      };
+    });
+    const activeReader: SourceReader = {
+      agent: "codex",
+      discover: vi.fn(async () => [activeSession]),
+      select: vi.fn(async () => activeSession),
+      capture
+    };
+    const launcher = new ClaudeTargetLauncher({
+      cwd: workspace.workspace.primaryRoot,
+      createSessionId: () => "22222222-2222-4222-8222-222222222222",
+      runCommand: vi.fn()
+    });
+    const handlers = createAgentCarryHandlers({
+      cwd: "C:\\repo",
+      codexReader: activeReader,
+      collectWorkspace: async () => workspace,
+      createClaudeLauncher: () => launcher
+    });
+
+    const result = await handlers.prepareContinue({
+      target: "claude",
+      force: false,
+      active: true,
+      checkpointStdin: { ready, read }
+    });
+
+    expect(result.ok).toBe(true);
+    expect(activeReader.select).toHaveBeenCalledWith({ cwd: "C:\\repo", activity: "active" });
+    expect(capture).toHaveBeenCalledBefore(read);
+    expect(ready).toHaveBeenCalledBefore(read);
+    if (result.ok) {
+      const prepared = result.data as {
+        capsule: {
+          currentUserMessage: { text: string };
+          pending: Array<{ text: string }>;
+          source: { snapshot: { changedDuringCapture: boolean } };
+          losses: Array<{ code: string }>;
+        };
+      };
+      expect(prepared.capsule.currentUserMessage.text).toBe(
+        "Fix the parser without changing exports."
+      );
+      expect(prepared.capsule.pending.at(-1)?.text).toContain("Full integration tests remain pending");
+      expect(prepared.capsule.source.snapshot.changedDuringCapture).toBe(true);
+      expect(prepared.capsule.losses.map((loss) => loss.code)).toEqual(expect.arrayContaining([
+        "SOURCE_AGENT_CHECKPOINT",
+        "NATIVE_PARTIAL_ASSISTANT_OUTPUT_EXCLUDED",
+        "APPEND_DURING_SOURCE_CAPTURE",
+        "TRAILING_SOURCE_FRAGMENT_IGNORED"
+      ]));
     }
   });
 

@@ -18,6 +18,11 @@ export interface ContinueOptions {
   readonly source?: string;
   readonly session?: string;
   readonly force: boolean;
+  readonly active?: boolean;
+  readonly checkpointStdin?: {
+    ready(): void;
+    read(): Promise<string>;
+  };
 }
 
 export interface CommandSuccess {
@@ -46,6 +51,7 @@ export interface CliHandlers {
 export interface CliIo {
   readonly stdout: { write(value: string): void };
   readonly stderr: { write(value: string): void };
+  readonly stdin?: { readLine(): Promise<string> };
 }
 
 export const agentCarryVersion = "0.0.0-development";
@@ -56,7 +62,7 @@ Continue coding tasks across agents with evidence and explicit loss.
 
 Usage:
   agentcarry inspect [--session <id>] [--json]
-  agentcarry continue --to <agent> [--source <agent>] [--session <id>] [--dry-run] [--force] [--json]
+  agentcarry continue --to <agent> [--source <agent>] [--session <id>] [--active --checkpoint-stdin] [--dry-run] [--force] [--json]
   agentcarry doctor [--json]
 
 Exit codes:
@@ -132,7 +138,7 @@ interface ParsedArguments {
 }
 
 const valueOptions = new Set(["--to", "--source", "--session"]);
-const booleanOptions = new Set(["--dry-run", "--force", "--json", "--help", "-h", "--version", "-v"]);
+const booleanOptions = new Set(["--active", "--checkpoint-stdin", "--dry-run", "--force", "--json", "--help", "-h", "--version", "-v"]);
 
 function parseArguments(argv: readonly string[]): ParsedArguments {
   const values = new Map<string, string>();
@@ -254,11 +260,42 @@ export async function runCli(
       }
       const source = parsed.values.get("--source");
       const session = parsed.values.get("--session");
+      const active = parsed.flags.has("--active");
+      const checkpointStdin = parsed.flags.has("--checkpoint-stdin");
+      if (active !== checkpointStdin) {
+        return writeResult(
+          io,
+          parsed.command,
+          failure(
+            ExitCode.usage,
+            "INVALID_USAGE",
+            "active handoff requires both --active and --checkpoint-stdin"
+          ),
+          parsed.json
+        );
+      }
+      if (checkpointStdin && io.stdin === undefined) {
+        return writeResult(
+          io,
+          parsed.command,
+          failure(ExitCode.usage, "CHECKPOINT_STDIN_UNAVAILABLE", "checkpoint stdin is unavailable"),
+          parsed.json
+        );
+      }
       const options: ContinueOptions = {
         target,
         ...(source === undefined ? {} : { source }),
         ...(session === undefined ? {} : { session }),
-        force: parsed.flags.has("--force")
+        force: parsed.flags.has("--force"),
+        active,
+        ...(checkpointStdin
+          ? {
+              checkpointStdin: {
+                ready: () => { io.stderr.write("CHECKPOINT_STDIN_READY\n"); },
+                read: async () => await io.stdin!.readLine()
+              }
+            }
+          : {})
       };
       const prepared = await handlers.prepareContinue(options);
       if (!prepared.ok || parsed.flags.has("--dry-run")) {

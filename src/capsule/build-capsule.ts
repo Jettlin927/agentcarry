@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type {
   CanonicalSourceEvent,
+  SourceSnapshot,
   SourceSession
 } from "../adapters/source-reader.js";
 import { redactSensitive } from "../security/redact.js";
@@ -60,6 +61,7 @@ export interface BuildCapsuleOptions {
   readonly allowSensitive?: boolean;
   readonly force?: boolean;
   readonly parentCapsule?: WorkCapsule;
+  readonly sourceSnapshot?: SourceSnapshot;
 }
 
 export interface CapsuleBuildResult {
@@ -188,7 +190,14 @@ export function buildWorkCapsule(
   );
   const eventEvidenceId = (event: CanonicalSourceEvent): string => eventEvidenceIds.get(event.id)!;
   const userMessages = events.filter((event) => event.kind === "user-message" && event.text !== undefined);
-  const assistantMessages = events.filter((event) => event.kind === "assistant-message" && event.text !== undefined);
+  const assistantMessages = events.filter((event) =>
+    (event.kind === "assistant-message" || event.kind === "agent-checkpoint")
+    && event.text !== undefined
+  );
+  const checkpointMessages = events.filter((event) =>
+    event.kind === "agent-checkpoint" && event.text !== undefined
+  );
+  const hasActiveCheckpoint = events.some((event) => event.kind === "agent-checkpoint");
   const currentUserMessage = userMessages.at(-1);
   const objective = userMessages[0];
   if (currentUserMessage === undefined || objective === undefined) {
@@ -219,6 +228,38 @@ export function buildWorkCapsule(
       severity: "critical",
       description: "No complete assistant state was found in the source session.",
       affectedFields: ["decisions", "completed"]
+    });
+  }
+  if (hasActiveCheckpoint) {
+    losses.push(
+      {
+        code: "SOURCE_AGENT_CHECKPOINT",
+        severity: "warning",
+        description: "The source agent supplied a complete checkpoint through stdin; its claims are explicit but not independently verified.",
+        affectedFields: ["decisions", "completed", "pending"]
+      },
+      {
+        code: "NATIVE_PARTIAL_ASSISTANT_OUTPUT_EXCLUDED",
+        severity: "info",
+        description: "Only complete native events and the explicit checkpoint were transferred; partial native assistant output was excluded.",
+        affectedFields: ["decisions", "completed"]
+      }
+    );
+  }
+  if (options.sourceSnapshot?.changedDuringCapture === true) {
+    losses.push({
+      code: "APPEND_DURING_SOURCE_CAPTURE",
+      severity: "info",
+      description: "The native session appended during capture; the verified starting byte prefix is the snapshot of record.",
+      affectedFields: []
+    });
+  }
+  if (options.sourceSnapshot?.trailingFragmentIgnored === true) {
+    losses.push({
+      code: "TRAILING_SOURCE_FRAGMENT_IGNORED",
+      severity: "info",
+      description: "An incomplete trailing native event was excluded from evidence.",
+      affectedFields: []
     });
   }
 
@@ -253,12 +294,21 @@ export function buildWorkCapsule(
   }));
   const currentEvidenceRefs = events.map((event) => ({
     id: eventEvidenceId(event),
-    kind: "session-event",
+    kind: event.kind === "agent-checkpoint" ? "checkpoint" : "session-event",
     locator: event.locator,
     sha256: sha256(JSON.stringify(event))
   }));
+  const sourceSnapshotEvidenceRef = options.sourceSnapshot === undefined
+    ? []
+    : [{
+        id: `snapshot:${sha256(`${session.agent}:${session.id}:${options.sourceSnapshot.sha256}`).slice(0, 24)}`,
+        kind: "session-snapshot",
+        locator: session.path,
+        sha256: options.sourceSnapshot.sha256
+      }];
   const evidenceRefs = [
     ...inheritedEvidence(options.parentCapsule),
+    ...sourceSnapshotEvidenceRef,
     ...currentEvidenceRefs,
     ...workspaceEvidenceRef,
     ...instructionEvidenceRefs
@@ -274,7 +324,8 @@ export function buildWorkCapsule(
       ...(session.agentVersion === null ? {} : { agentVersion: session.agentVersion }),
       sessionId: session.id,
       sessionLocator: session.path,
-      capturedAt
+      capturedAt,
+      ...(options.sourceSnapshot === undefined ? {} : { snapshot: options.sourceSnapshot })
     },
     workspace: workspaceEvidence.workspace,
     currentUserMessage: fact(currentUserMessage, eventEvidenceId(currentUserMessage)),
@@ -290,7 +341,10 @@ export function buildWorkCapsule(
         inferred: true
       })),
     completed: assistantMessages.map((event) => fact(event, eventEvidenceId(event))),
-    pending: [fact(currentUserMessage, eventEvidenceId(currentUserMessage))],
+    pending: [
+      fact(currentUserMessage, eventEvidenceId(currentUserMessage)),
+      ...checkpointMessages.map((event) => fact(event, eventEvidenceId(event)))
+    ],
     files: [
       ...workspaceEvidence.files.map((file) => ({
         ...file,

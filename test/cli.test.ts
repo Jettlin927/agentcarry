@@ -85,7 +85,8 @@ describe("AgentCarry CLI contract", () => {
       target: "claude",
       source: "codex",
       session: "session-1",
-      force: false
+      force: false,
+      active: false
     });
     expect(handlers.launchContinue).not.toHaveBeenCalled();
     expect(() => JSON.parse(output.stdout.join(""))).not.toThrow();
@@ -101,6 +102,46 @@ describe("AgentCarry CLI contract", () => {
     );
     expect(handlers.prepareContinue).toHaveBeenCalledOnce();
     expect(handlers.launchContinue).toHaveBeenCalledOnce();
+  });
+
+  it("requires paired active checkpoint flags", async () => {
+    const output = harness();
+    const handlers = successfulHandlers();
+
+    expect(await runCli([
+      "continue", "--to", "claude", "--active", "--dry-run"
+    ], output.io, handlers)).toBe(ExitCode.usage);
+    expect(handlers.prepareContinue).not.toHaveBeenCalled();
+    expect(output.stderr.join("")).toContain("requires both --active and --checkpoint-stdin");
+  });
+
+  it("signals readiness and reads one active checkpoint from stdin", async () => {
+    const output = harness();
+    const checkpoint = JSON.stringify({
+      schemaVersion: "1.0.0",
+      currentUserMessage: "Switch this active task.",
+      assistantCheckpoint: "Implementation is complete; run the full suite next."
+    });
+    const io: CliIo = {
+      ...output.io,
+      stdin: { readLine: vi.fn(async () => checkpoint) }
+    };
+    const handlers = successfulHandlers();
+    handlers.prepareContinue = vi.fn(async (options) => {
+      options.checkpointStdin!.ready();
+      const received = await options.checkpointStdin!.read();
+      return { ok: true as const, data: { received } };
+    });
+
+    expect(await runCli([
+      "continue", "--to", "claude", "--active", "--checkpoint-stdin", "--dry-run", "--json"
+    ], io, handlers)).toBe(ExitCode.success);
+    expect(output.stderr.join("")).toBe("CHECKPOINT_STDIN_READY\n");
+    expect(handlers.prepareContinue).toHaveBeenCalledWith(expect.objectContaining({
+      active: true,
+      checkpointStdin: expect.any(Object)
+    }));
+    expect(JSON.parse(output.stdout.join("")).data).toEqual({ received: checkpoint });
   });
 
   it("doctor declares that it does not install agents or manage auth", async () => {

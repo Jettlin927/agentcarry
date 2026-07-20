@@ -1,16 +1,19 @@
 import { ClaudeTargetLauncher } from "./adapters/claude/target-launcher.js";
 import { CodexSourceReader } from "./adapters/codex/source-reader.js";
 import {
+  SourceCaptureError,
   SourceSelectionError,
-  type CanonicalSourceEvent,
-  type SourceReader,
-  type SourceSession
+  type SourceReader
 } from "./adapters/source-reader.js";
 import type { PreparedTargetLaunch, TargetLauncher } from "./adapters/target-launcher.js";
 import {
   CapsuleBuildError,
   buildWorkCapsule
 } from "./capsule/build-capsule.js";
+import {
+  ActiveCheckpointError,
+  attachActiveCheckpoint
+} from "./checkpoint/active-checkpoint.js";
 import {
   ExitCode,
   type CliHandlers,
@@ -54,14 +57,6 @@ function failure(
   };
 }
 
-async function eventsFrom(reader: SourceReader, session: SourceSession): Promise<CanonicalSourceEvent[]> {
-  const events: CanonicalSourceEvent[] = [];
-  for await (const event of reader.events(session)) {
-    events.push(event);
-  }
-  return events;
-}
-
 function preparationFailure(error: unknown): CommandFailure {
   if (error instanceof SourceSelectionError) {
     return failure(ExitCode.source, error.code, error.message, {
@@ -69,6 +64,9 @@ function preparationFailure(error: unknown): CommandFailure {
     });
   }
   if (error instanceof CapsuleBuildError) {
+    return failure(ExitCode.source, error.code, error.message);
+  }
+  if (error instanceof ActiveCheckpointError || error instanceof SourceCaptureError) {
     return failure(ExitCode.source, error.code, error.message);
   }
   return failure(
@@ -110,16 +108,34 @@ export function createAgentCarryHandlers(options: AgentCarryHandlerOptions = {})
       try {
         const session = await codexReader.select({
           cwd,
+          activity: continueOptions.active === true ? "active" : "idle",
           ...(continueOptions.session === undefined
             ? {}
             : { explicitSessionId: continueOptions.session })
         });
-        const [events, workspace] = await Promise.all([
-          eventsFrom(codexReader, session),
+        const [nativeCapture, workspace] = await Promise.all([
+          codexReader.capture(session),
           collectWorkspace(session.cwd)
         ]);
-        const result = buildWorkCapsule(session, events, workspace, {
-          force: continueOptions.force
+        let capture = nativeCapture;
+        if (continueOptions.active === true) {
+          if (continueOptions.checkpointStdin === undefined) {
+            return failure(
+              ExitCode.usage,
+              "CHECKPOINT_STDIN_REQUIRED",
+              "active handoff requires a structured checkpoint on stdin"
+            );
+          }
+          continueOptions.checkpointStdin.ready();
+          capture = attachActiveCheckpoint(
+            session,
+            nativeCapture,
+            await continueOptions.checkpointStdin.read()
+          );
+        }
+        const result = buildWorkCapsule(session, capture.events, workspace, {
+          force: continueOptions.force,
+          sourceSnapshot: capture.snapshot
         });
         if (!result.receipt.canContinue) {
           return failure(

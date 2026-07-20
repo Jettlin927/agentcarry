@@ -34,9 +34,22 @@ schema is versioned separately from CLI releases.
 
 ### Source Reader
 
-A Reader discovers sessions, selects or opens one read-only, and returns
-canonical evidence events. It does not build a capsule and does not mutate the
-source agent.
+A Reader discovers sessions, selects or opens one read-only, and returns one
+verified native snapshot plus canonical evidence events. For append-only active
+logs, the snapshot is the byte prefix observed at capture start and verified by
+a second SHA-256 pass. It does not build a capsule and does not mutate the source
+agent.
+
+An active source agent may add one explicit checkpoint only after that snapshot
+is frozen. The checkpoint crosses stdin as a single schema-validated JSON line;
+its current user message must match the last complete native user event after
+normalizing transport line endings. The Capsule retains the native text verbatim.
+Checkpoint claims are evidence-linked and disclosed as source-authored, not
+treated as independently verified native state.
+
+AgentCarry never writes the native source file. An active vendor runtime may
+append its own normal tool events while the handoff runs; the verified snapshot
+prefix remains the immutable evidence of record.
 
 Data-access preference:
 
@@ -73,4 +86,3 @@ existing validation results are marked with their original time and freshness.
 
 Capsules are ephemeral by default. Persisted lineage contains source ID, target
 ID when known, timestamp, capsule hash, and loss summary—not a duplicated chat.
-
