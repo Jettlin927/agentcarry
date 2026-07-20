@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "feature-03-config-errors",
+  "title": "Continue safe nested configuration validation",
+  "archetype": "half-complete-feature",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "f03-user-1", "kind": "user-message", "text": "Add nested config validation. Environment variables override files, and errors must never include secret values." },
+      { "id": "f03-assistant-1", "kind": "assistant-message", "text": "Schema parsing and environment precedence are implemented with path-aware validation errors." },
+      { "id": "f03-tool-1", "kind": "tool-result", "text": "Precedence tests pass; a nested invalid token is echoed in the current error message." },
+      { "id": "f03-assistant-2", "kind": "assistant-message", "text": "Logging the fully resolved config for debugging was attempted and removed because it exposes unrelated secrets." },
+      { "id": "f03-user-2", "kind": "user-message", "text": "Redact at the validation-error formatter, not in the parser, and preserve the failing field path." },
+      { "id": "f03-tool-2", "kind": "tool-result", "text": "src/config/parse.ts and src/config/precedence.ts are modified; src/config/format-error.ts is not created." }
+    ]
+  },
+  "workspace": {
+    "root": "/Users/dev/Config Demo",
+    "files": [
+      { "path": "src/config/parse.ts", "state": "modified" },
+      { "path": "src/config/precedence.ts", "state": "created" },
+      { "path": "src/config/format-error.ts", "state": "unchanged" }
+    ],
+    "git": { "branch": "feature/config-validation", "head": "f0300003", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "f03-constraint-secrets", "text": "Validation errors must never include secret values.", "evidenceRefs": ["f03-user-1"], "critical": true },
+      { "id": "f03-constraint-precedence", "text": "Environment values override file values.", "evidenceRefs": ["f03-user-1"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "f03-objective", "text": "Add safe nested config validation; parsing and precedence are done, secret-safe formatting is missing.", "evidenceRefs": ["f03-assistant-1", "f03-tool-1", "f03-tool-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "f03-failed-full-log", "text": "Logging the resolved config was rejected because it exposes secrets.", "evidenceRefs": ["f03-assistant-2"] },
+      { "id": "f03-decision-formatter", "text": "Redaction belongs in the error formatter and must preserve the field path.", "evidenceRefs": ["f03-user-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "f03-progress", "text": "Nested parsing and precedence tests pass; the safe formatter and its regression test remain.", "evidenceRefs": ["f03-tool-1", "f03-tool-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "f03-workspace", "text": "parse.ts and precedence.ts are dirty; format-error.ts is absent.", "evidenceRefs": ["f03-tool-2"] }
+    ],
+    "nextAction": { "id": "f03-next", "text": "Write the nested-secret error regression, then implement path-preserving redaction in format-error.ts.", "evidenceRefs": ["f03-tool-1", "f03-user-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+

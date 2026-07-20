@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "refactor-01-http-transport",
+  "title": "Continue an HTTP transport extraction without widening exports",
+  "archetype": "multi-file-refactor",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "r01-user-1", "kind": "user-message", "text": "Extract HTTP transport from ApiClient without changing public exports or adding dependencies." },
+      { "id": "r01-assistant-1", "kind": "assistant-message", "text": "I moved request construction into src/http/transport.ts and kept ApiClient as the public facade." },
+      { "id": "r01-tool-1", "kind": "tool-result", "text": "Unit tests pass, but the auth retry test fails because the retry loses the Authorization header." },
+      { "id": "r01-assistant-2", "kind": "assistant-message", "text": "Copying every header in ApiClient was attempted and reverted because it duplicated transport policy." },
+      { "id": "r01-user-2", "kind": "user-message", "text": "Header preservation belongs inside the transport. The streaming response method is still unconverted." },
+      { "id": "r01-tool-2", "kind": "tool-result", "text": "git diff shows src/api-client.ts and src/http/transport.ts modified; src/index.ts is unchanged." }
+    ]
+  },
+  "workspace": {
+    "root": "/Users/dev/SDK Refactor",
+    "files": [
+      { "path": "src/api-client.ts", "state": "modified" },
+      { "path": "src/http/transport.ts", "state": "created" },
+      { "path": "src/index.ts", "state": "unchanged" }
+    ],
+    "git": { "branch": "refactor/http-transport", "head": "r0100001", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "r01-constraint-exports", "text": "Do not change public exports.", "evidenceRefs": ["r01-user-1"], "critical": true },
+      { "id": "r01-constraint-deps", "text": "Do not add dependencies.", "evidenceRefs": ["r01-user-1"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "r01-objective", "text": "Extract transport behavior from ApiClient; normal requests moved, auth retry and streaming remain incomplete.", "evidenceRefs": ["r01-assistant-1", "r01-tool-1", "r01-user-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "r01-failed-facade-headers", "text": "Copying headers in ApiClient was reverted because transport policy belongs in the transport.", "evidenceRefs": ["r01-assistant-2", "r01-user-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "r01-progress", "text": "Request construction is extracted; preserve headers on retry, then convert streaming.", "evidenceRefs": ["r01-assistant-1", "r01-user-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "r01-workspace", "text": "api-client.ts and the new transport.ts are dirty while index.ts remains unchanged.", "evidenceRefs": ["r01-tool-2"] }
+    ],
+    "nextAction": { "id": "r01-next", "text": "Fix header preservation inside transport and rerun the auth retry test.", "evidenceRefs": ["r01-tool-1", "r01-user-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+

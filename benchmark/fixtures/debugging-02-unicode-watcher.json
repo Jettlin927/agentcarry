@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "debugging-02-unicode-watcher",
+  "title": "Resume a Windows Unicode file-watcher fix",
+  "archetype": "debugging",
+  "source": {
+    "agent": "synthetic",
+    "agentVersion": "fixture-v1",
+    "events": [
+      { "id": "d02-user-1", "kind": "user-message", "text": "Fix missed config reloads on Windows Chinese paths without adding a watcher dependency." },
+      { "id": "d02-assistant-1", "kind": "assistant-message", "text": "I suspect UTF-8 decoding corrupts the watched path." },
+      { "id": "d02-tool-1", "kind": "tool-result", "text": "The decoded path exactly matches C:\\Users\\dev\\项目 空间\\配置.json." },
+      { "id": "d02-tool-2", "kind": "tool-result", "text": "The event path differs only by drive-letter case, and the current comparison is case-sensitive." },
+      { "id": "d02-assistant-2", "kind": "assistant-message", "text": "src/watch-path.ts now uses Windows-aware comparison; unit tests pass, but the real watcher integration test is pending." },
+      { "id": "d02-user-2", "kind": "user-message", "text": "Keep POSIX comparison case-sensitive and add the Windows integration test next." }
+    ]
+  },
+  "workspace": {
+    "root": "C:\\Users\\dev\\项目 空间",
+    "files": [
+      { "path": "src/watch-path.ts", "state": "modified" },
+      { "path": "test/watch-windows.test.ts", "state": "created" }
+    ],
+    "git": { "branch": "fix/windows-watcher", "head": "d0200002", "dirty": true }
+  },
+  "groundTruth": {
+    "criticalConstraints": [
+      { "id": "d02-constraint-deps", "text": "Do not add a watcher dependency.", "evidenceRefs": ["d02-user-1"], "critical": true },
+      { "id": "d02-constraint-posix", "text": "Keep POSIX path comparison case-sensitive.", "evidenceRefs": ["d02-user-2"], "critical": true }
+    ],
+    "objectiveAndState": [
+      { "id": "d02-objective", "text": "Restore Windows reloads for Chinese paths; comparison code is changed and integration coverage is incomplete.", "evidenceRefs": ["d02-user-1", "d02-assistant-2"] }
+    ],
+    "decisionsAndFailedAttempts": [
+      { "id": "d02-failed-utf8", "text": "UTF-8 corruption was rejected because the decoded path matched exactly.", "evidenceRefs": ["d02-assistant-1", "d02-tool-1"] },
+      { "id": "d02-decision-case", "text": "Use case-insensitive path comparison only on Windows.", "evidenceRefs": ["d02-tool-2", "d02-user-2"] }
+    ],
+    "completedAndPending": [
+      { "id": "d02-progress", "text": "Windows-aware comparison and unit tests are complete; real watcher integration remains pending.", "evidenceRefs": ["d02-assistant-2"] }
+    ],
+    "workspaceEvidence": [
+      { "id": "d02-workspace", "text": "src/watch-path.ts is modified and test/watch-windows.test.ts is new.", "evidenceRefs": ["d02-assistant-2"] }
+    ],
+    "nextAction": { "id": "d02-next", "text": "Finish and run the Windows watcher integration test using the Chinese path.", "evidenceRefs": ["d02-user-2"] }
+  },
+  "sanitization": { "synthetic": true, "humanReviewed": true, "checkedAt": "2026-07-21T00:00:00Z" }
+}
+
