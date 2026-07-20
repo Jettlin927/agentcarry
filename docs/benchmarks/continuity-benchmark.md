@@ -39,6 +39,26 @@ Each fixture is continued in the same target model/settings using:
 The first evaluation is 12 × 3 = 36 target sessions. Close or disputed results
 may be rerun; all reruns are reported.
 
+All three inputs are generated from the same `source` and `workspace` fixture
+fields. Input builders never read `groundTruth`:
+
+```shell
+npm run --silent benchmark:input -- <fixture.json> --mode visible-transcript
+npm run --silent benchmark:input -- <fixture.json> --mode deterministic-capsule
+npm run --silent benchmark:input -- <fixture.json> --mode source-assisted-capsule --model <model>
+```
+
+Visible mode includes only user and assistant messages. Deterministic mode uses
+fixed event-role and text heuristics and reports that semantic limitation as a
+loss. Source-assisted mode invokes a fresh Claude Code print session with no
+tools, no slash commands, strict empty MCP configuration, and
+`--no-session-persistence`; it never resumes the source session.
+
+Every artifact records a fingerprint of the same source, byte and character
+counts, generation settings, and summarizer usage when applicable. Exact target
+input tokens are attached from the target run response; they are not replaced by
+an undocumented tokenizer estimate.
+
 ## Fidelity score
 
 | Category | Weight |
