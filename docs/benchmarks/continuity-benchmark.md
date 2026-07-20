@@ -53,6 +53,15 @@ may be rerun; all reruns are reported.
 All scores receive complete human review for the initial twelve fixtures. An LLM
 judge may assist but is never the only evaluator.
 
+Reviewers use the committed [human review rubric](../../benchmark/HUMAN_REVIEW_RUBRIC.md)
+and record one fact-level assessment per expected ground-truth item. The scorer
+then produces deterministic JSON or Markdown without model inference:
+
+```shell
+npm run --silent benchmark:score -- <fixture.json> <assessment.json> --format json
+npm run --silent benchmark:score -- <fixture.json> <assessment.json> --format markdown
+```
+
 ## v0.1 success gate
 
 - deterministic or source-assisted capsule fidelity is no worse than baseline;
