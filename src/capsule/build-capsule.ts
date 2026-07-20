@@ -1,0 +1,357 @@
+import { createHash } from "node:crypto";
+import type {
+  CanonicalSourceEvent,
+  SourceSession
+} from "../adapters/source-reader.js";
+import { redactSensitive } from "../security/redact.js";
+import type { CollectedWorkspaceEvidence } from "../workspace/collect-workspace.js";
+import { validateWorkCapsule } from "./validate-capsule.js";
+
+export type LossSeverity = "critical" | "warning" | "info";
+
+export interface CapsuleLoss {
+  readonly code: string;
+  readonly severity: LossSeverity;
+  readonly description: string;
+  readonly affectedFields: readonly string[];
+}
+
+export interface CapsuleLineage {
+  readonly capsuleId: string;
+  readonly rootCapsuleId: string;
+  readonly parentCapsuleId?: string;
+  readonly hops: ReadonlyArray<{
+    readonly sourceAgent: string;
+    readonly sourceSessionId: string;
+    readonly targetAgent?: string;
+    readonly targetSessionId?: string;
+    readonly createdAt: string;
+  }>;
+}
+
+export interface WorkCapsule {
+  readonly schemaVersion: "1.0.0";
+  readonly source: Record<string, unknown>;
+  readonly workspace: Record<string, unknown>;
+  readonly currentUserMessage: CapsuleFact;
+  readonly objective: CapsuleFact;
+  readonly constraints: readonly CapsuleFact[];
+  readonly decisions: readonly CapsuleFact[];
+  readonly failedAttempts: readonly Record<string, unknown>[];
+  readonly completed: readonly CapsuleFact[];
+  readonly pending: readonly CapsuleFact[];
+  readonly files: readonly object[];
+  readonly commands: readonly object[];
+  readonly validations: readonly object[];
+  readonly openQuestions: readonly CapsuleFact[];
+  readonly evidenceRefs: readonly Record<string, unknown>[];
+  readonly losses: readonly CapsuleLoss[];
+  readonly lineage: CapsuleLineage;
+}
+
+export interface CapsuleFact {
+  readonly text: string;
+  readonly evidenceRefs: readonly string[];
+  readonly inferred: boolean;
+}
+
+export interface BuildCapsuleOptions {
+  readonly now?: () => Date;
+  readonly allowSensitive?: boolean;
+  readonly force?: boolean;
+  readonly parentCapsule?: WorkCapsule;
+}
+
+export interface CapsuleBuildResult {
+  readonly capsule: WorkCapsule;
+  readonly receipt: {
+    readonly canContinue: boolean;
+    readonly forced: boolean;
+    readonly criticalLosses: number;
+    readonly warnings: number;
+    readonly information: number;
+    readonly losses: readonly CapsuleLoss[];
+  };
+}
+
+export class CapsuleBuildError extends Error {
+  constructor(readonly code: string, message: string) {
+    super(message);
+    this.name = "CapsuleBuildError";
+  }
+}
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+function fact(event: CanonicalSourceEvent, evidenceRef: string, inferred = false): CapsuleFact {
+  if (event.text === undefined || event.text.length === 0) {
+    throw new CapsuleBuildError("EMPTY_FACT", `event ${event.id} has no fact text`);
+  }
+  return { text: event.text, evidenceRefs: [evidenceRef], inferred };
+}
+
+function commandText(event: CanonicalSourceEvent): string | undefined {
+  if (event.text === undefined) {
+    return undefined;
+  }
+  try {
+    const input = JSON.parse(event.text) as Record<string, unknown>;
+    const command = input.cmd ?? input.command;
+    return typeof command === "string" && command.length > 0 ? command : event.text;
+  } catch {
+    return event.text;
+  }
+}
+
+const failedPattern = /\b(?:fail(?:ed|s)?|rejected|reverted|does not|did not|still|hangs?|error)\b|失败|未通过|无效|排除|放弃|回滚|仍然|报错|错误/i;
+const passedPattern = /\b(?:pass(?:ed|es)?|success|exit code 0)\b|通过|成功/i;
+
+function validationStatus(text: string | undefined): "passed" | "failed" | "unknown" {
+  if (text === undefined) {
+    return "unknown";
+  }
+  if (failedPattern.test(text)) {
+    return "failed";
+  }
+  if (passedPattern.test(text)) {
+    return "passed";
+  }
+  return "unknown";
+}
+
+function uniqueEventIds(events: readonly CanonicalSourceEvent[]): void {
+  const ids = new Set<string>();
+  for (const event of events) {
+    if (ids.has(event.id)) {
+      throw new CapsuleBuildError("DUPLICATE_EVIDENCE_ID", `duplicate evidence id ${event.id}`);
+    }
+    ids.add(event.id);
+  }
+}
+
+function inheritedEvidence(parent: WorkCapsule | undefined): Record<string, unknown>[] {
+  if (parent === undefined) {
+    return [];
+  }
+  return parent.evidenceRefs.map((evidence) => ({ ...evidence }));
+}
+
+function lineage(
+  session: SourceSession,
+  capturedAt: string,
+  evidenceFingerprint: string,
+  parent: WorkCapsule | undefined
+): CapsuleLineage {
+  const capsuleId = `capsule-${sha256(`${session.agent}:${session.id}:${evidenceFingerprint}`).slice(0, 24)}`;
+  const hop = {
+    sourceAgent: session.agent,
+    sourceSessionId: session.id,
+    createdAt: capturedAt
+  };
+  if (parent === undefined) {
+    return { capsuleId, rootCapsuleId: capsuleId, hops: [hop] };
+  }
+  return {
+    capsuleId,
+    rootCapsuleId: parent.lineage.rootCapsuleId,
+    parentCapsuleId: parent.lineage.capsuleId,
+    hops: [...parent.lineage.hops, hop]
+  };
+}
+
+function lossReceipt(losses: readonly CapsuleLoss[], force: boolean): CapsuleBuildResult["receipt"] {
+  const criticalLosses = losses.filter((loss) => loss.severity === "critical").length;
+  return {
+    canContinue: criticalLosses === 0 || force,
+    forced: criticalLosses > 0 && force,
+    criticalLosses,
+    warnings: losses.filter((loss) => loss.severity === "warning").length,
+    information: losses.filter((loss) => loss.severity === "info").length,
+    losses
+  };
+}
+
+export function buildWorkCapsule(
+  session: SourceSession,
+  events: readonly CanonicalSourceEvent[],
+  workspaceEvidence: CollectedWorkspaceEvidence,
+  options: BuildCapsuleOptions = {}
+): CapsuleBuildResult {
+  uniqueEventIds(events);
+  const eventEvidenceIds = new Map(
+    events.map((event) => [
+      event.id,
+      `event:${sha256(`${session.agent}:${session.id}:${event.id}`).slice(0, 24)}`
+    ])
+  );
+  const eventEvidenceId = (event: CanonicalSourceEvent): string => eventEvidenceIds.get(event.id)!;
+  const userMessages = events.filter((event) => event.kind === "user-message" && event.text !== undefined);
+  const assistantMessages = events.filter((event) => event.kind === "assistant-message" && event.text !== undefined);
+  const currentUserMessage = userMessages.at(-1);
+  const objective = userMessages[0];
+  if (currentUserMessage === undefined || objective === undefined) {
+    throw new CapsuleBuildError(
+      "CURRENT_USER_MESSAGE_MISSING",
+      "A Work Capsule requires at least one complete user message"
+    );
+  }
+
+  const capturedAt = (options.now ?? (() => new Date()))().toISOString();
+  const losses: CapsuleLoss[] = [
+    {
+      code: "DETERMINISTIC_SEMANTIC_HEURISTIC",
+      severity: "warning",
+      description: "Semantic categories use event roles and conservative text heuristics.",
+      affectedFields: ["constraints", "decisions", "failedAttempts", "completed", "pending"]
+    },
+    {
+      code: "HIDDEN_AGENT_STATE_UNAVAILABLE",
+      severity: "info",
+      description: "Hidden reasoning, prompt caches, and native tool state are not transferable.",
+      affectedFields: []
+    }
+  ];
+  if (assistantMessages.length === 0) {
+    losses.push({
+      code: "ASSISTANT_STATE_MISSING",
+      severity: "critical",
+      description: "No complete assistant state was found in the source session.",
+      affectedFields: ["decisions", "completed"]
+    });
+  }
+
+  const attachments = events.filter((event) => event.kind === "attachment");
+  if (attachments.length > 0) {
+    losses.push({
+      code: "ATTACHMENTS_NOT_TRANSFERRED",
+      severity: "warning",
+      description: `${attachments.length} local attachment reference(s) require target capability checks.`,
+      affectedFields: ["files"]
+    });
+  }
+
+  const workspaceFingerprintValue = JSON.stringify({
+    workspace: workspaceEvidence.workspace,
+    files: workspaceEvidence.files
+  });
+  const workspaceEvidenceId = `workspace:${sha256(workspaceFingerprintValue).slice(0, 24)}`;
+  const workspaceEvidenceRef = workspaceEvidence.workspace.git === undefined
+    ? []
+    : [{
+        id: workspaceEvidenceId,
+        kind: "git",
+        locator: workspaceEvidence.workspace.primaryRoot,
+        sha256: sha256(workspaceFingerprintValue)
+      }];
+  const instructionEvidenceRefs = workspaceEvidence.workspace.instructionFiles.map((instruction) => ({
+    id: `instruction:${instruction.sha256.slice(0, 24)}`,
+    kind: "instruction",
+    locator: instruction.path,
+    sha256: instruction.sha256
+  }));
+  const currentEvidenceRefs = events.map((event) => ({
+    id: eventEvidenceId(event),
+    kind: "session-event",
+    locator: event.locator,
+    sha256: sha256(JSON.stringify(event))
+  }));
+  const evidenceRefs = [
+    ...inheritedEvidence(options.parentCapsule),
+    ...currentEvidenceRefs,
+    ...workspaceEvidenceRef,
+    ...instructionEvidenceRefs
+  ].filter((evidence, index, all) =>
+    all.findIndex((candidate) => candidate.id === evidence.id) === index
+  );
+  const evidenceFingerprint = sha256(JSON.stringify(evidenceRefs));
+
+  const rawCapsule: WorkCapsule = {
+    schemaVersion: "1.0.0",
+    source: {
+      agent: session.agent,
+      ...(session.agentVersion === null ? {} : { agentVersion: session.agentVersion }),
+      sessionId: session.id,
+      sessionLocator: session.path,
+      capturedAt
+    },
+    workspace: workspaceEvidence.workspace,
+    currentUserMessage: fact(currentUserMessage, eventEvidenceId(currentUserMessage)),
+    objective: fact(objective, eventEvidenceId(objective)),
+    constraints: userMessages.map((event) => fact(event, eventEvidenceId(event))),
+    decisions: assistantMessages.map((event) => fact(event, eventEvidenceId(event))),
+    failedAttempts: events
+      .filter((event) => event.text !== undefined && failedPattern.test(event.text))
+      .map((event) => ({
+        attempt: event.text!,
+        outcome: "The source marks this path as failed, rejected, reverted, or unresolved.",
+        evidenceRefs: [eventEvidenceId(event)],
+        inferred: true
+      })),
+    completed: assistantMessages.map((event) => fact(event, eventEvidenceId(event))),
+    pending: [fact(currentUserMessage, eventEvidenceId(currentUserMessage))],
+    files: [
+      ...workspaceEvidence.files.map((file) => ({
+        ...file,
+        evidenceRefs: workspaceEvidence.workspace.git === undefined ? [] : [workspaceEvidenceId]
+      })),
+      ...attachments.map((event) => ({
+        path: event.attachmentPath ?? "unavailable-attachment",
+        kind: "attachment",
+        availableToTarget: false,
+        evidenceRefs: [eventEvidenceId(event)]
+      }))
+    ],
+    commands: events
+      .filter((event) => event.kind === "tool-call")
+      .map((event) => ({ event, command: commandText(event) }))
+      .filter((entry): entry is { event: CanonicalSourceEvent; command: string } => entry.command !== undefined)
+      .map(({ event, command }) => ({
+        command,
+        cwd: workspaceEvidence.workspace.primaryRoot,
+        ...(event.timestamp === null ? {} : { executedAt: event.timestamp }),
+        evidenceRefs: [eventEvidenceId(event)]
+      })),
+    validations: events
+      .filter((event) => event.kind === "tool-result")
+      .map((event) => ({
+        name: event.toolName ?? `Source tool result ${event.callId ?? event.id}`,
+        status: validationStatus(event.text),
+        summary: event.text ?? "Tool result content unavailable",
+        ...(event.timestamp === null ? {} : { executedAt: event.timestamp }),
+        evidenceRefs: [eventEvidenceId(event)]
+      })),
+    openQuestions: events
+      .filter((event) => event.text?.trim().match(/[?？]$/) !== null && event.text !== undefined)
+      .map((event) => fact(event, eventEvidenceId(event), true)),
+    evidenceRefs,
+    losses,
+    lineage: lineage(session, capturedAt, evidenceFingerprint, options.parentCapsule)
+  };
+
+  const redaction = redactSensitive(rawCapsule, options.allowSensitive === true);
+  if (redaction.findings.length > 0) {
+    losses.push({
+      code: options.allowSensitive === true ? "SENSITIVE_VALUES_ALLOWED" : "SENSITIVE_VALUES_REDACTED",
+      severity: "warning",
+      description: options.allowSensitive === true
+        ? "Sensitive values were included by an explicit one-shot override."
+        : "Sensitive values were redacted before rendering or target launch.",
+      affectedFields: [...new Set(redaction.findings.map((finding) => finding.location))]
+    });
+  }
+  const capsule = {
+    ...redaction.value,
+    losses: [...losses]
+  } as WorkCapsule;
+  const schemaErrors = validateWorkCapsule(capsule);
+  if (schemaErrors.length > 0) {
+    const summary = schemaErrors
+      .map((error) => `${error.instancePath || "/"} ${error.message ?? error.keyword}`)
+      .join("; ");
+    throw new CapsuleBuildError("CAPSULE_SCHEMA_INVALID", summary);
+  }
+  const receipt = lossReceipt(losses, options.force === true);
+  return { capsule, receipt };
+}
