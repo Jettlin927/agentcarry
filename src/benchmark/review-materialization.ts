@@ -97,7 +97,9 @@ export interface HumanRunReview {
 export interface HumanReviewExport {
   readonly schemaVersion: "1.0.0";
   readonly benchmarkId: string;
+  readonly reviewerKind: "human";
   readonly humanReviewer: string;
+  readonly humanConfirmed: true;
   readonly exportedAt: string;
   readonly complete: true;
   readonly reviews: readonly HumanRunReview[];
@@ -346,6 +348,9 @@ function humanAdjustedAdvisory(
   humanReview: HumanReviewExport
 ): AdvisoryVerdictSet {
   const validated = validateReviewInputs(fixtures, results, advisory);
+  if (humanReview.reviewerKind !== "human" || humanReview.humanConfirmed !== true) {
+    throw new Error("finalization requires explicit human attestation");
+  }
   if (
     humanReview.schemaVersion !== "1.0.0"
     || humanReview.benchmarkId !== advisory.benchmarkId

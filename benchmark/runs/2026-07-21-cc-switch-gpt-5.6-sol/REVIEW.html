@@ -19,6 +19,7 @@
     .track { height:7px; overflow:hidden; border-radius:99px; background:#202633; }
     .track i { display:block; width:0; height:100%; background:linear-gradient(90deg,var(--cyan),var(--green)); transition:width .2s ease; }
     .reviewer { width:170px; padding:9px 11px; color:var(--text); border:1px solid var(--line); border-radius:9px; background:#0d1118; }
+    .attest { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; white-space:nowrap; }
     .ghost { padding:8px 12px; color:var(--text); border:1px solid var(--line); border-radius:9px; background:#141a24; }
     .ghost:hover { border-color:#46536a; }
     .workspace { max-width:1680px; margin:0 auto; padding:22px; }
@@ -56,6 +57,7 @@
     <div class="brand"><strong>AgentCarry 人工复核台</strong><span id="targetMeta"></span></div>
     <div class="progress"><div class="progress-row"><span>复核进度</span><strong id="progressText">0 / 36</strong></div><div class="track"><i id="progressBar"></i></div></div>
     <input id="reviewer" class="reviewer" aria-label="复核人名称" placeholder="你的名字 / GitHub ID">
+    <label class="attest"><input id="humanConfirmed" type="checkbox">我是人工复核人，本次判断由我本人完成</label>
     <button id="export" class="ghost">导出复核结果</button>
   </header>
   <main class="workspace">
@@ -91,7 +93,7 @@
       'use strict';
       var data = JSON.parse(document.getElementById('review-data').textContent);
       var key = 'agentcarry-review-' + data.benchmarkId + '-v1';
-      var state = { reviewer: '', reviews: {} };
+      var state = { reviewer: '', humanConfirmed:false, reviews: {} };
       try { state = Object.assign(state, JSON.parse(localStorage.getItem(key) || '{}')); } catch (_) {}
       if (!state.reviews) state.reviews = {};
       var index = 0;
@@ -102,6 +104,7 @@
 
       function save() {
         state.reviewer = byId('reviewer').value.trim();
+        state.humanConfirmed = byId('humanConfirmed').checked;
         localStorage.setItem(key, JSON.stringify(state));
         updateProgress();
       }
@@ -165,21 +168,24 @@
       function exportReview() {
         save();
         if (!state.reviewer) { alert('请先填写复核人名称或 GitHub ID。'); byId('reviewer').focus(); return; }
+        if (!state.humanConfirmed) { alert('最终报告必须由人工复核。请仅在你本人完成判断后勾选人工确认。'); byId('humanConfirmed').focus(); return; }
         var reviews = data.runs.map(function (run) {
           var review = state.reviews[run.runId];
           return review ? Object.assign({runId:run.runId}, review) : {runId:run.runId,outcome:null,factVerdicts:suggestedFacts(run),note:''};
         });
         var complete = reviews.every(function (review) { return review.outcome === 'pass' || review.outcome === 'fail'; });
-        var payload = { schemaVersion:'1.0.0', benchmarkId:data.benchmarkId, humanReviewer:state.reviewer, exportedAt:new Date().toISOString(), complete:complete, reviews:reviews };
+        var payload = { schemaVersion:'1.0.0', benchmarkId:data.benchmarkId, reviewerKind:'human', humanReviewer:state.reviewer, humanConfirmed:true, exportedAt:new Date().toISOString(), complete:complete, reviews:reviews };
         var blob = new Blob([JSON.stringify(payload, null, 2) + '\n'], {type:'application/json'});
         var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'agentcarry-' + data.benchmarkId + '-human-review.json'; link.click(); URL.revokeObjectURL(link.href);
       }
 
       byId('targetMeta').textContent = data.target.agent + ' / ' + data.target.model + ' · ' + data.target.provider;
       byId('reviewer').value = state.reviewer || '';
+      byId('humanConfirmed').checked = state.humanConfirmed === true;
       data.runs.forEach(function (run, runIndex) { var option = document.createElement('option'); option.value = String(runIndex); option.textContent = String(runIndex + 1).padStart(2,'0') + ' · ' + run.fixtureId + ' · ' + (modeLabels[run.mode] || run.mode); byId('runSelect').append(option); });
       byId('runSelect').addEventListener('change', function (event) { index = Number(event.target.value); render(); });
       byId('reviewer').addEventListener('change', save);
+      byId('humanConfirmed').addEventListener('change', save);
       byId('note').addEventListener('change', function () { var run = current(); var review = reviewFor(run); review.note = byId('note').value.trim(); state.reviews[run.runId] = review; save(); });
       byId('previous').addEventListener('click', function () { move(-1); });
       byId('next').addEventListener('click', function () { move(1); });
@@ -187,7 +193,7 @@
       byId('fail').addEventListener('click', function () { decide('fail'); });
       byId('nextPending').addEventListener('click', nextPending);
       byId('export').addEventListener('click', exportReview);
-      byId('clear').addEventListener('click', function () { if (confirm('确定清空本机保存的全部复核进度吗？')) { localStorage.removeItem(key); state = {reviewer:'',reviews:{}}; byId('reviewer').value = ''; render(); } });
+      byId('clear').addEventListener('click', function () { if (confirm('确定清空本机保存的全部复核进度吗？')) { localStorage.removeItem(key); state = {reviewer:'',humanConfirmed:false,reviews:{}}; byId('reviewer').value = ''; byId('humanConfirmed').checked = false; render(); } });
       render();
     }());
   </script>

@@ -150,6 +150,10 @@ npm run --silent benchmark:review -- html benchmark/fixtures <run-directory> \
   --output <run-directory>/REVIEW.html
 ```
 
+The final export requires the reviewer to identify as a human and explicitly
+attest that they personally completed the review. AI-only exports remain useful
+as advisory evidence but are rejected by finalization.
+
 The Markdown packet remains available as a non-interactive archival form of the
 same evidence:
 

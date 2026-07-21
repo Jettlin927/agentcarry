@@ -77,7 +77,9 @@ The preview exposes two real problems rather than a passing launch result:
 
 A human reviewer should use the self-contained [`REVIEW.html`](REVIEW.html)
 workbench: it presents the exact input and output side by side, stores progress
-only in the local browser, and exports the completed decisions as JSON.
+only in the local browser, and exports the completed decisions as JSON. The
+final export requires explicit human attestation; an AI-only reviewer cannot
+unlock final benchmark materialization.
 [`REVIEW_PACKET.md`](REVIEW_PACKET.md) remains the non-interactive archival
 copy. The reviewer must confirm or correct all suggested verdicts and own the
 final timestamp. Only then may the repository materialize final assessments,
