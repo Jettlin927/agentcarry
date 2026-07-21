@@ -1,0 +1,84 @@
+{
+  "categories": {
+    "completedAndPending": [
+      {
+        "factId": "r01-progress",
+        "note": "Human reviewer confirmed the target output preserves: Request construction is extracted; preserve headers on retry, then convert streaming.",
+        "verdict": "preserved"
+      }
+    ],
+    "criticalConstraints": [
+      {
+        "factId": "r01-constraint-exports",
+        "note": "Human reviewer confirmed the target output preserves: Do not change public exports.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "r01-constraint-deps",
+        "note": "Human reviewer confirmed the target output preserves: Do not add dependencies.",
+        "verdict": "preserved"
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "factId": "r01-failed-facade-headers",
+        "note": "Human reviewer confirmed the target output preserves: Copying headers in ApiClient was reverted because transport policy belongs in the transport.",
+        "verdict": "preserved"
+      }
+    ],
+    "nextAction": [
+      {
+        "factId": "r01-next",
+        "note": "不通过：当前优先阻塞是 transport 重试丢 Authorization 并应重跑 auth retry test，输出却转向只读规划 streaming，续接优先级错误。",
+        "verdict": "contradicted"
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "factId": "r01-objective",
+        "note": "不通过：当前优先阻塞是 transport 重试丢 Authorization 并应重跑 auth retry test，输出却转向只读规划 streaming，续接优先级错误。",
+        "verdict": "partial"
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "factId": "r01-workspace",
+        "note": "不通过：当前优先阻塞是 transport 重试丢 Authorization 并应重跑 auth retry test，输出却转向只读规划 streaming，续接优先级错误。",
+        "verdict": "partial"
+      }
+    ]
+  },
+  "fixtureId": "refactor-01-http-transport",
+  "mode": "visible-transcript",
+  "repeatedFailedPaths": [],
+  "review": {
+    "humanReviewer": "jettlin927",
+    "llmJudge": {
+      "advisoryOnly": true,
+      "model": "OpenAI Codex"
+    },
+    "reviewedAt": "2026-07-21T15:02:55.025115Z"
+  },
+  "runId": "refactor-01-http-transport:visible-transcript:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 1432,
+    "visibleTranscriptBaseline": 1432
+  },
+  "unsupportedClaims": []
+}

@@ -1,0 +1,36 @@
+{
+  "fixtureId": "architecture-02-session-index",
+  "input": {
+    "exactTargetInputTokens": 2542,
+    "sha256": "5e480fad53fc59df3c8ade3a3e30a8e7a09d07011350295fa643da6da66f2774",
+    "utf8Bytes": 4439
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:40:10.464Z",
+    "promptSha256": "5e480fad53fc59df3c8ade3a3e30a8e7a09d07011350295fa643da6da66f2774",
+    "startedAt": "2026-07-21T13:39:50.913Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "55b1547cb4d48dd3d80e945e74c0de69250d4fd06be1f4ef8f448de24303e93d",
+    "text": "## 续接简报\n\n- **目标**：实现可在 Windows、macOS、Linux 离线运行、无需原生依赖的本地会话索引。\n- **关键约束**：\n  - 使用 **append-only JSONL + 内存索引**。\n  - 在 10,000 个会话的实测启动时间超过 **2 秒**前，不切换存储方案。\n  - 明确避免已失败路径：所选 SQLite binding 在干净 Windows 环境中因原生二进制编译失败，不应重新采用。\n- **当前状态**：\n  - 工作区据推断位于 `C:\\Users\\dev\\Session Index`，分支为 `architecture/session-index`，且有未提交改动。\n  - 据推断已创建 `src/index/jsonl-store.ts` 和 `test/index-startup.test.ts`；`src/index/compact.ts` 未改动。\n- **已完成**：\n  - `src/index/jsonl-store.ts` 已实现 JSONL 追加写入及启动加载。\n  - 曾报告 10,000 个合成会话启动加载耗时 **640 ms**，但没有独立验证记录。\n- **既定决策**：继续维持 JSONL 和内存索引，不因尚未触及的性能阈值引入 SQLite 或其他原生依赖。\n- **失败尝试**：SQLite binding 在干净 Windows 安装环境中编译失败；不要重复该路径。\n- **待处理**：\n  - `test/index-startup.test.ts` 尚无已供应的执行结果，通过状态未知。\n  - 高频更新会使 JSONL 无限增长。\n  - 尚未实现压缩及压缩文件的崩溃安全替换。\n- **唯一正确的下一步**：执行现有 `test/index-startup.test.ts`，独立验证 10,000 会话的启动时间和测试结果；在获得该基线前不要实现压缩或更换存储方案。"
+  },
+  "runId": "architecture-02-session-index:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "5ad936ae939e2eb5d688352ddbc9325e850b5a3cbfe0fdfd708e0a5ab116a595",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

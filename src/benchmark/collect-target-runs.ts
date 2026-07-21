@@ -9,10 +9,15 @@ import {
   type HandoffInputArtifact,
   type HandoffMode
 } from "./build-handoff-input.js";
-import { runSourceAssisted } from "./run-source-assisted.js";
 import {
+  defaultProcessRunner,
+  runSourceAssisted
+} from "./run-source-assisted.js";
+import {
+  createTargetSettings,
   runTargetContinuation,
-  targetSettings,
+  type TargetSettingSources,
+  type TargetSettings,
   type TargetRunResult
 } from "./run-target-continuation.js";
 
@@ -28,7 +33,8 @@ export interface BenchmarkRunPlan {
   readonly target: {
     readonly agent: "claude";
     readonly model: string;
-    readonly settings: typeof targetSettings;
+    readonly provider: string;
+    readonly settings: TargetSettings;
   };
   readonly runs: ReadonlyArray<{
     readonly runId: string;
@@ -63,13 +69,19 @@ export interface CollectionDependencies {
   readonly onProgress?: (message: string) => void;
 }
 
+export interface BenchmarkExecutionOptions {
+  readonly provider?: string;
+  readonly settingSources?: TargetSettingSources;
+}
+
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
 export function createBenchmarkRunPlan(
   fixtures: readonly BenchmarkSourceFixture[],
-  model: string
+  model: string,
+  options: BenchmarkExecutionOptions = {}
 ): BenchmarkRunPlan {
   if (model.trim().length === 0) {
     throw new Error("benchmark target model must be explicit and non-empty");
@@ -78,11 +90,20 @@ export function createBenchmarkRunPlan(
   if (fixtures.length !== 12 || new Set(fixtureIds).size !== 12) {
     throw new Error(`benchmark run plan requires exactly 12 unique fixtures; received ${fixtures.length}`);
   }
+  const provider = options.provider ?? "unspecified";
+  if (!/^[a-z0-9][a-z0-9._-]*$/.test(provider)) {
+    throw new Error("benchmark provider must be a non-secret lowercase label");
+  }
   const sortedFixtures = [...fixtures].sort((left, right) => compareText(left.id, right.id));
   return {
     schemaVersion: "1.0.0",
     benchmarkId: "first-36",
-    target: { agent: "claude", model, settings: targetSettings },
+    target: {
+      agent: "claude",
+      model,
+      provider,
+      settings: createTargetSettings(options.settingSources)
+    },
     runs: sortedFixtures.flatMap((fixture) => modes.map((mode) => ({
       runId: `${fixture.id}:${mode}:initial`,
       fixtureId: fixture.id,
@@ -200,9 +221,10 @@ export async function collectTargetRuns(
   fixtures: readonly BenchmarkSourceFixture[],
   model: string,
   outputDirectory: string,
-  dependencies: CollectionDependencies = {}
+  dependencies: CollectionDependencies = {},
+  options: BenchmarkExecutionOptions = {}
 ): Promise<CollectionSummary> {
-  const plan = createBenchmarkRunPlan(fixtures, model);
+  const plan = createBenchmarkRunPlan(fixtures, model, options);
   const outputRoot = resolve(outputDirectory);
   const inputDirectory = join(outputRoot, "inputs");
   const resultDirectory = join(outputRoot, "results");
@@ -213,9 +235,18 @@ export async function collectTargetRuns(
   await ensurePlan(join(outputRoot, "plan.json"), plan);
 
   const fixtureById = new Map(fixtures.map((fixture) => [fixture.id, fixture]));
-  const sourceAssistedBuilder = dependencies.buildSourceAssisted ?? runSourceAssisted;
+  const sourceAssistedBuilder = dependencies.buildSourceAssisted
+    ?? (async (fixture, sourceModel) => await runSourceAssisted(
+      fixture,
+      sourceModel,
+      defaultProcessRunner,
+      { settingSources: plan.target.settings.settingSources }
+    ));
   const targetRunner = dependencies.runTarget ?? (async (artifact, targetModel) =>
-    await runTargetContinuation(artifact, targetModel));
+    await runTargetContinuation(artifact, targetModel, {
+      provider: plan.target.provider,
+      settingSources: plan.target.settings.settingSources
+    }));
   let completed = 0;
   let skipped = 0;
 

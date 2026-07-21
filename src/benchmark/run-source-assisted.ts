@@ -10,6 +10,7 @@ import {
   type HandoffInputArtifact
 } from "./build-handoff-input.js";
 import { totalInputTokens, type ClaudeUsage } from "./claude-usage.js";
+import type { TargetSettingSources } from "./run-target-continuation.js";
 
 export interface ProcessResult {
   readonly exitCode: number;
@@ -30,6 +31,7 @@ export interface SourceAssistedInvocation {
   readonly model: string;
   readonly persistence: "disabled";
   readonly tools: "disabled";
+  readonly settingSources: TargetSettingSources;
 }
 
 export async function defaultProcessRunner(
@@ -60,12 +62,14 @@ export async function defaultProcessRunner(
 
 export async function createSourceAssistedInvocation(
   fixture: BenchmarkSourceFixture,
-  model: string
+  model: string,
+  options: { readonly settingSources?: TargetSettingSources } = {}
 ): Promise<SourceAssistedInvocation> {
   const schemaPath = fileURLToPath(
     new URL("../../schema/work-capsule.v1.schema.json", import.meta.url)
   );
   const schema = JSON.parse(await readFile(schemaPath, "utf8")) as object;
+  const settingSources = options.settingSources ?? "none";
   return {
     command: "claude",
     args: [
@@ -79,6 +83,8 @@ export async function createSourceAssistedInvocation(
       "{\"mcpServers\":{}}",
       "--permission-mode",
       "plan",
+      "--setting-sources",
+      settingSources === "none" ? "" : settingSources,
       "--output-format",
       "json",
       "--json-schema",
@@ -89,7 +95,8 @@ export async function createSourceAssistedInvocation(
     stdin: buildSourceAssistedPrompt(fixture),
     model,
     persistence: "disabled",
-    tools: "disabled"
+    tools: "disabled",
+    settingSources
   };
 }
 
@@ -102,9 +109,10 @@ interface ClaudeEnvelope {
 export async function runSourceAssisted(
   fixture: BenchmarkSourceFixture,
   model: string,
-  runner: ProcessRunner = defaultProcessRunner
+  runner: ProcessRunner = defaultProcessRunner,
+  options: { readonly settingSources?: TargetSettingSources } = {}
 ): Promise<HandoffInputArtifact> {
-  const invocation = await createSourceAssistedInvocation(fixture, model);
+  const invocation = await createSourceAssistedInvocation(fixture, model, options);
   const temporaryDirectory = await mkdtemp(join(tmpdir(), "agentcarry-benchmark-"));
   try {
     const result = await runner(invocation.command, invocation.args, {

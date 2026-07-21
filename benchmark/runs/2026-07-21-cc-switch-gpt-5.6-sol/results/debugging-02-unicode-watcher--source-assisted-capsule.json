@@ -1,0 +1,36 @@
+{
+  "fixtureId": "debugging-02-unicode-watcher",
+  "input": {
+    "exactTargetInputTokens": 2550,
+    "sha256": "a7ef4d017bc797d32e369df7350880789fc522567e78f805291f6d277db1a433",
+    "utf8Bytes": 4348
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:45:30.441Z",
+    "promptSha256": "a7ef4d017bc797d32e369df7350880789fc522567e78f805291f6d277db1a433",
+    "startedAt": "2026-07-21T13:45:12.449Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "349cb85b87c587a66d12aa178cd8d1255aeaef431bef28ad1db05d23534b96de",
+    "text": "## 续接简报\n\n- **目标**：修复 Windows 中文/含空格路径上的配置重载遗漏；保持 POSIX 路径比较区分大小写，且不新增 watcher 依赖。\n- **关键约束**\n  - Windows 比较需容忍驱动器字母大小写差异。\n  - POSIX 比较必须继续区分大小写。\n  - 不得增加 watcher 依赖。\n- **当前状态**\n  - `src/watch-path.ts` 据交接已修改为 Windows-aware 比较。\n  - `test/watch-windows.test.ts` 据推断已创建，但内容和完成度未知。\n  - 工作区、分支及 dirty 状态均为推断信息，尚未重新确认。\n- **已完成**\n  - 已确认解码路径与 `C:\\Users\\dev\\项目 空间\\配置.json` 完全一致。\n  - 已定位根因是事件路径仅有驱动器字母大小写差异，而原比较区分大小写。\n  - 据先前报告，已有单元测试通过；没有可用测试命令或输出可复核。\n- **已作决定**\n  - 仅在 Windows 语义下处理路径大小写差异。\n  - POSIX 行为不放宽。\n- **明确避免的失败路径**\n  - 不再沿“UTF-8 解码损坏路径”方向排查，该假设已被结果否定。\n  - 不通过引入新的 watcher 依赖解决。\n- **待办**\n  - 检查并完成真实 Windows watcher 集成测试。\n  - 随后验证 Windows 集成测试、POSIX 大小写行为及依赖未增加；目前均无新验证结果。\n- **唯一正确的下一步**\n  - 审查并完成 `test/watch-windows.test.ts`，使其通过真实 Windows watcher 场景覆盖中文/含空格路径以及驱动器字母大小写不一致时的配置重载。"
+  },
+  "runId": "debugging-02-unicode-watcher:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "be01c97c050e1cd2383abdec2bf2468ea7b5b0420030bb0a83cfc5376b6a7725",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

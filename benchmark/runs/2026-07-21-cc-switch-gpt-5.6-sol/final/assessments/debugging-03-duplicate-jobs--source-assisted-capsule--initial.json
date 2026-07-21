@@ -1,0 +1,89 @@
+{
+  "categories": {
+    "completedAndPending": [
+      {
+        "factId": "d03-progress",
+        "note": "Human reviewer confirmed the target output preserves: Lease ordering is changed; the fake-clock regression remains pending.",
+        "verdict": "preserved"
+      }
+    ],
+    "criticalConstraints": [
+      {
+        "factId": "d03-constraint-schema",
+        "note": "Human reviewer confirmed the target output preserves: Preserve the queue schema and payloads.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "d03-constraint-effects",
+        "note": "Human reviewer confirmed the target output preserves: Side effects must remain at-most-once.",
+        "verdict": "preserved"
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "factId": "d03-failed-broker",
+        "note": "Human reviewer confirmed the target output preserves: Duplicate broker delivery was rejected because logs show only one delivery.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "d03-decision-lease",
+        "note": "Human reviewer confirmed the target output preserves: Persist the started marker before handler dispatch.",
+        "verdict": "preserved"
+      }
+    ],
+    "nextAction": [
+      {
+        "factId": "d03-next",
+        "note": "通过：足以安全编写确定性 lease-race 测试并避免修改队列 schema/retry policy。",
+        "verdict": "partial"
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "factId": "d03-objective",
+        "note": "Human reviewer confirmed the target output preserves: Stop duplicate jobs; a lease-ordering fix is present but lacks its deterministic regression.",
+        "verdict": "preserved"
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "factId": "d03-workspace",
+        "note": "Human reviewer confirmed the target output preserves: src/worker/lease.ts is the dirty implementation file.",
+        "verdict": "preserved"
+      }
+    ]
+  },
+  "fixtureId": "debugging-03-duplicate-jobs",
+  "mode": "source-assisted-capsule",
+  "repeatedFailedPaths": [],
+  "review": {
+    "humanReviewer": "jettlin927",
+    "llmJudge": {
+      "advisoryOnly": true,
+      "model": "OpenAI Codex"
+    },
+    "reviewedAt": "2026-07-21T15:02:55.025115Z"
+  },
+  "runId": "debugging-03-duplicate-jobs:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 2378,
+    "visibleTranscriptBaseline": 1439
+  },
+  "unsupportedClaims": []
+}

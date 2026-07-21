@@ -1,0 +1,36 @@
+{
+  "fixtureId": "architecture-02-session-index",
+  "input": {
+    "exactTargetInputTokens": 3182,
+    "sha256": "dcbdb06be915524d32d750ddb12f2726939dd47b5087f258a21d020f32206026",
+    "utf8Bytes": 6328
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:37:57.953Z",
+    "promptSha256": "dcbdb06be915524d32d750ddb12f2726939dd47b5087f258a21d020f32206026",
+    "startedAt": "2026-07-21T13:37:36.519Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "0047fbd7987b9a1e3694b855c8ec1630c41ce1c1c816fdbd16542c8b11586737",
+    "text": "## 续接简报\n\n- **目标**：设计一个可离线运行、兼容 Windows/macOS/Linux 且无原生依赖的本地会话索引。\n- **关键约束**：继续使用“仅追加 JSONL + 内存索引”；只有当 10,000 个会话的实测启动时间超过 2 秒时才考虑替换方案。\n- **当前状态**：\n  - 分支：`architecture/session-index`，HEAD `a0200002`，工作区有未提交修改。\n  - `src/index/jsonl-store.ts` 已实现追加写入和启动加载。\n  - 10,000 个合成会话的已记录加载时间为 **640 ms**，尚未达到迁移阈值。\n  - `test/index-startup.test.ts` 已创建。\n- **已定决策**：保留 JSONL 与内存索引；不采用当前 SQLite 驱动。\n- **失败路径（明确避免）**：所选 SQLite 驱动在 Windows 干净安装时需要编译原生绑定并失败；不要回到该方案。\n- **已完成**：JSONL 追加与启动加载实现，以及 10,000 会话启动性能测量。\n- **待完成**：更新频繁时文件会无限增长；压缩及崩溃安全的文件替换尚未实现。现有相关结果状态为 `unknown`，没有新的验证。\n- **唯一正确的下一步**：在 `src/index/compact.ts` 中实现 JSONL 压缩与崩溃安全替换，同时保持跨平台、无原生依赖；此处仅记录该动作，不执行。"
+  },
+  "runId": "architecture-02-session-index:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "5ad936ae939e2eb5d688352ddbc9325e850b5a3cbfe0fdfd708e0a5ab116a595",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

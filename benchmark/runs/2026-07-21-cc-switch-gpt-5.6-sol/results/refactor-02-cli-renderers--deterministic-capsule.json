@@ -1,0 +1,36 @@
+{
+  "fixtureId": "refactor-02-cli-renderers",
+  "input": {
+    "exactTargetInputTokens": 3210,
+    "sha256": "9fcb657b6649eb0932992b1c0f8373dc8f29aae01468bdef87b00e013451174f",
+    "utf8Bytes": 6326
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:56:44.956Z",
+    "promptSha256": "9fcb657b6649eb0932992b1c0f8373dc8f29aae01468bdef87b00e013451174f",
+    "startedAt": "2026-07-21T13:56:25.167Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "5f8e42503853ccc6acbb0c82ae1d7e22fb6aa2ce17df19be94ae2aba1dda8d83",
+    "text": "## 续接简报\n\n- **目标**：将 CLI 渲染与命令逻辑分离；保持现有人类可读输出兼容，并确保 JSON 模式的 `stdout` 只包含合法 JSON。\n- **关键约束**：\n  - 所有格式化由渲染器负责。\n  - 诊断信息写入 `stderr`。\n  - 不得针对具体命令添加特殊处理。\n  - 必须保留文本模式原有彩色输出。\n- **当前状态**：\n  - 分支：`refactor/cli-renderers`，工作区未清洁。\n  - `src/cli/commands.ts` 已修改。\n  - `src/cli/text-renderer.ts`、`src/cli/json-renderer.ts` 已创建。\n  - 命令处理器现已返回结果对象；文本渲染器可复现既有快照。\n  - 已有结果显示 JSON 输出曾混入 ANSI 色码，且 JSON 文档前出现一行诊断信息；该验证状态仍为 **unknown**，不可视为已解决。\n  - JSON 渲染器尚无诊断路由测试。\n- **既定决策**：命令只返回结构化结果，格式化集中于渲染器；诊断输出与正常输出按 `stderr`/`stdout` 分流。\n- **失败路径（必须避免）**：不要重新启用全局 `no-color`。该方案虽修复快照，却破坏了人类输出的颜色，已经回退。\n- **已完成**：命令逻辑与文本格式化初步拆分，文本快照兼容。\n- **待完成**：在通用渲染边界解决 JSON 中的 ANSI 污染和诊断串流问题，并补足覆盖 `stdout`/`stderr` 分离的测试。\n- **唯一下一步**：在渲染器层统一实现诊断到 `stderr`、JSON 文档独占 `stdout` 的路由，并以测试锁定该行为；不得修改命令处理器来做特例。"
+  },
+  "runId": "refactor-02-cli-renderers:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "0b4bb6d3d348e114ba5c656c4dde88d60ef6baf47cbbb1fcdadf74defcc28ba2",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -138,3 +138,68 @@ re-running the same plan skips validated results and never overwrites them.
 The collector does not install Claude Code, log in, repair credentials, review
 outputs, score facts, or hide failed runs. Human review and deterministic scoring
 remain separate steps.
+
+## Human review packet and finalization
+
+Generate the self-contained browser workbench. It shows the exact handoff input
+and target output side by side, keeps pass/fail decisions in browser-local
+storage, allows fact-level corrections, and exports the review as JSON:
+
+```shell
+npm run --silent benchmark:review -- html benchmark/fixtures <run-directory> \
+  --output <run-directory>/REVIEW.html
+```
+
+The final export requires the reviewer to identify as a human and explicitly
+attest that they personally completed the review. AI-only exports remain useful
+as advisory evidence but are rejected by finalization.
+
+The Markdown packet remains available as a non-interactive archival form of the
+same evidence:
+
+```shell
+npm run --silent benchmark:review -- packet benchmark/fixtures <run-directory> \
+  --output <run-directory>/REVIEW_PACKET.md
+```
+
+Both views remain advisory until a human checks every run. After the reviewer
+exports the browser decisions and records an approval or corrections in an
+auditable location, materialize all assessments, deterministic scores, and
+aggregate reports atomically:
+
+```shell
+npm run --silent benchmark:review -- finalize benchmark/fixtures <run-directory> \
+  --output <run-directory>/final \
+  --review-file <exported-human-review.json> \
+  --confirmation-source <issue-comment-url> \
+  --human-confirmed
+```
+
+Finalization refuses to overwrite an existing output directory. It validates
+all 12 fixtures, 36 target results, 36 advisory entries, 36 completed browser
+decisions, every fact ID and verdict, reviewer metadata, and aggregate integrity
+before publishing `assessments/`, `scores/`, `human-review.json`,
+`human-confirmation.json`, `result-set.json`, `report.json`, and `REPORT.md`.
+
+### Explicit routed-provider mode
+
+Some local routing tools configure Claude Code through its user settings. The
+collector can opt into that dependency, but never does so implicitly:
+
+```shell
+npm run --silent benchmark:collect -- benchmark/fixtures \
+  --model <exact-upstream-model> \
+  --setting-sources user \
+  --provider <public-route-label> \
+  --output <directory>
+```
+
+`--setting-sources user` requires `--provider`. Both values are written to the
+plan and every result, while credential values are neither read into the result
+model nor serialized. The explicit model must describe the actual upstream
+model, not a Claude role alias. Use this mode only with trusted local settings:
+Claude Code may load user-defined hooks and other behavior from that file even
+though the benchmark still disables tools, persistence, slash commands, and MCP.
+
+A routed non-Anthropic model measures the AgentCarry handoff through the Claude
+Code CLI harness; it is not evidence about the quality of a native Claude model.

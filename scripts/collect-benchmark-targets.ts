@@ -29,28 +29,42 @@ const args = process.argv.slice(2);
 const fixtureDirectory = args.shift();
 const modelIndex = args.indexOf("--model");
 const outputIndex = args.indexOf("--output");
+const providerIndex = args.indexOf("--provider");
+const settingSourcesIndex = args.indexOf("--setting-sources");
 const model = modelIndex === -1 ? undefined : args[modelIndex + 1];
 const output = outputIndex === -1 ? undefined : args[outputIndex + 1];
+const provider = providerIndex === -1 ? undefined : args[providerIndex + 1];
+const settingSources = settingSourcesIndex === -1
+  ? "none"
+  : args[settingSourcesIndex + 1];
 const planOnly = args.includes("--plan");
 
 if (
   fixtureDirectory === undefined
   || model === undefined
   || (!planOnly && output === undefined)
+  || (settingSources !== "none" && settingSources !== "user")
+  || (settingSources === "user" && provider === undefined)
 ) {
   process.stderr.write(
-    "Usage: collect-benchmark-targets <fixture-dir> --model <model> [--plan | --output <directory>]\n"
+    "Usage: collect-benchmark-targets <fixture-dir> --model <model> "
+      + "[--setting-sources none|user --provider <public-label>] "
+      + "[--plan | --output <directory>]\n"
   );
   process.exitCode = 2;
 } else {
   try {
     const fixtures = await readFixtures(resolve(fixtureDirectory));
+    const execution = {
+      ...(provider === undefined ? {} : { provider }),
+      settingSources
+    } as const;
     if (planOnly) {
-      process.stdout.write(canonicalJson(createBenchmarkRunPlan(fixtures, model)));
+      process.stdout.write(canonicalJson(createBenchmarkRunPlan(fixtures, model, execution)));
     } else {
       const summary = await collectTargetRuns(fixtures, model, resolve(output!), {
         onProgress: (message) => { process.stderr.write(`${message}\n`); }
-      });
+      }, execution);
       process.stdout.write(canonicalJson(summary));
     }
   } catch (error: unknown) {

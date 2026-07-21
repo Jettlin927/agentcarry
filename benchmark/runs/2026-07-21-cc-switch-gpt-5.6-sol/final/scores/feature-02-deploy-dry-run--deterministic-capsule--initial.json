@@ -1,0 +1,122 @@
+{
+  "categoryScores": [
+    {
+      "category": "criticalConstraints",
+      "earned": 30,
+      "facts": [
+        {
+          "factId": "f02-constraint-files",
+          "points": 1,
+          "verdict": "preserved"
+        },
+        {
+          "factId": "f02-constraint-network",
+          "points": 1,
+          "verdict": "preserved"
+        }
+      ],
+      "weight": 30
+    },
+    {
+      "category": "objectiveAndState",
+      "earned": 20,
+      "facts": [
+        {
+          "factId": "f02-objective",
+          "points": 1,
+          "verdict": "preserved"
+        }
+      ],
+      "weight": 20
+    },
+    {
+      "category": "decisionsAndFailedAttempts",
+      "earned": 20,
+      "facts": [
+        {
+          "factId": "f02-decision-plan",
+          "points": 1,
+          "verdict": "preserved"
+        },
+        {
+          "factId": "f02-failed-mock",
+          "points": 1,
+          "verdict": "preserved"
+        }
+      ],
+      "weight": 20
+    },
+    {
+      "category": "completedAndPending",
+      "earned": 15,
+      "facts": [
+        {
+          "factId": "f02-progress",
+          "points": 1,
+          "verdict": "preserved"
+        }
+      ],
+      "weight": 15
+    },
+    {
+      "category": "workspaceEvidence",
+      "earned": 10,
+      "facts": [
+        {
+          "factId": "f02-workspace",
+          "points": 1,
+          "verdict": "preserved"
+        }
+      ],
+      "weight": 10
+    },
+    {
+      "category": "nextAction",
+      "earned": 2.5,
+      "facts": [
+        {
+          "factId": "f02-next",
+          "points": 0.5,
+          "verdict": "partial"
+        }
+      ],
+      "weight": 5
+    }
+  ],
+  "criticalConstraintMisses": [],
+  "fidelityScore": 97.5,
+  "fixtureId": "feature-02-deploy-dry-run",
+  "gates": {
+    "correctNextAction": false,
+    "criticalConstraints100Percent": true,
+    "noRepeatedFailedPath": true,
+    "tokenRatioAtMost40Percent": false
+  },
+  "mode": "deterministic-capsule",
+  "repeatedFailedPaths": [],
+  "reviewedAt": "2026-07-21T15:02:55.025115Z",
+  "reviewer": "jettlin927",
+  "runId": "feature-02-deploy-dry-run:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 3237,
+    "ratio": 2.2573,
+    "visibleTranscriptBaseline": 1434
+  },
+  "unsupportedClaims": []
+}

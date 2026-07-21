@@ -1,0 +1,36 @@
+{
+  "fixtureId": "feature-01-pagination",
+  "input": {
+    "exactTargetInputTokens": 3135,
+    "sha256": "ff401878b65b81ddb7de92afc373e52b5c565bee43027a7c468f7efc1dd1dbe8",
+    "utf8Bytes": 6118
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:48:00.284Z",
+    "promptSha256": "ff401878b65b81ddb7de92afc373e52b5c565bee43027a7c468f7efc1dd1dbe8",
+    "startedAt": "2026-07-21T13:47:41.303Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "e253b3a16124c6a2244cb30913670c2c7631179163381088ec2ce7f8e2d9732e",
+    "text": "## 续接简报\n\n- **目标**：为客户端增加游标分页，同时保持现有 `list()` 仅返回第一页，且不得预取后续页面。\n- **关键约束**：\n  - 必须公开名为 `pages()` 的异步迭代器。\n  - 每次调用迭代器的 `next()` 必须恰好请求一页。\n  - 不得恢复或采用会一次性抓取全部页面的 `collectAll()` 方案。\n  - 不得破坏 `list()` 的单页兼容行为。\n- **当前状态**：\n  - 分支：`feature/cursor-pages`；工作区为 dirty；HEAD `f0100001`。\n  - `src/client.ts`、`src/response.ts` 已修改。\n  - 响应解析器据记录已返回 `items` 和 `nextCursor`，`list()` 仍只返回第一页。\n  - 尚无 `pages()` 实现或对应迭代器测试；`test/pages.test.ts` 仅被引用。\n  - 既有验证状态标记为 **unknown**；不可据此声称测试已通过。\n- **已完成/已决策**：\n  - 解析结果包含条目和下一页游标。\n  - 保留 `list()` 的现有单页语义。\n  - 已删除急切加载全部页面的 `collectAll()` 草案。\n- **失败路径**：\n  - `collectAll()` 会预取全部页面，明确不得重走。\n  - 交接数据还把“解析器及 `list()` 调整”启发式归入失败项，但这与非推断的 completed/decisions 记录冲突；不要仅凭该推断条目回退现有修改。\n- **待完成**：实现惰性的 `pages()` 异步迭代器，并补充验证每次 `next()` 仅发起一次页面请求、游标正确传递、结束后不再请求的测试。\n- **唯一正确的下一步**：在 `src/client.ts` 中基于现有解析结果实现 `pages()`，使首次及后续每次 `next()` 各自只获取一页，并在 `nextCursor` 缺失时结束迭代。"
+  },
+  "runId": "feature-01-pagination:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "0d98d6f3b4cb4f8f97e1050fccd2970674dbd54b5e4f22e00d2d325d15c18d3f",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "fixtureId": "architecture-03-job-scheduler",
+  "input": {
+    "exactTargetInputTokens": 1431,
+    "sha256": "32dd62d5ac468357de1986e2b61946e28f64d8ff92db6290fd8da7e9cb366bfd",
+    "utf8Bytes": 514
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:40:29.937Z",
+    "promptSha256": "32dd62d5ac468357de1986e2b61946e28f64d8ff92db6290fd8da7e9cb366bfd",
+    "startedAt": "2026-07-21T13:40:10.470Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "54c818368cfb1cccd23e4c64357390454f2404c6d14ed750d3c3a3da03a3c3c4",
+    "text": "## 续接简报\n\n- **目标**：实现作业调度器，按 FIFO 顺序启动，最多同时运行 4 个作业，并允许作业在仍处于队列、尚未启动时取消。\n- **关键约束**：禁止轮询；运行作业结束后必须直接释放并唤醒最早的有效 FIFO 等待者。并发数不得超过 4。\n- **当前状态**：已有基于信号量队列的方案；在常规测试中能够保持 FIFO，且最多启动 4 个作业。\n- **已定决策**：采用信号量/FIFO 等待队列和完成时直接交接许可，不使用定时检查空闲槽位。\n- **失败路径**：250 ms 轮询空闲槽位的原型已被明确否决，不得恢复或变相采用。\n- **已完成**：基本并发上限与常规 FIFO 行为已有实现/测试结果。\n- **待完成**：尚无证据表明“排队期间取消”已实现；还需处理取消与许可交接的竞态，确保取消的等待者不会启动，且不会阻塞后续 FIFO 等待者。也尚未记录相应取消测试。\n- **唯一下一步**：在现有信号量 FIFO 队列中补齐取消尚未启动等待者的机制，使作业完成时直接跳过已取消项并唤醒最早的有效等待者，同时保持并发上限和 FIFO。"
+  },
+  "runId": "architecture-03-job-scheduler:visible-transcript:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "693f26d1081c33beba8f28d1b74a593657346478a1679500830e5d4c01e0028a",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

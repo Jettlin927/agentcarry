@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nAdd deploy --dry-run. It must make no network requests and write no files, while showing the exact planned operations.\n\n## Assistant\n\nPlanning is separated from execution and the human plan renderer is complete.\n\n## Assistant\n\nMocking the filesystem in the CLI test hid the write and was reverted.\n\n## User\n\nWire --dry-run into the CLI next and assert the executor is never constructed.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "feature-02-deploy-dry-run",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 396,
+    "utf8Bytes": 396
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "bbc9aec142fb32b3fc9882673c3da0503a066bfbcb3233267204aa993e78e2cd"
+}

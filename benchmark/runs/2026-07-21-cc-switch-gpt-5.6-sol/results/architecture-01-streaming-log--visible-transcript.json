@@ -1,0 +1,36 @@
+{
+  "fixtureId": "architecture-01-streaming-log",
+  "input": {
+    "exactTargetInputTokens": 1446,
+    "sha256": "cf23237f7a9db56dd74c9516437083b268c117c7f8661bf3fe2a39e3dafa9b15",
+    "utf8Bytes": 550
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:35:37.915Z",
+    "promptSha256": "cf23237f7a9db56dd74c9516437083b268c117c7f8661bf3fe2a39e3dafa9b15",
+    "startedAt": "2026-07-21T13:35:17.275Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "f77d1ba671828bac3c5f0c8bc3106841aef9ca29c0a939ab855360c4042b7e96",
+    "text": "## 续接简报\n\n- **目标**：按事件原始顺序读取多 GB JSONL 日志，并将峰值内存控制在 **100 MiB 以下**。\n- **关键约束**：\n  - 首次读取必须逐行流式处理。\n  - 首次读取不得预建索引。\n  - 可以在首次读取后提供可选索引。\n  - 需要处理格式错误的行，同时保持其余事件顺序。\n- **当前状态**：`src/log/stream-events.ts` 已实现有序事件流和错误行恢复；在给定样本上测得峰值内存 **42 MiB**。\n- **已确认决策**：采用流式逐行读取，而非将整个文件载入内存。\n- **失败路径（不得重试）**：`readFile` 后再 `split`；该方案峰值内存超过 **2 GiB**，也违反首次读取不得预索引的要求。\n- **已完成**：基础流式读取、有序产出、格式错误行恢复，以及样本内存测试。\n- **待完成/待确认**：可选的首次读取后索引未在交接信息中确认实现；多 GB 场景、顺序保证及错误恢复的完整测试覆盖情况也未知。\n- **唯一下一步**：检查 `src/log/stream-events.ts` 及相关测试，确认可选后置索引是否缺失，并据此制定仅在首次流式读取完成后构建索引的实现方案。"
+  },
+  "runId": "architecture-01-streaming-log:visible-transcript:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "37d5a57123ebb60fc9d102736ca21c5c98622a7269a6a518335316fe5667f625",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "content": "{\n  \"completedWork\": [\n    {\n      \"eventIds\": [\n        \"d03-tool-1\"\n      ],\n      \"text\": \"调查结果表明 broker 仅投递了一次，而 worker 对同一个 leased job 启动了两次。\"\n    },\n    {\n      \"eventIds\": [\n        \"d03-tool-2\"\n      ],\n      \"text\": \"已定位到 lease race：slow-clock 测试中，lease 会在首个 handler 写入 started marker 之前过期。\"\n    },\n    {\n      \"eventIds\": [\n        \"d03-assistant-2\"\n      ],\n      \"text\": \"助手报告已修改 src/worker/lease.ts，使 started marker 在 handler dispatch 之前存储；该实现尚无所述 deterministic fake-clock regression 的验证。\"\n    }\n  ],\n  \"currentUserMessage\": {\n    \"eventIds\": [\n      \"d03-user-2\"\n    ],\n    \"text\": \"Do not change queue payloads. Add the fake-clock regression before touching retry policy.\"\n  },\n  \"decisions\": [\n    {\n      \"eventIds\": [\n        \"d03-user-1\",\n        \"d03-user-2\"\n      ],\n      \"text\": \"保持 queue schema 和 queue payloads 不变。\"\n    },\n    {\n      \"eventIds\": [\n        \"d03-user-2\"\n      ],\n      \"text\": \"优先添加 fake-clock regression，之后才能考虑 retry policy。\"\n    },\n    {\n      \"eventIds\": [\n        \"d03-assistant-2\"\n      ],\n      \"text\": \"当前采用的修复方向是先存储 started marker，再 dispatch handler。\"\n    }\n  ],\n  \"failedAttempts\": [\n    {\n      \"eventIds\": [\n        \"d03-assistant-1\",\n        \"d03-tool-1\"\n      ],\n      \"text\": \"最初关于 network retry 导致 broker 重复投递同一消息的假设被 broker 日志否定；日志显示只有一次投递。\"\n    }\n  ],\n  \"losses\": [\n    {\n      \"text\": \"隐藏推理不可用，未纳入 Work Capsule。\",\n      \"type\": \"hidden_reasoning\"\n    },\n    {\n      \"text\": \"prompt cache 内容不可用，未纳入 Work Capsule。\",\n      \"type\": \"prompt_caches\"\n    },\n    {\n      \"text\": \"除所供应的 workspace 摘要外，更详细的 tool state 不可用。\",\n      \"type\": \"tool_state\"\n    },\n    {\n      \"text\": \"未供应可用附件；任何未提供的附件内容均已丢失。\",\n      \"type\": \"attachments\"\n    }\n  ],\n  \"objective\": {\n    \"eventIds\": [\n      \"d03-user-1\"\n    ],\n    \"text\": \"阻止重复执行 invoice jobs，同时保持现有 queue schema，并维持 at-most-once side effects。\"\n  },\n  \"pendingWork\": [\n    {\n      \"eventIds\": [\n        \"d03-tool-1\",\n        \"d03-tool-2\",\n        \"d03-assistant-2\",\n        \"d03-user-2\"\n      ],\n      \"text\": \"在 test/lease-race.test.ts 中添加 deterministic fake-clock regression，以覆盖 marker 写入前 lease 过期导致同一 job 被启动两次的竞态。\"\n    },\n    {\n      \"eventIds\": [\n        \"d03-user-2\"\n      ],\n      \"text\": \"在 fake-clock regression 完成之前不要调整 retry policy。\"\n    },\n    {\n      \"eventIds\": [\n        \"d03-user-1\"\n      ],\n      \"text\": \"最终改动仍需满足 at-most-once side effects。\"\n    }\n  ],\n  \"validation\": [\n    {\n      \"inferred\": true,\n      \"text\": \"供应的事件和 workspace 未包含任何已执行命令、测试运行或测试结果，因此当前修复不能视为已经验证。\"\n    }\n  ],\n  \"workspace\": {\n    \"facts\": [\n      {\n        \"inferred\": true,\n        \"text\": \"workspace root 为 /home/dev/invoice-worker。\"\n      },\n      {\n        \"inferred\": true,\n        \"text\": \"当前 branch 为 fix/lease-race，HEAD 为 d0300003，workspace 为 dirty 状态。\"\n      },\n      {\n        \"inferred\": true,\n        \"text\": \"src/worker/lease.ts 当前处于 modified 状态；workspace 摘要未提供文件内容，因此无法独立确认修改的具体实现。\"\n      },\n      {\n        \"eventIds\": [\n          \"d03-assistant-2\"\n        ],\n        \"text\": \"test/lease-race.test.ts 当前处于 unchanged 状态，与 deterministic fake-clock regression 仍待添加的报告一致。\"\n      }\n    ]\n  }\n}\n",
+  "contentType": "application/json",
+  "fixtureId": "debugging-03-duplicate-jobs",
+  "generation": {
+    "deterministic": false,
+    "model": "gpt-5.6-sol",
+    "persistence": "disabled",
+    "promptSha256": "3e44021f4a80e639dc27f55b70930ee14dd1e7c9e6a38c830a1c426765de9e5e",
+    "summarizerInputTokens": 3116,
+    "tools": "disabled"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 3091,
+    "utf8Bytes": 3827
+  },
+  "mode": "source-assisted-capsule",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "569be092bf2d03da6b24b9ac18edb33f425fb26f7e24f9c84ae7d0e3683750fd"
+}

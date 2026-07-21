@@ -1,0 +1,36 @@
+{
+  "fixtureId": "refactor-03-file-indexer",
+  "input": {
+    "exactTargetInputTokens": 3178,
+    "sha256": "0c160d3df704f11edb0a177005ae30f961b443ec7a06b64f9115edcd2431b5aa",
+    "utf8Bytes": 6306
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:58:47.225Z",
+    "promptSha256": "0c160d3df704f11edb0a177005ae30f961b443ec7a06b64f9115edcd2431b5aa",
+    "startedAt": "2026-07-21T13:58:22.625Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "6c65d717224cd40c4fd1f70647319539781943cf6b7a767f76dba82c865ec6d8",
+    "text": "## 续接简报\n\n- **目标**：将文件索引统一到一个接口后，继续保持 Windows、macOS、Linux 的既有行为，并始终以流式方式处理文件，不能把所有文件载入内存。\n- **关键约束**：\n  - 剩余范围仅为 `.ignore` 文件支持。\n  - ignore 规则解析必须留在 `src/indexer/local-indexer.ts` 内。\n  - 保留跨平台路径及符号链接/目录连接行为。\n  - 不得重新采用“对每条路径调用 `realpath`”的方案。\n- **当前状态**：\n  - 分支：`refactor/local-indexer`，工作区有未提交修改。\n  - `src/indexer/index.ts` 已修改。\n  - `src/indexer/local-indexer.ts` 与 `test/indexer-symlink.test.ts` 已创建。\n  - 目录遍历和流式哈希已迁移至本地索引器。\n- **既定决策**：\n  - 遍历与哈希由 `src/indexer/local-indexer.ts` 负责。\n  - 使用目录身份去重来阻止符号链接递归，同时保留对外呈现的原始路径。\n- **失败路径**：\n  - 全量 `realpath` 解析曾被尝试并撤销，因为它会改变 Windows junction 的报告路径。\n  - 初版递归遍历会无限跟随 fixture 中的符号链接。\n- **已完成**：\n  - 索引职责提取、流式哈希、目录循环防护及相关符号链接测试已完成。\n  - 交接记录称目录身份跟踪方案下单元测试通过，但该验证状态被标记为 `unknown`，不可视为本次已重新验证。\n- **待完成**：实现 `.ignore` 文件的规则解析与遍历过滤，并补充相应测试；目前没有记录的开放问题。\n- **唯一下一步**：在 `src/indexer/local-indexer.ts` 内实现 `.ignore` 规则解析和遍历时过滤，同时补充覆盖规则匹配、跨平台路径及现有符号链接行为不回退的测试；不要改用 `realpath`。"
+  },
+  "runId": "refactor-03-file-indexer:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "2b86ba6d7a244cab256cc49a42634cfa03d57963cc588c9c3541401b45642636",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

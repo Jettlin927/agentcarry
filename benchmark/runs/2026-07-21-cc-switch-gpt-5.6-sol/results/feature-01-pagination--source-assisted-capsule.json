@@ -1,0 +1,36 @@
+{
+  "fixtureId": "feature-01-pagination",
+  "input": {
+    "exactTargetInputTokens": 2486,
+    "sha256": "04726fc4b1e95b4f71bb6ca074686f82f7ff8c6c6063d1afe5d4b7991f131115",
+    "utf8Bytes": 4083
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:49:30.660Z",
+    "promptSha256": "04726fc4b1e95b4f71bb6ca074686f82f7ff8c6c6063d1afe5d4b7991f131115",
+    "startedAt": "2026-07-21T13:49:10.851Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "058dc29b4b15a221699e7b9343cc206f78509c3f4fc128dbf9ddbf8069ad7479",
+    "text": "## 续接简报\n\n- **目标**：公开名为 `pages()` 的异步迭代器，使每次 `next()` **恰好请求一页**游标分页数据。\n- **关键约束**：\n  - 不得预取后续页面。\n  - 保持现有 `list()` 仅返回第一页的语义，确保向后兼容。\n  - 不要恢复已删除的 eager `collectAll()` 方案。\n- **当前状态**：\n  - 分支：`feature/cursor-pages`，工作区为 dirty；该 Git 状态来自交接推断。\n  - `src/client.ts`、`src/response.ts` 已修改。\n  - `test/pages.test.ts` 尚未修改。\n  - 当前没有 `pages()` 实现或相应迭代器测试。\n- **已完成**：\n  - 响应解析器现返回 `items` 和 `nextCursor`。\n  - `list()` 仍保持单页行为。\n  - 解析器及向后兼容性测试已报告通过，但没有执行命令或完整输出，不能视为本轮重新验证。\n- **既定决策**：\n  - API 名称固定为 `pages()`。\n  - API 形式为 async iterator。\n  - 网络请求由 `next()` 按需触发，一次只取一页。\n- **失败路径**：eager `collectAll()` 会一次性预取全部页面，已删除且不得重走。\n- **待完成**：\n  - 实现 `pages()`。\n  - 添加迭代器测试，验证逐次请求、游标推进、结束行为及无预取。\n  - 完成后运行相关测试与回归测试。\n- **唯一正确的下一步**：只读检查 `src/client.ts`、`src/response.ts` 和现有测试模式，确认当前请求入口、游标传递及公开 API 结构，再据此制定精确实现方案；此处不执行检查、编辑或验证。"
+  },
+  "runId": "feature-01-pagination:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "0d98d6f3b4cb4f8f97e1050fccd2970674dbd54b5e4f22e00d2d325d15c18d3f",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

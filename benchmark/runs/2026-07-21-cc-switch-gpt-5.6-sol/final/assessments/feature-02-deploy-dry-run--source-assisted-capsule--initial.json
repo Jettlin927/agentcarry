@@ -1,0 +1,89 @@
+{
+  "categories": {
+    "completedAndPending": [
+      {
+        "factId": "f02-progress",
+        "note": "Human reviewer confirmed the target output preserves: Plan rendering and pure bundle preparation pass; CLI flag wiring and executor-construction assertion remain.",
+        "verdict": "preserved"
+      }
+    ],
+    "criticalConstraints": [
+      {
+        "factId": "f02-constraint-network",
+        "note": "Human reviewer confirmed the target output preserves: Dry-run makes no network requests.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "f02-constraint-files",
+        "note": "Human reviewer confirmed the target output preserves: Dry-run writes no files or directories.",
+        "verdict": "preserved"
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "factId": "f02-failed-mock",
+        "note": "Human reviewer confirmed the target output preserves: Filesystem mocking in the CLI test was rejected because it hid real writes.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "f02-decision-plan",
+        "note": "Human reviewer confirmed the target output preserves: Planning must be pure and separate from executor construction.",
+        "verdict": "preserved"
+      }
+    ],
+    "nextAction": [
+      {
+        "factId": "f02-next",
+        "note": "通过：能正确接入 dry-run 并验证 executor 未构造；文件状态和测试先后次序仅为次要不完整。",
+        "verdict": "partial"
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "factId": "f02-objective",
+        "note": "Human reviewer confirmed the target output preserves: Add deploy --dry-run; planning and side-effect-free bundle preparation exist, CLI wiring does not.",
+        "verdict": "preserved"
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "factId": "f02-workspace",
+        "note": "通过：能正确接入 dry-run 并验证 executor 未构造；文件状态和测试先后次序仅为次要不完整。",
+        "verdict": "partial"
+      }
+    ]
+  },
+  "fixtureId": "feature-02-deploy-dry-run",
+  "mode": "source-assisted-capsule",
+  "repeatedFailedPaths": [],
+  "review": {
+    "humanReviewer": "jettlin927",
+    "llmJudge": {
+      "advisoryOnly": true,
+      "model": "OpenAI Codex"
+    },
+    "reviewedAt": "2026-07-21T15:02:55.025115Z"
+  },
+  "runId": "feature-02-deploy-dry-run:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 3027,
+    "visibleTranscriptBaseline": 1434
+  },
+  "unsupportedClaims": []
+}

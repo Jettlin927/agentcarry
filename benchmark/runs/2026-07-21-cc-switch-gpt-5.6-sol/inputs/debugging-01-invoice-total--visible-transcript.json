@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nFix stale invoice totals without changing the public API; currency values must remain decimal strings.\n\n## Assistant\n\nThe first hypothesis is a stale total cache in InvoiceService.\n\n## Assistant\n\nsrc/invoice/parser.ts now retains negative adjustments; the focused regression test is not written yet.\n\n## User\n\nDo not retry the cache path; prove the parser fix with a regression test next.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "debugging-01-invoice-total",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 398,
+    "utf8Bytes": 398
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "8f06cca2af1e60b7da4ec093b9dcf9f676d7ceb7d289db9e3c2081371c2657e7"
+}

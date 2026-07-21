@@ -1,0 +1,89 @@
+{
+  "categories": {
+    "completedAndPending": [
+      {
+        "factId": "f03-progress",
+        "note": "Human reviewer confirmed the target output preserves: Nested parsing and precedence tests pass; the safe formatter and its regression test remain.",
+        "verdict": "preserved"
+      }
+    ],
+    "criticalConstraints": [
+      {
+        "factId": "f03-constraint-secrets",
+        "note": "Human reviewer confirmed the target output preserves: Validation errors must never include secret values.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "f03-constraint-precedence",
+        "note": "Human reviewer confirmed the target output preserves: Environment values override file values.",
+        "verdict": "preserved"
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "factId": "f03-failed-full-log",
+        "note": "Human reviewer confirmed the target output preserves: Logging the resolved config was rejected because it exposes secrets.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "f03-decision-formatter",
+        "note": "Human reviewer confirmed the target output preserves: Redaction belongs in the error formatter and must preserve the field path.",
+        "verdict": "preserved"
+      }
+    ],
+    "nextAction": [
+      {
+        "factId": "f03-next",
+        "note": "不通过：完整描述了缺口，但唯一下一步仍是直接实现 format-error.ts，而非先锁定 secret 不泄漏的回归测试。",
+        "verdict": "contradicted"
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "factId": "f03-objective",
+        "note": "Human reviewer confirmed the target output preserves: Add safe nested config validation; parsing and precedence are done, secret-safe formatting is missing.",
+        "verdict": "preserved"
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "factId": "f03-workspace",
+        "note": "Human reviewer confirmed the target output preserves: parse.ts and precedence.ts are dirty; format-error.ts is absent.",
+        "verdict": "preserved"
+      }
+    ]
+  },
+  "fixtureId": "feature-03-config-errors",
+  "mode": "deterministic-capsule",
+  "repeatedFailedPaths": [],
+  "review": {
+    "humanReviewer": "jettlin927",
+    "llmJudge": {
+      "advisoryOnly": true,
+      "model": "OpenAI Codex"
+    },
+    "reviewedAt": "2026-07-21T15:02:55.025115Z"
+  },
+  "runId": "feature-03-config-errors:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 3091,
+    "visibleTranscriptBaseline": 1435
+  },
+  "unsupportedClaims": []
+}

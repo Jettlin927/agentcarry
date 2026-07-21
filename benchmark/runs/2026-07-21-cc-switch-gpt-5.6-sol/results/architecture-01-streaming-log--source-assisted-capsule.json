@@ -1,0 +1,36 @@
+{
+  "fixtureId": "architecture-01-streaming-log",
+  "input": {
+    "exactTargetInputTokens": 2765,
+    "sha256": "c0638cd63d0b6ae81c3fd0bd863ce517a8f90986156a38a528dc60d9593434fc",
+    "utf8Bytes": 5134
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:37:17.083Z",
+    "promptSha256": "c0638cd63d0b6ae81c3fd0bd863ce517a8f90986156a38a528dc60d9593434fc",
+    "startedAt": "2026-07-21T13:37:00.041Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "15dcbbd9a6b76cfe099613d20a1aca12164c6a5938e2d99cd9bf4610272c2035",
+    "text": "## 继续工作简报\n\n- **目标**：以流式逐行方式读取数 GB JSONL 日志，保持原始事件顺序，将峰值内存控制在 **100 MiB 以下**；首次读取不得预建索引，后续可选建立索引。\n- **关键约束**：\n  - 禁止回退到 `readFile + split`，该方案峰值内存曾超过 **2 GiB**。\n  - 禁止将 SQLite 预导入用于首次读取，其首事件延迟约 **48 秒**。\n  - 必须正确处理慢消费者背压，且不得破坏顺序、吞吐量和内存表现。\n- **当前状态**：\n  - 据报告，`src/log/stream-events.ts` 已实现顺序产出和畸形行恢复。\n  - 样本峰值内存据报告为 **42 MiB**，吞吐量验证已达标。\n  - 慢消费者背压测试当前会挂起。\n  - 工作区据推断位于分支 `perf/stream-jsonl` 且有未提交修改；`src/log/stream-events.ts`、`src/log/read-events.ts`、`test/backpressure.test.ts` 的具体内容尚未核实。\n- **已定决策**：首次读取只使用流式逐行方案；可选索引只能作为后续能力，不能阻塞首个事件。\n- **已完成工作**：流式事件读取实现、顺序与畸形行恢复支持，以及内存和吞吐量的已有报告性验证。\n- **待完成工作**：\n  1. 修复慢消费者场景下的背压测试挂起。\n  2. 修复后重新验证背压、事件顺序、吞吐量及峰值内存无回归。\n  3. 后续再处理可选索引能力；目前无已完成或已验证记录。\n- **唯一正确的下一步**：只读检查 `test/backpressure.test.ts` 及其调用的 `src/log/stream-events.ts`、`src/log/read-events.ts`，定位慢消费者背压测试挂起的具体等待链路；此时不要修改代码，也不要重新采用预加载或首次读取前建索引方案。"
+  },
+  "runId": "architecture-01-streaming-log:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "37d5a57123ebb60fc9d102736ca21c5c98622a7269a6a518335316fe5667f625",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "fixtureId": "debugging-01-invoice-total",
+  "input": {
+    "exactTargetInputTokens": 1431,
+    "sha256": "14c95d6fbebb2592d6c89473eaacfdd75c273cd0aa61293f17c8b75217d9945c",
+    "utf8Bytes": 527
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:42:22.006Z",
+    "promptSha256": "14c95d6fbebb2592d6c89473eaacfdd75c273cd0aa61293f17c8b75217d9945c",
+    "startedAt": "2026-07-21T13:42:08.288Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "ceb51eb00ec9f6a8c084f70abe5a4898041c29b70a5cd00a31fed6d1cda877a1",
+    "text": "## 续接简报\n\n- **目标**：修复发票总额陈旧问题，同时保持公共 API 不变，所有货币值继续以十进制字符串表示。\n- **关键约束**：\n  - 不得改变公共 API。\n  - 不得将货币值改为数字类型。\n  - 不得重试或继续调查 `InvoiceService` 总额缓存路径。\n  - 下一步必须先用回归测试证明解析器修复。\n- **当前状态**：`src/invoice/parser.ts` 已修改为保留负数调整项，但尚未编写或运行针对该行为的回归测试。\n- **已作决定**：当前修复方向是解析器对负数调整项的处理，而非缓存。\n- **失败/排除路径**：最初的陈旧总额缓存假设已被明确排除，不应重试。\n- **已完成工作**：解析器已保留负数调整项。\n- **待完成工作**：补充聚焦的回归测试，并在后续验证发票总额正确、API 形态不变且货币值仍为十进制字符串。\n- **唯一正确的下一步**：在现有发票解析器测试套件中添加一个包含负数调整项的聚焦回归测试，以证明 `src/invoice/parser.ts` 的修复。"
+  },
+  "runId": "debugging-01-invoice-total:visible-transcript:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "8f06cca2af1e60b7da4ec093b9dcf9f676d7ceb7d289db9e3c2081371c2657e7",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

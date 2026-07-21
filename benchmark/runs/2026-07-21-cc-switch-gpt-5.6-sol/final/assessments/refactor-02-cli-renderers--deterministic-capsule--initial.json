@@ -1,0 +1,89 @@
+{
+  "categories": {
+    "completedAndPending": [
+      {
+        "factId": "r02-progress",
+        "note": "Human reviewer confirmed the target output preserves: Result-returning handlers and text snapshots are complete; JSON stderr routing still needs a test and fix.",
+        "verdict": "preserved"
+      }
+    ],
+    "criticalConstraints": [
+      {
+        "factId": "r02-constraint-human",
+        "note": "Human reviewer confirmed the target output preserves: Preserve existing human-readable output.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "r02-constraint-json",
+        "note": "Human reviewer confirmed the target output preserves: JSON mode writes JSON only to stdout and diagnostics to stderr.",
+        "verdict": "preserved"
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "factId": "r02-failed-global-color",
+        "note": "Human reviewer confirmed the target output preserves: A global no-color flag was reverted because it broke human output.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "r02-decision-renderers",
+        "note": "Human reviewer confirmed the target output preserves: Formatting belongs in renderers, with no command-specific branches.",
+        "verdict": "preserved"
+      }
+    ],
+    "nextAction": [
+      {
+        "factId": "r02-next",
+        "note": "通过：渲染器边界、禁止全局 no-color、JSON stdout 与诊断 stderr 均准确；仅测试先行顺序未严格保留。",
+        "verdict": "partial"
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "factId": "r02-objective",
+        "note": "Human reviewer confirmed the target output preserves: Separate command results from rendering; text mode passes while JSON diagnostic routing is incomplete.",
+        "verdict": "preserved"
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "factId": "r02-workspace",
+        "note": "Human reviewer confirmed the target output preserves: commands.ts is modified and both renderer files are new.",
+        "verdict": "preserved"
+      }
+    ]
+  },
+  "fixtureId": "refactor-02-cli-renderers",
+  "mode": "deterministic-capsule",
+  "repeatedFailedPaths": [],
+  "review": {
+    "humanReviewer": "jettlin927",
+    "llmJudge": {
+      "advisoryOnly": true,
+      "model": "OpenAI Codex"
+    },
+    "reviewedAt": "2026-07-21T15:02:55.025115Z"
+  },
+  "runId": "refactor-02-cli-renderers:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 3210,
+    "visibleTranscriptBaseline": 1439
+  },
+  "unsupportedClaims": []
+}

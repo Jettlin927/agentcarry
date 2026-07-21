@@ -49,7 +49,7 @@ AgentCarry 不安装 Agent、不管理认证、不替用户切换模型或权限
 
 ## 路线图
 
-- **Phase 0：** 12 个受控连续性 fixture、scorer 和公开结果。
+- **Phase 0：** 12 个受控连续性 fixture、scorer，以及[首份公开报告](benchmark/runs/2026-07-21-cc-switch-gpt-5.6-sol/final/REPORT.md)；两个 Capsule 模式如实未通过“正确下一步”和 token 比例门槛。
 - **v0.1：** Codex → Claude Code，包含 dry-run、脱敏和损失收据。
 - **v0.2：** Claude Code → OpenCode。
 - **v0.3：** Codex、Claude Code、OpenCode 双向适配。

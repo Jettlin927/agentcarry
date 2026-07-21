@@ -66,7 +66,9 @@ Current adapter evidence is tracked in the [compatibility matrix](docs/compatibi
 
 ## Roadmap
 
-- **Phase 0:** twelve controlled continuity fixtures and a public scorer.
+- **Phase 0:** twelve controlled continuity fixtures, a public scorer, and a
+  [published first report](benchmark/runs/2026-07-21-cc-switch-gpt-5.6-sol/final/REPORT.md)
+  whose capsule modes honestly fail the next-action and token-ratio gates.
 - **v0.1:** Codex → Claude Code, including dry-run, secret redaction, and loss receipt.
 - **v0.2:** Claude Code → OpenCode.
 - **v0.3:** bidirectional Codex, Claude Code, and OpenCode adapters.

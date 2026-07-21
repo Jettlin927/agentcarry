@@ -1,0 +1,89 @@
+{
+  "categories": {
+    "completedAndPending": [
+      {
+        "factId": "r03-progress",
+        "note": "Human reviewer confirmed the target output preserves: Streaming traversal and symlink-cycle handling pass; ignore-file support remains pending.",
+        "verdict": "preserved"
+      }
+    ],
+    "criticalConstraints": [
+      {
+        "factId": "r03-constraint-platforms",
+        "note": "Human reviewer confirmed the target output preserves: Preserve Windows, macOS, and Linux behavior.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "r03-constraint-streaming",
+        "note": "Human reviewer confirmed the target output preserves: Do not load all file contents into memory.",
+        "verdict": "preserved"
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "factId": "r03-failed-realpath",
+        "note": "Human reviewer confirmed the target output preserves: Rewriting every presented path through realpath was rejected because it changed Windows junction paths.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "r03-decision-identity",
+        "note": "Human reviewer confirmed the target output preserves: Use visited directory identity only for cycle detection.",
+        "verdict": "preserved"
+      }
+    ],
+    "nextAction": [
+      {
+        "factId": "r03-next",
+        "note": "Human reviewer confirmed the target output preserves: Implement and test ignore-file parsing inside local-indexer.ts.",
+        "verdict": "preserved"
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "factId": "r03-objective",
+        "note": "Human reviewer confirmed the target output preserves: Extract local indexing behind one interface; traversal, hashing, and cycle handling are done, ignore parsing is not.",
+        "verdict": "preserved"
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "factId": "r03-workspace",
+        "note": "Human reviewer confirmed the target output preserves: The local indexer and symlink regression are new; the index interface is modified.",
+        "verdict": "preserved"
+      }
+    ]
+  },
+  "fixtureId": "refactor-03-file-indexer",
+  "mode": "deterministic-capsule",
+  "repeatedFailedPaths": [],
+  "review": {
+    "humanReviewer": "jettlin927",
+    "llmJudge": {
+      "advisoryOnly": true,
+      "model": "OpenAI Codex"
+    },
+    "reviewedAt": "2026-07-21T15:02:55.025115Z"
+  },
+  "runId": "refactor-03-file-indexer:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 3178,
+    "visibleTranscriptBaseline": 1444
+  },
+  "unsupportedClaims": []
+}

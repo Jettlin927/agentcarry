@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nAdd cursor pagination without breaking the existing single-page list method. Do not prefetch pages.\n\n## Assistant\n\nThe response parser now returns items plus nextCursor, and list() still returns only the first page.\n\n## Assistant\n\nAn eager collectAll() helper was drafted and deleted because it prefetched every page.\n\n## User\n\nExpose an async iterator named pages(); each next() should fetch exactly one page.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "feature-01-pagination",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 420,
+    "utf8Bytes": 420
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "0d98d6f3b4cb4f8f97e1050fccd2970674dbd54b5e4f22e00d2d325d15c18d3f"
+}

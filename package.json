@@ -31,6 +31,7 @@
     "benchmark:input": "tsx scripts/build-benchmark-input.ts",
     "benchmark:report": "tsx scripts/aggregate-benchmark.ts",
     "benchmark:collect": "tsx scripts/collect-benchmark-targets.ts",
+    "benchmark:review": "tsx scripts/review-benchmark.ts",
     "demo:tracer": "npm run build && tsx scripts/demo-tracer.ts",
     "compatibility:check": "tsx scripts/check-compatibility.ts"
   },

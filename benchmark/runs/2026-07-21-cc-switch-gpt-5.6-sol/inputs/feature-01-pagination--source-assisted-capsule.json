@@ -1,0 +1,21 @@
+{
+  "content": "{\n  \"completedWork\": [\n    {\n      \"eventIds\": [\n        \"f01-assistant-1\"\n      ],\n      \"inferred\": false,\n      \"text\": \"响应解析器现在返回 items 和 nextCursor。\"\n    },\n    {\n      \"eventIds\": [\n        \"f01-user-1\",\n        \"f01-assistant-1\"\n      ],\n      \"inferred\": false,\n      \"text\": \"现有 list() 仍然只返回第一页，以保留原有单页列表行为。\"\n    },\n    {\n      \"eventIds\": [\n        \"f01-tool-1\"\n      ],\n      \"inferred\": false,\n      \"text\": \"解析器测试和向后兼容性测试已报告通过；未提供执行命令或更详细的测试输出。\"\n    }\n  ],\n  \"currentUserMessage\": {\n    \"eventIds\": [\n      \"f01-user-2\"\n    ],\n    \"inferred\": false,\n    \"text\": \"Expose an async iterator named pages(); each next() should fetch exactly one page.\"\n  },\n  \"decisions\": [\n    {\n      \"eventIds\": [\n        \"f01-user-1\",\n        \"f01-assistant-1\"\n      ],\n      \"inferred\": false,\n      \"text\": \"保留现有 list() 的单页返回语义，不让游标分页破坏其向后兼容性。\"\n    },\n    {\n      \"eventIds\": [\n        \"f01-user-2\"\n      ],\n      \"inferred\": false,\n      \"text\": \"分页 API 命名为 pages()，并公开为 async iterator。\"\n    },\n    {\n      \"eventIds\": [\n        \"f01-user-1\",\n        \"f01-user-2\"\n      ],\n      \"inferred\": false,\n      \"text\": \"禁止预取页面；只有调用 next() 时才获取一页。\"\n    }\n  ],\n  \"failedAttempts\": [\n    {\n      \"eventIds\": [\n        \"f01-assistant-2\"\n      ],\n      \"inferred\": false,\n      \"text\": \"曾起草 eager collectAll() helper，但因为它会预取所有页面而被删除。\"\n    }\n  ],\n  \"losses\": [\n    {\n      \"category\": \"hiddenReasoning\",\n      \"eventIds\": [],\n      \"inferred\": true,\n      \"text\": \"隐藏推理未包含在所提供的事件或工作区中，因此无法保留。\"\n    },\n    {\n      \"category\": \"promptCaches\",\n      \"eventIds\": [],\n      \"inferred\": true,\n      \"text\": \"prompt cache 内容和状态未提供，因此无法保留。\"\n    },\n    {\n      \"category\": \"toolState\",\n      \"eventIds\": [],\n      \"inferred\": true,\n      \"text\": \"除所提供的 tool-result 事件外，内部工具调用状态、命令及完整输出均不可用。\"\n    },\n    {\n      \"category\": \"unavailableAttachments\",\n      \"eventIds\": [],\n      \"inferred\": true,\n      \"text\": \"未提供任何附件内容；不可用附件无法保留。\"\n    }\n  ],\n  \"pendingWork\": [\n    {\n      \"eventIds\": [\n        \"f01-user-2\",\n        \"f01-tool-2\"\n      ],\n      \"inferred\": false,\n      \"text\": \"实现名为 pages() 的 async iterator。\"\n    },\n    {\n      \"eventIds\": [\n        \"f01-user-1\",\n        \"f01-user-2\"\n      ],\n      \"inferred\": false,\n      \"text\": \"确保 pages() 的每次 next() 恰好获取一页，并且不会预取后续页面。\"\n    },\n    {\n      \"eventIds\": [\n        \"f01-tool-2\"\n      ],\n      \"inferred\": false,\n      \"text\": \"添加 pages() 的迭代器测试；当前不存在该测试。\"\n    }\n  ],\n  \"schemaVersion\": \"1.0\",\n  \"status\": {\n    \"eventIds\": [\n      \"f01-assistant-1\",\n      \"f01-tool-1\",\n      \"f01-tool-2\"\n    ],\n    \"inferred\": false,\n    \"text\": \"游标分页工作尚未完成；现有解析器和单页 list() 兼容性工作已报告完成，但 pages() 及其迭代器测试仍缺失。\"\n  },\n  \"workspace\": {\n    \"currentState\": {\n      \"eventIds\": [\n        \"f01-tool-2\"\n      ],\n      \"inferred\": false,\n      \"text\": \"src/client.ts 和 src/response.ts 已修改；当前没有 pages() 实现或迭代器测试。\"\n    },\n    \"files\": [\n      {\n        \"path\": \"src/client.ts\",\n        \"state\": \"modified\"\n      },\n      {\n        \"path\": \"src/response.ts\",\n        \"state\": \"modified\"\n      },\n      {\n        \"path\": \"test/pages.test.ts\",\n        \"state\": \"unchanged\"\n      }\n    ],\n    \"git\": {\n      \"branch\": \"feature/cursor-pages\",\n      \"dirty\": true,\n      \"head\": \"f0100001\"\n    },\n    \"inferred\": true,\n    \"root\": \"/home/dev/paged-client\"\n  }\n}\n",
+  "contentType": "application/json",
+  "fixtureId": "feature-01-pagination",
+  "generation": {
+    "deterministic": false,
+    "model": "gpt-5.6-sol",
+    "persistence": "disabled",
+    "promptSha256": "17a4cf0acf23b65f345058d07f1a268b552bd30f1cbd3e0bbcb7e4e1046dfc3d",
+    "summarizerInputTokens": 3128,
+    "tools": "disabled"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 3259,
+    "utf8Bytes": 3951
+  },
+  "mode": "source-assisted-capsule",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "0d98d6f3b4cb4f8f97e1050fccd2970674dbd54b5e4f22e00d2d325d15c18d3f"
+}

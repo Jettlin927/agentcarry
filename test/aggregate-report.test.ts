@@ -20,7 +20,12 @@ function score(
     runId: `${fixtureId}:${mode}:initial`,
     fixtureId,
     mode,
-    target: { agent: "claude", model: "fixed-model", settings: { permissionMode: "plan", tools: false } },
+    target: {
+      agent: "claude",
+      model: "fixed-model",
+      provider: "test-provider",
+      settings: { permissionMode: "plan", tools: false }
+    },
     reviewer: "human-reviewer",
     reviewedAt: "2026-07-21T00:00:00Z",
     fidelityScore,
@@ -152,6 +157,7 @@ describe("aggregateBenchmark", () => {
       renderAggregateJson(report)
     );
     expect(renderAggregateMarkdown(report)).toContain("Phase 0: **PASS**");
+    expect(renderAggregateMarkdown(report)).toContain("Provider route: test-provider");
     expect(renderAggregateMarkdown(report)).toContain("Each comparison must pass fixture by fixture");
   });
 

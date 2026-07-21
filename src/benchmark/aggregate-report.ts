@@ -292,6 +292,7 @@ export function renderAggregateMarkdown(report: AggregateBenchmarkReport): strin
 
 - Initial runs: ${report.initialRuns} / ${report.expectedRuns}
 - Target: ${report.target.agent} / ${report.target.model}
+- Provider route: ${report.target.provider}
 - Target settings: \`${canonicalJsonValue(report.target.settings)}\`
 - Phase 0: **${mark(report.phase0Passed)}**
 

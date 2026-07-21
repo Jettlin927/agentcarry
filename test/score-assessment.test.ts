@@ -84,6 +84,7 @@ describe("scoreAssessment", () => {
     const markdown = renderScoreMarkdown(scoreAssessment(fixture, perfect));
 
     expect(markdown).toContain("- Fidelity: 100.00 / 100.00");
+    expect(markdown).toContain("- Provider route: example-provider");
     expect(markdown).toContain("| criticalConstraints | 30.00 | 30.00 |");
     expect(markdown).toContain("- PASS token ratio at most 40%");
   });
