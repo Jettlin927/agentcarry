@@ -1,0 +1,36 @@
+{
+  "fixtureId": "feature-03-config-errors",
+  "input": {
+    "exactTargetInputTokens": 3091,
+    "sha256": "2065e28d280230972a306ec06c73b2ab7209e374b42236985ec8083a1faab15a",
+    "utf8Bytes": 6007
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:52:05.894Z",
+    "promptSha256": "2065e28d280230972a306ec06c73b2ab7209e374b42236985ec8083a1faab15a",
+    "startedAt": "2026-07-21T13:51:50.089Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "e96e7236d3ef691befeeb31e94274a4964c32594b7fa8903ecc5a49dc5116d4d",
+    "text": "## 续接简报\n\n- **目标**：完成嵌套配置校验；环境变量优先于配置文件；任何错误信息都不得泄露 secret 值。\n- **关键约束**：\n  - 脱敏必须在验证错误格式化层完成，不能放入解析器。\n  - 必须保留出错字段的完整路径。\n  - 不得输出完整解析后配置，避免泄露无关秘密。\n- **当前状态**：\n  - 分支：`feature/config-validation`，工作区有未提交修改。\n  - `src/config/parse.ts` 已修改。\n  - `src/config/precedence.ts` 已创建。\n  - `src/config/format-error.ts` 尚未创建。\n  - 环境变量优先级测试曾通过，但当前嵌套无效 token 仍会原样出现在错误消息中；现有验证状态记录为 `unknown`。\n- **已完成**：\n  - Schema 解析及环境变量覆盖文件配置的优先级逻辑。\n  - 带字段路径的验证错误。\n- **既定决策**：解析器负责产生路径明确的校验错误；敏感值仅在错误格式化器中脱敏。\n- **失败/禁止路径**：曾尝试记录完整解析后配置，因会暴露无关 secret 已撤销；不要恢复该日志方案，也不要在解析器内做脱敏。\n- **待完成**：实现验证错误格式化器，使嵌套敏感值不出现在错误文本中，同时保留失败字段路径。\n- **唯一正确的下一步**：在 `src/config/format-error.ts` 实现格式化层脱敏，并将现有路径化验证错误通过该格式化器输出；暂不改动解析器的脱敏职责。"
+  },
+  "runId": "feature-03-config-errors:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "ec9cc0c1730a10eef152aec54c9fb8f439f745ea6ec6847c04910ab3ab10fd37",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

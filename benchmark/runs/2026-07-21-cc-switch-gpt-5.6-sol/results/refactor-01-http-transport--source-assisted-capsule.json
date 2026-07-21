@@ -1,0 +1,36 @@
+{
+  "fixtureId": "refactor-01-http-transport",
+  "input": {
+    "exactTargetInputTokens": 2600,
+    "sha256": "52c302d58a1611b085613057ef6eee82449e6bbeac2e3106f8d30705cfb91fe6",
+    "utf8Bytes": 4650
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:56:08.657Z",
+    "promptSha256": "52c302d58a1611b085613057ef6eee82449e6bbeac2e3106f8d30705cfb91fe6",
+    "startedAt": "2026-07-21T13:55:49.091Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "3da91b6ab469054168a4f65734e595583bd20de5d0115286aa5bf8ff30fbdc34",
+    "text": "## 续接简报\n\n- **目标**：从 `ApiClient` 提取 HTTP transport，同时保持 public exports 不变且不增加依赖。\n- **关键约束**：\n  - 不得更改 public exports；`src/index.ts` 必须保持不变。\n  - 不得添加依赖。\n  - `ApiClient` 继续作为 public facade。\n  - Header preservation 属于 transport，不得在 `ApiClient` 中重复 transport policy。\n  - 当前处于计划模式，不执行修改或验证。\n- **当前状态**：\n  - `src/api-client.ts` 已修改。\n  - `src/http/transport.ts` 已创建（此路径状态来自推断）。\n  - Request construction 已迁入 transport。\n  - Streaming response method 尚未迁移。\n  - 已报告普通 unit tests 通过，但 auth retry test 因重试丢失 `Authorization` header 而失败；没有具体命令或完整输出。\n  - 工作区为 dirty；分支 `refactor/http-transport`、HEAD `r0100001` 及根目录信息均为推断。\n- **既定决策**：Transport 统一负责请求构造、重试时的 header preservation，以及 streaming response；`ApiClient` 仅保留 facade 职责。\n- **已失败且必须避免的路径**：不要再次在 `ApiClient` 中复制所有 headers；该方案已因重复 transport policy 被回退。\n- **已完成**：\n  - Request construction 已迁入 `src/http/transport.ts`。\n  - `ApiClient` 已保留为 public facade。\n  - `src/index.ts` 未改动。\n- **待完成**：\n  - 在 transport 内确保 auth retry 完整保留 headers，尤其是 `Authorization`。\n  - 将 streaming response method 迁入 transport。\n  - 完成后重跑 auth retry test，并确认完整测试结果。\n- **唯一正确的下一步**：制定并落实对 `src/http/transport.ts` 的单一 transport 层改动方案，使重试保留原始 headers，并由同一 transport 接管尚未转换的 streaming response method；不要把任何 header policy 放回 `ApiClient`。\n\n本次未执行修改，也未新增验证结果。"
+  },
+  "runId": "refactor-01-http-transport:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "886d793ac79031e1d1c75c7b9e38665933f37092df12844fea3bb025c6352865",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "fixtureId": "debugging-01-invoice-total",
+  "input": {
+    "exactTargetInputTokens": 3112,
+    "sha256": "ac3710d7d86d22ccdbc36acaa560617bd7f93ee301421db37cda8e51c9db3fe6",
+    "utf8Bytes": 5943
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:42:38.634Z",
+    "promptSha256": "ac3710d7d86d22ccdbc36acaa560617bd7f93ee301421db37cda8e51c9db3fe6",
+    "startedAt": "2026-07-21T13:42:22.012Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "b3c289f9701e5ceafdad3a497fc1719a143560ea7bcb9968b1eaca79597b8fcd",
+    "text": "## 继续工作简报\n\n- **目标**：修复发票总额错误；不得改变公共 API，所有货币值必须继续使用十进制字符串。\n- **关键约束**：不要再尝试缓存路径。下一步必须用回归测试证明解析器修复。\n- **当前状态**：\n  - 工作区位于 `C:\\Users\\dev\\账单 示例`，分支 `fix/invoice-total`，当前有未提交修改。\n  - `src/invoice/parser.ts` 已修改为保留负数调整项。\n  - `test/invoice-total.test.ts` 已定位，但尚未添加针对该问题的测试。\n  - 现有验证结果状态为未知，不能声称修复已通过测试。\n- **已完成工作**：确认解析器在聚合前丢弃负数调整行，并已修改解析器以保留这些行。\n- **决策**：修复方向已从最初的 `InvoiceService` 缓存假设转向解析器中的负数调整处理。\n- **失败路径**：禁用缓存未改变失败的总额测试；该路径已被否定，禁止重试。\n- **待完成工作**：添加聚焦的回归测试，证明负数调整会参与发票总额计算，同时保持十进制字符串格式和现有公共 API。\n- **唯一正确的下一步**：在 `test/invoice-total.test.ts` 中编写一个包含负数调整项的聚焦回归测试，用预期的十进制字符串总额验证 `src/invoice/parser.ts` 的现有修改；此时不要改动缓存实现。"
+  },
+  "runId": "debugging-01-invoice-total:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "8f06cca2af1e60b7da4ec093b9dcf9f676d7ceb7d289db9e3c2081371c2657e7",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

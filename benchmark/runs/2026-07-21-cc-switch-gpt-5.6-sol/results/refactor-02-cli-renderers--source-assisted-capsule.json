@@ -1,0 +1,36 @@
+{
+  "fixtureId": "refactor-02-cli-renderers",
+  "input": {
+    "exactTargetInputTokens": 2829,
+    "sha256": "b1cf486c4323c4ef4e62d2408e1d677a1d13012cd3eddd28a2078b13ae66360e",
+    "utf8Bytes": 5347
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:58:04.681Z",
+    "promptSha256": "b1cf486c4323c4ef4e62d2408e1d677a1d13012cd3eddd28a2078b13ae66360e",
+    "startedAt": "2026-07-21T13:57:43.913Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "b974156e3f6482b95addcad4a6c85c74eb2a6683e2cdfdd3f7124f057a25e6f3",
+    "text": "## 续接简报\n\n- **目标**：将 CLI 渲染与命令逻辑分离；保持现有人类可读输出兼容；确保 JSON 模式的 `stdout` 仅包含合法 JSON。\n- **关键约束**：\n  - 所有格式化统一由 renderer 负责。\n  - 诊断信息写入 `stderr`。\n  - 不得针对单个命令添加特殊分支。\n  - 必须保留人类输出的现有颜色行为。\n  - 明确避免已失败的**全局 no-color** 方案。\n- **当前状态**：\n  - 分支：`refactor/cli-renderers`\n  - HEAD：`r0200002`（推断）\n  - 工作区 dirty：\n    - `src/cli/commands.ts`：modified\n    - `src/cli/text-renderer.ts`：created\n    - `src/cli/json-renderer.ts`：created\n- **已完成但尚未独立验证**：\n  - 命令处理器据报已返回结果对象。\n  - 文本 renderer 据报可复现现有快照。\n  - 全局 no-color 改动据报已撤销。\n- **已知失败**：\n  - JSON 快照曾含 ANSI color codes。\n  - JSON 文档前曾混入一行诊断文本。\n  - 全局关闭颜色虽然修复该快照，却破坏人类输出颜色，因此不可重试。\n- **待完成**：\n  - 在 renderer 层移除 JSON 输出中的 ANSI。\n  - 将诊断统一路由至 `stderr`，保证 JSON `stdout` 纯净。\n  - 为 `json-renderer.ts` 增加诊断路由测试。\n  - 验证文本输出兼容、颜色保留及 JSON 纯净性；当前没有最终测试结果。\n- **唯一下一步**：只读检查 `commands.ts`、两个 renderer 及相关测试，确认 ANSI 与诊断文本的实际产生/传递路径，再据此制定统一的 renderer 层修复方案；此时不要修改代码，也不要采用全局 no-color 或命令特判。"
+  },
+  "runId": "refactor-02-cli-renderers:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "0b4bb6d3d348e114ba5c656c4dde88d60ef6baf47cbbb1fcdadf74defcc28ba2",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

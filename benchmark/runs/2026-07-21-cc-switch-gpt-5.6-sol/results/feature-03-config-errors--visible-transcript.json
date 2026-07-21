@@ -1,0 +1,36 @@
+{
+  "fixtureId": "feature-03-config-errors",
+  "input": {
+    "exactTargetInputTokens": 1435,
+    "sha256": "2cd96ee0c962d2eb24195491b55cfb0f68698f17ff2cba3097955716d180806e",
+    "utf8Bytes": 594
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:51:50.084Z",
+    "promptSha256": "2cd96ee0c962d2eb24195491b55cfb0f68698f17ff2cba3097955716d180806e",
+    "startedAt": "2026-07-21T13:51:38.162Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "bc6dacd183804fadf76e045aa1b591ae18117ee1965b76c9be17c8c3c152e88d",
+    "text": "## 续接简报\n\n- **目标**：完善嵌套配置校验；环境变量优先于配置文件；任何错误信息都不得泄露 secret 值。\n- **关键约束**：\n  - 脱敏必须在**校验错误格式化器**中完成，不能放入 parser。\n  - 必须保留失败字段的完整嵌套路径。\n  - 不得通过输出完整解析后配置来调试，以免泄露其他无关 secret。\n- **当前状态**：Schema 解析、环境变量覆盖文件的优先级，以及带字段路径的校验错误已实现。\n- **已确定决策**：保持 parser 原有职责，在错误输出边界统一处理敏感值脱敏。\n- **失败尝试**：曾记录完整 resolved config，因会暴露无关 secret，已移除；不要恢复该方案。\n- **已完成工作**：嵌套 schema 解析、环境优先级、路径感知错误。\n- **待完成工作**：调整校验错误格式化器，确保错误保留字段路径及非敏感诊断信息，但绝不包含失败输入中的 secret 值；随后补充相应测试。\n- **唯一正确的下一步**：定位现有校验错误格式化器及其测试，在该格式化边界设计并实现保留字段路径的 secret 值脱敏。"
+  },
+  "runId": "feature-03-config-errors:visible-transcript:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "ec9cc0c1730a10eef152aec54c9fb8f439f745ea6ec6847c04910ab3ab10fd37",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

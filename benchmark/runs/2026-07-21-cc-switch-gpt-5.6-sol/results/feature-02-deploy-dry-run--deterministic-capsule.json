@@ -1,0 +1,36 @@
+{
+  "fixtureId": "feature-02-deploy-dry-run",
+  "input": {
+    "exactTargetInputTokens": 3237,
+    "sha256": "d1dabdc8bbb41f1a4b292beb15dd685b97790f6e114a0bd8ee059ee257ca2075",
+    "utf8Bytes": 6428
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:50:06.821Z",
+    "promptSha256": "d1dabdc8bbb41f1a4b292beb15dd685b97790f6e114a0bd8ee059ee257ca2075",
+    "startedAt": "2026-07-21T13:49:49.241Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "4f1aa628e4bb58acb123edb5a41214f5bfd6f059952999345058b44a2ab6a176",
+    "text": "## 续接简报\n\n- **目标**：为 `deploy` 增加 `--dry-run`；展示准确的计划操作，同时保证**不发起网络请求、不写入任何文件**。\n- **关键约束**：CLI 的 dry-run 路径中必须完全跳过执行阶段，并通过测试断言 executor **从未被构造**。\n- **当前状态**：\n  - 工作区：`C:\\Users\\dev\\Deploy Demo`\n  - 分支：`feature/deploy-dry-run`，工作区有未提交修改，HEAD `f0200002`\n  - 已创建 `src/deploy/plan.ts`\n  - 已修改 `src/deploy/bundle.ts`\n  - 待处理 `src/cli/deploy.ts`\n- **已完成**：\n  - 规划与执行已分离。\n  - 人类可读的计划渲染器已完成。\n  - bundle 准备现在可返回计划路径而不创建路径；交接记录称聚焦单元测试通过，但验证状态仍标记为 `unknown`。\n- **既定决策**：\n  - dry-run 只能生成并渲染计划，不能进入执行路径。\n  - 不通过 mock 文件系统来掩盖副作用。\n- **失败路径，明确避免**：\n  - 原 dry-run 仍创建临时 bundle 目录，导致副作用测试失败。\n  - 在 CLI 测试中 mock 文件系统会隐藏实际写入，该方案已撤销，不应重试。\n- **待完成**：将 `--dry-run` 接入 CLI，并添加断言证明 executor 不会被构造；同时保持无网络、无文件写入语义。\n- **唯一正确的下一步**：修改 `src/cli/deploy.ts` 及其现有 CLI 测试，使 `--dry-run` 在计划生成与渲染后立即返回，并用构造断言验证 executor 从未实例化，且不使用文件系统 mock。"
+  },
+  "runId": "feature-02-deploy-dry-run:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "bbc9aec142fb32b3fc9882673c3da0503a066bfbcb3233267204aa993e78e2cd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

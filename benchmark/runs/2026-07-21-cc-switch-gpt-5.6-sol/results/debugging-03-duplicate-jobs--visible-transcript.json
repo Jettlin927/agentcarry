@@ -1,0 +1,36 @@
+{
+  "fixtureId": "debugging-03-duplicate-jobs",
+  "input": {
+    "exactTargetInputTokens": 1439,
+    "sha256": "04cc3c27fb22f09bf1081476499f84472f976080f107e072ee285bda58835a83",
+    "utf8Bytes": 577
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:45:45.996Z",
+    "promptSha256": "04cc3c27fb22f09bf1081476499f84472f976080f107e072ee285bda58835a83",
+    "startedAt": "2026-07-21T13:45:30.444Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "92b536b74d9901847f5ecc44309ba3fc977c963d31fded603983e7a7125d7e39",
+    "text": "## 续接简报\n\n- **目标**：阻止重复发票任务，并保证副作用至多执行一次。\n- **关键约束**：\n  - 不得修改队列 schema 或 payload。\n  - 必须先添加确定性的 fake-clock 回归测试，再处理任何重试策略。\n- **当前状态**：\n  - 初始假设是网络重试后 broker 重复投递同一消息；该假设尚未验证。\n  - `src/worker/lease.ts` 已改为在分派 handler 前写入 marker。\n- **已完成**：marker 写入时机已提前到 handler dispatch 之前。\n- **决策**：通过 dispatch 前持久化 marker 防止重复 handler/副作用执行，同时保持队列格式不变。\n- **失败尝试**：未记录。\n- **明确避免**：不要先修改重试策略，也不要改队列 payload。\n- **待完成**：添加并验证覆盖重复投递场景的确定性 fake-clock 回归测试；之后才可评估重试策略。\n- **唯一正确的下一步**：为当前 marker-before-dispatch 行为编写 fake-clock 回归测试，模拟同一发票消息被重复投递，并断言 handler 的副作用至多发生一次。"
+  },
+  "runId": "debugging-03-duplicate-jobs:visible-transcript:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "569be092bf2d03da6b24b9ac18edb33f425fb26f7e24f9c84ae7d0e3683750fd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

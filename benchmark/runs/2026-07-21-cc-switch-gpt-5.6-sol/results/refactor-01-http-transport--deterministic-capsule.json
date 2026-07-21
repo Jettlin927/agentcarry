@@ -1,0 +1,36 @@
+{
+  "fixtureId": "refactor-01-http-transport",
+  "input": {
+    "exactTargetInputTokens": 3309,
+    "sha256": "e8f298252f0b0571b47df0051d1cf3491f43e92bad705e2a455abfb5c4f75aff",
+    "utf8Bytes": 6901
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:54:07.393Z",
+    "promptSha256": "e8f298252f0b0571b47df0051d1cf3491f43e92bad705e2a455abfb5c4f75aff",
+    "startedAt": "2026-07-21T13:53:48.866Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "68cbe3d300466bfc6f96cf6759378206e44c82d28fc5a8834af847a0374cd252",
+    "text": "## 续接简报\n\n- **目标**：将 HTTP transport 从 `ApiClient` 中抽离，同时不改变公共导出、不增加依赖。\n- **关键约束**：\n  - `ApiClient` 继续作为公共 facade。\n  - Header 保留与重试策略必须由 transport 负责，不能在 `ApiClient` 中复制全部 headers。\n  - 流式响应方法也必须迁移到 transport。\n- **当前状态**：\n  - 分支：`refactor/http-transport`，工作区有未提交修改。\n  - `src/api-client.ts` 已修改，`src/http/transport.ts` 已创建。\n  - `src/index.ts` 未变。\n  - 已有结果表明普通单元测试通过，但认证重试测试仍因重试丢失 `Authorization` header 而失败；整体验证状态仍为未知。\n- **已完成**：请求构建已移入 `src/http/transport.ts`，`ApiClient` 保持公共 facade。\n- **既定决策**：Header preservation 属于 transport policy。\n- **失败路径（明确避免）**：\n  - 不要在 `ApiClient` 中复制所有 headers；该方案已尝试并回退，因为会重复 transport policy。\n  - 当前重试实现会丢失 `Authorization` header，尚未解决。\n  - 流式响应方法尚未转换，不能视为已完成。\n- **待完成**：在 transport 内保留重试请求 headers，并让流式响应方法走同一 transport 抽象，同时保持公共导出和依赖不变。\n- **唯一正确的下一步**：修改 `src/http/transport.ts` 及其在 `src/api-client.ts` 中的调用，使 transport 自身在认证重试时保留 `Authorization` 等原请求 headers，并接管尚未迁移的流式响应方法；不要在 `ApiClient` 中重新实现 header 复制策略。"
+  },
+  "runId": "refactor-01-http-transport:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "886d793ac79031e1d1c75c7b9e38665933f37092df12844fea3bb025c6352865",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

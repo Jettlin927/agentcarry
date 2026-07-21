@@ -1,0 +1,36 @@
+{
+  "fixtureId": "architecture-03-job-scheduler",
+  "input": {
+    "exactTargetInputTokens": 2595,
+    "sha256": "ec51fa92656d6a71f201a33800aaedcc0b9d40dded611066f85162f4ca5527d5",
+    "utf8Bytes": 4601
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:42:08.284Z",
+    "promptSha256": "ec51fa92656d6a71f201a33800aaedcc0b9d40dded611066f85162f4ca5527d5",
+    "startedAt": "2026-07-21T13:41:50.925Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "0d327b3b84799cea8141f297f751bbea378d23c92f01f9a66e8920e99907ea79",
+    "text": "## 继续工作简报\n\n- **目标**：实现最大并发数固定为 **4** 的 FIFO 调度器；运行任务结束时直接启动下一个仍有效的等待者，并支持任务在开始前取消。\n- **关键约束**：\n  - 禁止轮询、定时检查或 fake-timer 驱动的槽位分配。\n  - 任一时刻最多运行 4 个任务。\n  - 未取消任务必须按 FIFO 顺序启动。\n  - 已取消且尚未开始的任务绝不能启动。\n- **当前状态**：\n  - 已有 semaphore 队列方案。\n  - 正常路径测试据报告已通过，覆盖最大并发数 4 和 FIFO 顺序。\n  - 排队取消测试失败：第二个排队任务取消后，仍在槽位释放时启动。\n  - 工作区信息仅为推断：`src/scheduler.ts` 已修改，`test/scheduler-fifo.test.ts` 与 `test/scheduler-cancel.test.ts` 已创建；分支可能为 `architecture/bounded-scheduler`，工作区可能未提交。\n- **已确定决策**：槽位释放必须直接驱动下一个 FIFO 等待者；取消应通过从队列移除或出队时跳过失效等待者实现。\n- **明确失败且不得重试的路径**：每 250 ms 轮询空闲槽位。该方案曾增加约 247 ms 中位启动延迟，并造成 fake-timer 测试不稳定。\n- **待完成**：\n  - 修复排队任务取消状态与等待队列的协调。\n  - 确保任务结束后同步推进队列，跳过所有已取消项，直接唤醒第一个有效等待者。\n  - 修复后验证取消场景，同时确认并发上限和 FIFO 行为未回归。\n- **唯一正确的下一步**：调整 `src/scheduler.ts` 的取消与槽位释放逻辑，使取消的未启动等待者从队列移除或在直接出队时被跳过，且将释放的槽位立即交给首个有效 FIFO 等待者；此时不要重新引入轮询。"
+  },
+  "runId": "architecture-03-job-scheduler:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "693f26d1081c33beba8f28d1b74a593657346478a1679500830e5d4c01e0028a",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

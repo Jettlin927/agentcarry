@@ -1,0 +1,36 @@
+{
+  "fixtureId": "feature-02-deploy-dry-run",
+  "input": {
+    "exactTargetInputTokens": 3027,
+    "sha256": "01aa1e91572a0e5fc23416e7be3b6a45e56ae2cf55fb24052a9061d8b6a0b223",
+    "utf8Bytes": 6342
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:51:38.157Z",
+    "promptSha256": "01aa1e91572a0e5fc23416e7be3b6a45e56ae2cf55fb24052a9061d8b6a0b223",
+    "startedAt": "2026-07-21T13:51:19.176Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "87e473c9c63e8c2b2769ce71710d6c84134700a00970b9eb8cd51c2b48b69e18",
+    "text": "## 续接简报\n\n- **目标**：为 `deploy` CLI 接入 `--dry-run`，仅生成并准确展示执行计划，且不发起网络请求、不写入文件。\n- **关键约束**：\n  - dry-run 路径不得构造 executor。\n  - 不得使用文件系统 mock 掩盖或替代真实的无写入验证。\n  - 必须验证无网络请求、无文件写入及计划输出准确性。\n- **当前状态**：\n  - 计划生成与实际执行已经分离，并已有面向用户的计划渲染器。\n  - bundle 准备逻辑只返回计划路径，不再创建路径。\n  - `src/cli/deploy.ts` 尚未接入 `--dry-run`。\n  - 工作区据快照推断位于分支 `feature/deploy-dry-run`，且存在未提交改动。\n- **既定决策**：\n  - dry-run 只生成并渲染计划，不进入执行阶段。\n  - CLI 副作用测试不 mock 文件系统。\n- **已失败路径**：\n  - 初始 dry-run 曾创建临时 bundle 目录；现已通过调整 bundle 准备逻辑解决。\n  - 曾使用文件系统 mock 的 CLI 测试会掩盖真实写入，已撤销，后续不得恢复该方案。\n- **已完成**：\n  - 计划/执行分离。\n  - 计划渲染器。\n  - bundle 路径计算改为无目录创建。\n  - 对应 bundle 聚焦单元测试已通过。\n- **待完成**：\n  - CLI 参数接线及 dry-run 分支。\n  - 增加 executor 从未被构造的断言。\n  - 完整验证 CLI dry-run 无网络、无文件写入且输出准确；目前没有这些测试通过的记录。\n- **唯一正确的下一步**：修改 `src/cli/deploy.ts` 接入 `--dry-run`，并添加测试明确断言 dry-run 路径从未构造 executor；不要使用文件系统 mock。"
+  },
+  "runId": "feature-02-deploy-dry-run:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "bbc9aec142fb32b3fc9882673c3da0503a066bfbcb3233267204aa993e78e2cd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

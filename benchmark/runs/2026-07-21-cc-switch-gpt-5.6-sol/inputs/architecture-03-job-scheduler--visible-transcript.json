@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nSchedule jobs with FIFO start order, maximum concurrency four, and cancellation before a queued job starts.\n\n## Assistant\n\nA 250 ms polling loop was prototyped to look for free slots.\n\n## User\n\nReject polling. Release the next FIFO waiter directly when a running job finishes.\n\n## Assistant\n\nThe semaphore queue starts at most four jobs and preserves FIFO in the normal test.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "architecture-03-job-scheduler",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 385,
+    "utf8Bytes": 385
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "693f26d1081c33beba8f28d1b74a593657346478a1679500830e5d4c01e0028a"
+}

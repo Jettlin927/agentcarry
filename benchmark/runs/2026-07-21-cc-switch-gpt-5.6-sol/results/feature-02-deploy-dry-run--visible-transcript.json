@@ -1,0 +1,36 @@
+{
+  "fixtureId": "feature-02-deploy-dry-run",
+  "input": {
+    "exactTargetInputTokens": 1434,
+    "sha256": "1aec9f48d7ac95714b06f4a9df38b44e27b3a4990396ed11935d635b016bda42",
+    "utf8Bytes": 525
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:49:49.238Z",
+    "promptSha256": "1aec9f48d7ac95714b06f4a9df38b44e27b3a4990396ed11935d635b016bda42",
+    "startedAt": "2026-07-21T13:49:30.665Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "c26ae2d1155ebd77d3ad6aac7d77e9f78e93283d7158c664d4655a5627df1c4f",
+    "text": "## 续接简报\n\n- **目标**：为 `deploy` 增加 `--dry-run`，展示与真实部署一致的精确计划操作，同时不发起任何网络请求、不写入任何文件。\n- **关键约束**：\n  - dry-run 路径必须在构造执行器之前分支。\n  - CLI 测试必须明确断言执行器从未被构造。\n  - 不得通过 mock 文件系统掩盖潜在写入。\n- **当前状态**：\n  - 规划与执行已分离。\n  - 面向用户的计划渲染器已完成。\n- **已确定决策**：CLI 的 dry-run 应复用现有规划和人类可读渲染路径，而不是进入执行路径。\n- **失败尝试**：曾在 CLI 测试中 mock 文件系统，但这会隐藏实际写入；该方案已撤销，不应重用。\n- **已完成工作**：规划/执行解耦及计划渲染。\n- **待完成工作**：接入 CLI `--dry-run`，并补充执行器绝不构造的测试；尚无新的验证结果。\n- **单一正确下一步**：修改 `deploy` CLI，使 `--dry-run` 在执行器构造前输出现有计划渲染结果并立即结束，同时添加不 mock 文件系统、且断言执行器构造器未被调用的 CLI 测试。"
+  },
+  "runId": "feature-02-deploy-dry-run:visible-transcript:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "bbc9aec142fb32b3fc9882673c3da0503a066bfbcb3233267204aa993e78e2cd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

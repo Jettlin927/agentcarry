@@ -1,0 +1,36 @@
+{
+  "fixtureId": "debugging-03-duplicate-jobs",
+  "input": {
+    "exactTargetInputTokens": 3155,
+    "sha256": "48c08fe52c011a6f52fe843a1e80af4c21af53f3a13fd4482ae866a2ae239121",
+    "utf8Bytes": 6151
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:46:07.389Z",
+    "promptSha256": "48c08fe52c011a6f52fe843a1e80af4c21af53f3a13fd4482ae866a2ae239121",
+    "startedAt": "2026-07-21T13:45:46.001Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "db6fb0fc7174897934f68cb118c000a7704e35d7a256f9e74cea7f4658acc9b0",
+    "text": "## 延续简报\n\n- **目标**：阻止重复发票任务，同时保持现有队列 schema，并确保副作用至多执行一次。\n- **关键约束**：\n  - 不得修改队列 payload。\n  - 必须先添加确定性的 fake-clock 回归测试，之后才能调整 retry policy。\n  - 避免继续采用已记录为失败或未解决的路径。\n- **当前状态**：\n  - 工作区位于 `fix/lease-race`，当前为 dirty，HEAD 为 `d0300003`。\n  - `src/worker/lease.ts` 已修改，报告称 marker 被提前到 handler dispatch 之前写入，但尚无确定性测试验证。\n  - `test/lease-race.test.ts` 是待补充测试的目标文件。\n- **已有判断**：\n  - 最初假设是网络重试导致 broker 重复投递。\n  - 现有工具结果（状态仍为 `unknown`）显示 broker 只投递一次，而 worker 对同一 leased job 启动了两次。\n  - 慢时钟场景显示：首个 handler 写入 started marker 前 lease 已过期。\n- **失败/未解决尝试**：\n  - 仅把 marker 移到 handler dispatch 前的 `src/worker/lease.ts` 修改被记录为失败、遭拒或尚未解决；不得将其视为已验证修复，也不要转而修改 retry policy。\n- **已完成**：\n  - 已形成初始 broker 重投假设。\n  - 已对 `src/worker/lease.ts` 做 marker 写入时序修改，但没有完成回归验证。\n- **待完成**：\n  - 在保持 payload 和 retry policy 不变的前提下，覆盖 lease 到期竞态的确定性 fake-clock 回归测试。\n- **唯一正确的下一步**：在 `test/lease-race.test.ts` 中添加确定性 fake-clock 回归测试，复现“首个 handler 写入 started marker 前 lease 过期，导致同一 leased job 被启动两次”的竞态；此时不要再改 `src/worker/lease.ts`、队列 payload 或 retry policy。"
+  },
+  "runId": "debugging-03-duplicate-jobs:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "569be092bf2d03da6b24b9ac18edb33f425fb26f7e24f9c84ae7d0e3683750fd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "fixtureId": "architecture-01-streaming-log",
+  "input": {
+    "exactTargetInputTokens": 3170,
+    "sha256": "977c394356706c50e2bd2403a1127c2132f017169e2d18718249f899ff0e2b26",
+    "utf8Bytes": 6203
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:36:00.765Z",
+    "promptSha256": "977c394356706c50e2bd2403a1127c2132f017169e2d18718249f899ff0e2b26",
+    "startedAt": "2026-07-21T13:35:37.926Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "9b195431a52ce29be49fa1313f8db5cc38716523a3d76111f82bc65a68fc8d2a",
+    "text": "## 续接简报\n\n- **目标**：以低于 **100 MiB 峰值内存**读取数 GB JSONL 日志，并保持事件顺序。\n- **关键约束**：\n  - 首次读取必须逐行流式处理，**不得预建索引**。\n  - 后续可以提供可选索引。\n  - 明确避免已有失败路径：\n    - 不回退到 `readFile + split`，其峰值内存超过 2 GiB。\n    - 不采用首次读取前导入 SQLite 的方案；首个事件需等待约 48 秒。\n- **当前状态**：\n  - 分支：`perf/stream-jsonl`，工作区有未提交更改。\n  - 已创建 `src/log/stream-events.ts`、`test/backpressure.test.ts`。\n  - 已修改 `src/log/read-events.ts`。\n- **已完成**：\n  - `stream-events.ts` 能按顺序产出事件。\n  - 已实现畸形行恢复。\n  - 在现有样本上峰值内存为 **42 MiB**。\n  - 吞吐量已达到目标。\n- **当前决策**：采用流式逐行读取作为首次读取路径；索引仅允许作为后续可选能力。\n- **失败/未解决尝试**：慢消费者背压测试会挂起；该路径尚未验证通过，不应视为完成。\n- **待完成**：解决背压挂起，并确认流式实现能在慢消费者场景下有界缓冲、正常结束，同时不破坏顺序、畸形行恢复或内存目标。\n- **唯一下一步**：检查 `src/log/stream-events.ts` 与 `test/backpressure.test.ts` 的生产者—消费者终止及暂停/恢复流程，定位慢消费者背压测试挂起的原因；此步骤尚未执行，也没有新增验证结果。"
+  },
+  "runId": "architecture-01-streaming-log:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "37d5a57123ebb60fc9d102736ca21c5c98622a7269a6a518335316fe5667f625",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

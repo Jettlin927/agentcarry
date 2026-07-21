@@ -1,0 +1,36 @@
+{
+  "fixtureId": "feature-03-config-errors",
+  "input": {
+    "exactTargetInputTokens": 2836,
+    "sha256": "e1da7e81092580e490761b59b983cfd0bbff98e18c3d7be09ee8d55ecb1aa475",
+    "utf8Bytes": 5594
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:53:32.003Z",
+    "promptSha256": "e1da7e81092580e490761b59b983cfd0bbff98e18c3d7be09ee8d55ecb1aa475",
+    "startedAt": "2026-07-21T13:53:11.608Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "b26cbbfc17de46bf64f41058859a25c81e29e934c70449e0a5967499a93d8b5c",
+    "text": "## 续接简报\n\n- **目标**：完成嵌套配置验证；确保环境变量覆盖文件配置；验证错误不得泄露 secret。脱敏必须发生在 **validation-error formatter**，并保留失败字段的完整路径。\n- **关键约束**：\n  - 不得在 parser 中脱敏。\n  - 不得在错误消息中包含 token 等原始 secret 值。\n  - 不得通过记录完整 resolved config 调试，以免泄露其他 secret。\n  - 环境变量优先级高于文件配置。\n- **当前状态**：\n  - Schema parsing 与带字段路径的验证错误已被报告为实现。\n  - 环境变量优先级已被报告为实现，precedence tests 已通过。\n  - Secret-safe validation error 检查仍失败：嵌套无效 token 会被原样回显。\n  - 供应材料推测 `src/config/parse.ts` 已修改、`src/config/precedence.ts` 已创建、`src/config/format-error.ts` 尚未修改；这些文件及 Git 状态均为推断，未重新确认。\n- **已完成**：\n  - 移除了记录完整 resolved config 的调试尝试。\n  - 已验证配置优先级测试通过。\n- **已否决/失败路径**：\n  - 当前错误格式会泄露嵌套 token。\n  - 不应把脱敏逻辑放入 parser。\n  - 不应恢复完整 resolved config 日志。\n- **待完成**：\n  - 在 validation-error formatter 中替换或省略原始失败值。\n  - 确保格式化后仍输出完整失败字段路径。\n  - 验证错误中不存在 secret，同时路径仍准确；供应材料未给出具体测试命令。\n- **唯一下一步**：修改现有 validation-error formatter，使其在保留完整失败字段路径和必要诊断信息的同时，不输出原始 offending/secret 值；不要改动 parser。"
+  },
+  "runId": "feature-03-config-errors:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "ec9cc0c1730a10eef152aec54c9fb8f439f745ea6ec6847c04910ab3ab10fd37",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

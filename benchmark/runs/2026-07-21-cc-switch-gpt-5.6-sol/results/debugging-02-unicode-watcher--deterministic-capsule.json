@@ -1,0 +1,36 @@
+{
+  "fixtureId": "debugging-02-unicode-watcher",
+  "input": {
+    "exactTargetInputTokens": 3048,
+    "sha256": "d488735dc9b15a9d5aaf74d825696e8ca3e9165a0a7a21805c9214029221f63e",
+    "utf8Bytes": 5719
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:44:18.239Z",
+    "promptSha256": "d488735dc9b15a9d5aaf74d825696e8ca3e9165a0a7a21805c9214029221f63e",
+    "startedAt": "2026-07-21T13:43:58.968Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "dcf1978aba71a9fa1322e0f09168a93eb4b8a2f10163aa22dd5b904c8e202c7f",
+    "text": "## 续接简报\n\n- **目标**：修复 Windows 中文路径下配置变更未触发重载的问题，且不引入新的 watcher 依赖。\n- **关键约束**：\n  - Windows 路径比较需兼容大小写差异。\n  - POSIX 路径比较必须保持大小写敏感。\n  - 下一步应补充真实 watcher 的 Windows 集成测试。\n- **当前状态**：\n  - 分支：`fix/windows-watcher`，工作区未清理。\n  - `src/watch-path.ts` 已修改为 Windows 感知的路径比较。\n  - `test/watch-windows.test.ts` 已创建，但真实 watcher 集成验证仍待完成。\n  - 已有观察表明 UTF-8 解码后的中文路径完全正确；事件路径仅存在盘符大小写差异。因此不要继续把 UTF-8 损坏当作已确认根因。\n- **已作决定**：仅在 Windows 上进行不区分大小写的比较，同时保留 POSIX 的大小写敏感语义。\n- **已完成**：路径比较修复及相关单元测试；据交接记录，单元测试已通过。\n- **失败尝试**：没有记录到失败尝试。\n- **待完成**：真实 Windows watcher 集成测试，覆盖中文及空格路径、盘符大小写不同，并确认配置重载确实发生。\n- **唯一正确的下一步**：完善 `test/watch-windows.test.ts` 中的 Windows 专用集成测试，使其通过真实 watcher 在中文路径下触发文件变更，并断言即使事件路径与目标路径的盘符大小写不同也会重载；此时不要改动 POSIX 比较逻辑。"
+  },
+  "runId": "debugging-02-unicode-watcher:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "be01c97c050e1cd2383abdec2bf2468ea7b5b0420030bb0a83cfc5376b6a7725",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

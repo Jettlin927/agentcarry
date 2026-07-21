@@ -1,0 +1,36 @@
+{
+  "fixtureId": "debugging-02-unicode-watcher",
+  "input": {
+    "exactTargetInputTokens": 1429,
+    "sha256": "1d36a12d211deb717384352be0dc4ee286c98761f2ae1f15fd5adf0d3a67e6fb",
+    "utf8Bytes": 518
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:43:58.961Z",
+    "promptSha256": "1d36a12d211deb717384352be0dc4ee286c98761f2ae1f15fd5adf0d3a67e6fb",
+    "startedAt": "2026-07-21T13:43:43.232Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "3ec074dcc1bf3070232b14e45222d0727bcce0cf67d38e8ca2c60dceec537148",
+    "text": "## 继续工作简报\n\n- **目标**：修复 Windows 中文路径下配置变更偶发未重载的问题。\n- **关键约束**：\n  - 不新增文件监听依赖。\n  - Windows 路径比较需符合 Windows 语义。\n  - POSIX 路径比较必须保持大小写敏感。\n  - 必须用真实 watcher 集成测试覆盖 Windows 中文路径。\n- **当前状态**：`src/watch-path.ts` 已改为使用 Windows 感知的路径比较。\n- **已完成**：相关单元测试已通过。\n- **已定决策**：采用平台相关的路径比较，而不是统一进行不区分大小写的比较。\n- **未证实/应避免的路径**：最初怀疑 UTF-8 解码破坏监听路径，但没有证据确认；不要据此改动编码逻辑。\n- **待完成**：Windows 真实 watcher 集成测试尚未添加或验证；不得声称该场景已经通过。\n- **唯一正确的下一步**：添加 Windows 集成测试，在包含中文字符的配置路径上触发真实文件变更，并断言 watcher 能触发配置重载，同时保留 POSIX 大小写敏感行为。"
+  },
+  "runId": "debugging-02-unicode-watcher:visible-transcript:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "be01c97c050e1cd2383abdec2bf2468ea7b5b0420030bb0a83cfc5376b6a7725",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "fixtureId": "refactor-01-http-transport",
+  "input": {
+    "exactTargetInputTokens": 1432,
+    "sha256": "9bb562d7bec5e15d7b10add30d83591dc9819aaf61181668e26e147fd587eedd",
+    "utf8Bytes": 572
+  },
+  "invocation": {
+    "completedAt": "2026-07-21T13:53:48.858Z",
+    "promptSha256": "9bb562d7bec5e15d7b10add30d83591dc9819aaf61181668e26e147fd587eedd",
+    "startedAt": "2026-07-21T13:53:32.008Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "58d205b76b9e7fca3da85e8b5239d15c407488345b3193dc8703c9eac124a87d",
+    "text": "## 续接简报\n\n- **目标**：完成从 `ApiClient` 抽离 HTTP transport，且不改变公共导出、不新增依赖。\n- **关键约束**：\n  - `ApiClient` 继续作为公共 facade。\n  - Header 保留逻辑必须位于 transport 内部。\n  - 不得在 `ApiClient` 中逐个复制 header。\n  - 需要迁移流式响应方法。\n- **当前状态**：请求构造已移至 `src/http/transport.ts`；普通请求的具体迁移与验证情况未进一步记录。\n- **已确定决策**：transport 负责请求策略，包括 header preservation。\n- **失败路径**：曾尝试在 `ApiClient` 中复制所有 header，因重复 transport policy 已回退；不要重走此方案。\n- **已完成**：建立 `src/http/transport.ts`，并保留 `ApiClient` 公共 facade。\n- **待完成**：\n  - 在 transport 内实现/确认完整的 header preservation。\n  - 将尚未转换的流式响应方法接入 transport。\n  - 确认公共导出和依赖均未变化。\n  - 尚无测试或验证结果记录。\n- **唯一正确的下一步**：检查现有流式响应方法及 `src/http/transport.ts` 的接口，制定将该方法迁移到 transport、并由 transport 保留 headers 的精确修改方案；此时不要编辑实现。"
+  },
+  "runId": "refactor-01-http-transport:visible-transcript:initial",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "886d793ac79031e1d1c75c7b9e38665933f37092df12844fea3bb025c6352865",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}
