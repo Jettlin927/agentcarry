@@ -1,0 +1,117 @@
+{
+  "categoryScores": [
+    {
+      "category": "criticalConstraints",
+      "earned": 30,
+      "facts": [
+        {
+          "factId": "r01-constraint-deps",
+          "points": 1,
+          "verdict": "preserved"
+        },
+        {
+          "factId": "r01-constraint-exports",
+          "points": 1,
+          "verdict": "preserved"
+        }
+      ],
+      "weight": 30
+    },
+    {
+      "category": "objectiveAndState",
+      "earned": 10,
+      "facts": [
+        {
+          "factId": "r01-objective",
+          "points": 0.5,
+          "verdict": "partial"
+        }
+      ],
+      "weight": 20
+    },
+    {
+      "category": "decisionsAndFailedAttempts",
+      "earned": 20,
+      "facts": [
+        {
+          "factId": "r01-failed-facade-headers",
+          "points": 1,
+          "verdict": "preserved"
+        }
+      ],
+      "weight": 20
+    },
+    {
+      "category": "completedAndPending",
+      "earned": 15,
+      "facts": [
+        {
+          "factId": "r01-progress",
+          "points": 1,
+          "verdict": "preserved"
+        }
+      ],
+      "weight": 15
+    },
+    {
+      "category": "workspaceEvidence",
+      "earned": 5,
+      "facts": [
+        {
+          "factId": "r01-workspace",
+          "points": 0.5,
+          "verdict": "partial"
+        }
+      ],
+      "weight": 10
+    },
+    {
+      "category": "nextAction",
+      "earned": 0,
+      "facts": [
+        {
+          "factId": "r01-next",
+          "points": 0,
+          "verdict": "contradicted"
+        }
+      ],
+      "weight": 5
+    }
+  ],
+  "criticalConstraintMisses": [],
+  "fidelityScore": 80,
+  "fixtureId": "refactor-01-http-transport",
+  "gates": {
+    "correctNextAction": false,
+    "criticalConstraints100Percent": true,
+    "noRepeatedFailedPath": true,
+    "tokenRatioAtMost40Percent": false
+  },
+  "mode": "visible-transcript",
+  "repeatedFailedPaths": [],
+  "reviewedAt": "2026-07-21T15:02:55.025115Z",
+  "reviewer": "jettlin927",
+  "runId": "refactor-01-http-transport:visible-transcript:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 1432,
+    "ratio": 1,
+    "visibleTranscriptBaseline": 1432
+  },
+  "unsupportedClaims": []
+}

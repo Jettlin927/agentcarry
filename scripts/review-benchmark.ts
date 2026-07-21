@@ -125,6 +125,11 @@ async function writeFinalArtifacts(
         canonicalJson(materialized.humanReview ?? materialized.confirmation),
         "utf8"
       ),
+      writeFile(
+        join(temporary, "human-confirmation.json"),
+        canonicalJson(materialized.confirmation),
+        "utf8"
+      ),
       writeFile(join(temporary, "result-set.json"), canonicalJson(materialized.resultSet), "utf8"),
       writeFile(join(temporary, "report.json"), renderAggregateJson(materialized.report), "utf8"),
       writeFile(join(temporary, "REPORT.md"), renderAggregateMarkdown(materialized.report), "utf8")

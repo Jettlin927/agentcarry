@@ -179,7 +179,7 @@ Finalization refuses to overwrite an existing output directory. It validates
 all 12 fixtures, 36 target results, 36 advisory entries, 36 completed browser
 decisions, every fact ID and verdict, reviewer metadata, and aggregate integrity
 before publishing `assessments/`, `scores/`, `human-review.json`,
-`result-set.json`, `report.json`, and `REPORT.md`.
+`human-confirmation.json`, `result-set.json`, `report.json`, and `REPORT.md`.
 
 ### Explicit routed-provider mode
 

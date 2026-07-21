@@ -1,0 +1,10 @@
+{
+  "advisoryReviewedAt": "2026-07-21T14:02:00Z",
+  "advisoryReviewer": "OpenAI Codex",
+  "benchmarkId": "first-36",
+  "confirmationSource": "https://github.com/Jettlin927/agentcarry/issues/5#issuecomment-5037173921",
+  "confirmed": true,
+  "humanReviewer": "jettlin927",
+  "reviewedAt": "2026-07-21T15:02:55.025115Z",
+  "schemaVersion": "1.0.0"
+}

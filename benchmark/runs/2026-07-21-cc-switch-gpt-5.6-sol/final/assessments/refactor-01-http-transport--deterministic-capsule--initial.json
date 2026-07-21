@@ -1,0 +1,84 @@
+{
+  "categories": {
+    "completedAndPending": [
+      {
+        "factId": "r01-progress",
+        "note": "Human reviewer confirmed the target output preserves: Request construction is extracted; preserve headers on retry, then convert streaming.",
+        "verdict": "preserved"
+      }
+    ],
+    "criticalConstraints": [
+      {
+        "factId": "r01-constraint-exports",
+        "note": "Human reviewer confirmed the target output preserves: Do not change public exports.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "r01-constraint-deps",
+        "note": "Human reviewer confirmed the target output preserves: Do not add dependencies.",
+        "verdict": "preserved"
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "factId": "r01-failed-facade-headers",
+        "note": "Human reviewer confirmed the target output preserves: Copying headers in ApiClient was reverted because transport policy belongs in the transport.",
+        "verdict": "preserved"
+      }
+    ],
+    "nextAction": [
+      {
+        "factId": "r01-next",
+        "note": "通过：明确把 header policy 留在 transport 并指出 auth retry 与 streaming 两个缺口；下一步略显过宽且未立即重跑测试，但方向正确。",
+        "verdict": "partial"
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "factId": "r01-objective",
+        "note": "Human reviewer confirmed the target output preserves: Extract transport behavior from ApiClient; normal requests moved, auth retry and streaming remain incomplete.",
+        "verdict": "preserved"
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "factId": "r01-workspace",
+        "note": "Human reviewer confirmed the target output preserves: api-client.ts and the new transport.ts are dirty while index.ts remains unchanged.",
+        "verdict": "preserved"
+      }
+    ]
+  },
+  "fixtureId": "refactor-01-http-transport",
+  "mode": "deterministic-capsule",
+  "repeatedFailedPaths": [],
+  "review": {
+    "humanReviewer": "jettlin927",
+    "llmJudge": {
+      "advisoryOnly": true,
+      "model": "OpenAI Codex"
+    },
+    "reviewedAt": "2026-07-21T15:02:55.025115Z"
+  },
+  "runId": "refactor-01-http-transport:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 3309,
+    "visibleTranscriptBaseline": 1432
+  },
+  "unsupportedClaims": []
+}

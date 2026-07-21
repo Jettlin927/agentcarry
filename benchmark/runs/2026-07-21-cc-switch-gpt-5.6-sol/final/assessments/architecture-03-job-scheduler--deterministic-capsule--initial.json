@@ -1,0 +1,94 @@
+{
+  "categories": {
+    "completedAndPending": [
+      {
+        "factId": "a03-progress",
+        "note": "Human reviewer confirmed the target output preserves: Semaphore concurrency and normal FIFO pass; cancelled waiters are not removed correctly.",
+        "verdict": "preserved"
+      }
+    ],
+    "criticalConstraints": [
+      {
+        "factId": "a03-constraint-limit",
+        "note": "Human reviewer confirmed the target output preserves: Never run more than four jobs concurrently.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "a03-constraint-order",
+        "note": "Human reviewer confirmed the target output preserves: Preserve FIFO start order among non-cancelled jobs.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "a03-constraint-cancel",
+        "note": "Human reviewer confirmed the target output preserves: A queued job can be cancelled before it starts.",
+        "verdict": "preserved"
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "factId": "a03-failed-polling",
+        "note": "Human reviewer confirmed the target output preserves: Polling was rejected because of start latency and flaky timing tests.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "a03-decision-release",
+        "note": "Human reviewer confirmed the target output preserves: A completed job directly releases the next FIFO waiter.",
+        "verdict": "preserved"
+      }
+    ],
+    "nextAction": [
+      {
+        "factId": "a03-next",
+        "note": "Human reviewer confirmed the target output preserves: Fix queued-waiter removal so cancellation test passes without weakening FIFO or concurrency four.",
+        "verdict": "preserved"
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "factId": "a03-objective",
+        "note": "Human reviewer confirmed the target output preserves: Implement a bounded FIFO scheduler; concurrency and normal FIFO pass, queued cancellation fails.",
+        "verdict": "preserved"
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "factId": "a03-workspace",
+        "note": "Human reviewer confirmed the target output preserves: scheduler.ts is modified and separate FIFO and cancellation tests are new.",
+        "verdict": "preserved"
+      }
+    ]
+  },
+  "fixtureId": "architecture-03-job-scheduler",
+  "mode": "deterministic-capsule",
+  "repeatedFailedPaths": [],
+  "review": {
+    "humanReviewer": "jettlin927",
+    "llmJudge": {
+      "advisoryOnly": true,
+      "model": "OpenAI Codex"
+    },
+    "reviewedAt": "2026-07-21T15:02:55.025115Z"
+  },
+  "runId": "architecture-03-job-scheduler:deterministic-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 3160,
+    "visibleTranscriptBaseline": 1431
+  },
+  "unsupportedClaims": []
+}

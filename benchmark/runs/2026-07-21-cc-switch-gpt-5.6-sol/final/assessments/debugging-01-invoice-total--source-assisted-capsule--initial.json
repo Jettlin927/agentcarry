@@ -1,0 +1,89 @@
+{
+  "categories": {
+    "completedAndPending": [
+      {
+        "factId": "d01-progress",
+        "note": "Human reviewer confirmed the target output preserves: Parser retention is implemented; the focused regression test remains pending.",
+        "verdict": "preserved"
+      }
+    ],
+    "criticalConstraints": [
+      {
+        "factId": "d01-constraint-api",
+        "note": "Human reviewer confirmed the target output preserves: Keep the public API unchanged.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "d01-constraint-currency",
+        "note": "Human reviewer confirmed the target output preserves: Keep currency values as decimal strings.",
+        "verdict": "preserved"
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "factId": "d01-failed-cache",
+        "note": "Human reviewer confirmed the target output preserves: The cache hypothesis was rejected because disabling it did not fix the test.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "d01-decision-parser",
+        "note": "Human reviewer confirmed the target output preserves: Negative adjustment rows are the identified cause.",
+        "verdict": "preserved"
+      }
+    ],
+    "nextAction": [
+      {
+        "factId": "d01-next",
+        "note": "通过：准确指向负数调整回归测试并避免缓存路径；运行测试被列入后续待办，仍足以正确续接。",
+        "verdict": "partial"
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "factId": "d01-objective",
+        "note": "Human reviewer confirmed the target output preserves: Fix stale invoice totals; the parser change is present but unverified.",
+        "verdict": "preserved"
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "factId": "d01-workspace",
+        "note": "Human reviewer confirmed the target output preserves: src/invoice/parser.ts is modified on fix/invoice-total.",
+        "verdict": "preserved"
+      }
+    ]
+  },
+  "fixtureId": "debugging-01-invoice-total",
+  "mode": "source-assisted-capsule",
+  "repeatedFailedPaths": [],
+  "review": {
+    "humanReviewer": "jettlin927",
+    "llmJudge": {
+      "advisoryOnly": true,
+      "model": "OpenAI Codex"
+    },
+    "reviewedAt": "2026-07-21T15:02:55.025115Z"
+  },
+  "runId": "debugging-01-invoice-total:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 2300,
+    "visibleTranscriptBaseline": 1431
+  },
+  "unsupportedClaims": []
+}

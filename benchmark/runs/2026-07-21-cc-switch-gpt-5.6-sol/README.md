@@ -1,6 +1,6 @@
 # First 36 routed-provider benchmark run
 
-Status: **raw collection complete; final human review pending**.
+Status: **raw collection and final human review complete; Phase 0 failed**.
 
 This directory contains all 36 initial inputs and outputs. No failed or weaker
 initial result was replaced with a rerun.
@@ -73,15 +73,15 @@ The preview exposes two real problems rather than a passing launch result:
    and system overhead; the published v1 gate still uses the committed metric
    and must not be rewritten after seeing the result.
 
-## Required human review
+## Final human review
 
-A human reviewer should use the self-contained [`REVIEW.html`](REVIEW.html)
-workbench: it presents the exact input and output side by side, stores progress
-only in the local browser, and exports the completed decisions as JSON. The
-final export requires explicit human attestation; an AI-only reviewer cannot
-unlock final benchmark materialization.
-[`REVIEW_PACKET.md`](REVIEW_PACKET.md) remains the non-interactive archival
-copy. The reviewer must confirm or correct all suggested verdicts and own the
-final timestamp. Only then may the repository materialize final assessments,
-deterministic scores, and the aggregate PASS/FAIL report. The required action is tracked in
-[GitHub Issue #5](https://github.com/Jettlin927/agentcarry/issues/5).
+The repository owner confirmed all 36 runs and 288 fact verdicts. The auditable
+confirmation is recorded in
+[GitHub Issue #5](https://github.com/Jettlin927/agentcarry/issues/5#issuecomment-5037173921).
+The complete browser export and confirmation metadata are published under
+[`final/`](final/), together with all assessments, deterministic scores, and
+the [aggregate report](final/REPORT.md).
+
+The final verdict is **Phase 0 FAIL**. Both capsule modes preserve critical
+constraints and improve mean fidelity, but both fail the correct-next-action
+and token-ratio gates. No failed result was hidden or replaced.

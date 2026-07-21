@@ -1,0 +1,89 @@
+{
+  "categories": {
+    "completedAndPending": [
+      {
+        "factId": "a01-progress",
+        "note": "Human reviewer confirmed the target output preserves: Ordered parsing, memory target, throughput, and malformed recovery pass; slow-consumer backpressure hangs.",
+        "verdict": "preserved"
+      }
+    ],
+    "criticalConstraints": [
+      {
+        "factId": "a01-constraint-memory",
+        "note": "Human reviewer confirmed the target output preserves: Peak memory must remain below 100 MiB.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "a01-constraint-order",
+        "note": "Human reviewer confirmed the target output preserves: Preserve source event order.",
+        "verdict": "preserved"
+      }
+    ],
+    "decisionsAndFailedAttempts": [
+      {
+        "factId": "a01-failed-sqlite",
+        "note": "Human reviewer confirmed the target output preserves: Mandatory SQLite pre-indexing was rejected because time-to-first-event was 48 seconds.",
+        "verdict": "preserved"
+      },
+      {
+        "factId": "a01-decision-stream",
+        "note": "Human reviewer confirmed the target output preserves: Stream lines on first read; a later index may remain optional.",
+        "verdict": "preserved"
+      }
+    ],
+    "nextAction": [
+      {
+        "factId": "a01-next",
+        "note": "Human reviewer confirmed the target output preserves: Diagnose and fix the hanging slow-consumer backpressure test without buffering the full log.",
+        "verdict": "preserved"
+      }
+    ],
+    "objectiveAndState": [
+      {
+        "factId": "a01-objective",
+        "note": "Human reviewer confirmed the target output preserves: Replace whole-file JSONL loading with an ordered bounded-memory stream; backpressure is still broken.",
+        "verdict": "preserved"
+      }
+    ],
+    "workspaceEvidence": [
+      {
+        "factId": "a01-workspace",
+        "note": "通过：核心状态与下一步准确；部分文件状态以推断口径表达，但不影响定位背压挂起并继续工作。",
+        "verdict": "partial"
+      }
+    ]
+  },
+  "fixtureId": "architecture-01-streaming-log",
+  "mode": "source-assisted-capsule",
+  "repeatedFailedPaths": [],
+  "review": {
+    "humanReviewer": "jettlin927",
+    "llmJudge": {
+      "advisoryOnly": true,
+      "model": "OpenAI Codex"
+    },
+    "reviewedAt": "2026-07-21T15:02:55.025115Z"
+  },
+  "runId": "architecture-01-streaming-log:source-assisted-capsule:initial",
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  },
+  "tokens": {
+    "input": 2765,
+    "visibleTranscriptBaseline": 1446
+  },
+  "unsupportedClaims": []
+}

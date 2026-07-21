@@ -1,0 +1,104 @@
+{
+  "benchmarkId": "first-36",
+  "capsuleGates": [
+    {
+      "correctNextAction": false,
+      "criticalConstraints100Percent": true,
+      "fidelityNoWorseThanBaseline": true,
+      "meanFidelityDelta": 19.17,
+      "mode": "deterministic-capsule",
+      "noRepeatedFailedPaths": true,
+      "passed": false,
+      "tokenRatioAtMost40Percent": false,
+      "unsupportedClaimDelta": 0,
+      "unsupportedClaimsNoWorseThanBaseline": true
+    },
+    {
+      "correctNextAction": false,
+      "criticalConstraints100Percent": true,
+      "fidelityNoWorseThanBaseline": true,
+      "meanFidelityDelta": 17.08,
+      "mode": "source-assisted-capsule",
+      "noRepeatedFailedPaths": true,
+      "passed": false,
+      "tokenRatioAtMost40Percent": false,
+      "unsupportedClaimDelta": 0,
+      "unsupportedClaimsNoWorseThanBaseline": true
+    }
+  ],
+  "expectedRuns": 36,
+  "fixtureIds": [
+    "architecture-01-streaming-log",
+    "architecture-02-session-index",
+    "architecture-03-job-scheduler",
+    "debugging-01-invoice-total",
+    "debugging-02-unicode-watcher",
+    "debugging-03-duplicate-jobs",
+    "feature-01-pagination",
+    "feature-02-deploy-dry-run",
+    "feature-03-config-errors",
+    "refactor-01-http-transport",
+    "refactor-02-cli-renderers",
+    "refactor-03-file-indexer"
+  ],
+  "initialRuns": 36,
+  "modes": [
+    {
+      "correctNextActionRuns": 2,
+      "criticalConstraintPasses": 12,
+      "meanFidelity": 78.13,
+      "meanTokenRatio": 1,
+      "mode": "visible-transcript",
+      "repeatedFailedPathRuns": 0,
+      "repeatedFailedPaths": 0,
+      "runs": 12,
+      "tokenRatioAtMost40PercentRuns": 0,
+      "unsupportedClaimRuns": 0,
+      "unsupportedClaims": 0
+    },
+    {
+      "correctNextActionRuns": 4,
+      "criticalConstraintPasses": 12,
+      "meanFidelity": 97.29,
+      "meanTokenRatio": 2.2027,
+      "mode": "deterministic-capsule",
+      "repeatedFailedPathRuns": 0,
+      "repeatedFailedPaths": 0,
+      "runs": 12,
+      "tokenRatioAtMost40PercentRuns": 0,
+      "unsupportedClaimRuns": 0,
+      "unsupportedClaims": 0
+    },
+    {
+      "correctNextActionRuns": 3,
+      "criticalConstraintPasses": 12,
+      "meanFidelity": 95.21,
+      "meanTokenRatio": 1.8262,
+      "mode": "source-assisted-capsule",
+      "repeatedFailedPathRuns": 0,
+      "repeatedFailedPaths": 0,
+      "runs": 12,
+      "tokenRatioAtMost40PercentRuns": 0,
+      "unsupportedClaimRuns": 0,
+      "unsupportedClaims": 0
+    }
+  ],
+  "phase0Passed": false,
+  "reruns": [],
+  "schemaVersion": "1.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}
