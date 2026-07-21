@@ -15,6 +15,7 @@ import {
   createBenchmarkRunPlan
 } from "../src/benchmark/collect-target-runs.js";
 import {
+  createTargetSettings,
   targetSettings,
   type TargetRunResult
 } from "../src/benchmark/run-target-continuation.js";
@@ -48,14 +49,18 @@ async function sourceAssisted(
   );
 }
 
-function targetResult(artifact: HandoffInputArtifact, model: string): TargetRunResult {
+function targetResult(
+  artifact: HandoffInputArtifact,
+  model: string,
+  provider = "unspecified"
+): TargetRunResult {
   return {
     schemaVersion: "1.0.0",
     runId: `${artifact.fixtureId}:${artifact.mode}:initial`,
     fixtureId: artifact.fixtureId,
     mode: artifact.mode,
     sourceFingerprint: artifact.sourceFingerprint,
-    target: { agent: "claude", model, settings: targetSettings },
+    target: { agent: "claude", model, provider, settings: targetSettings },
     input: { sha256: "a".repeat(64), utf8Bytes: 100, exactTargetInputTokens: 50 },
     output: { text: "Reviewed continuation state.", sha256: "b".repeat(64) },
     invocation: {
@@ -72,8 +77,27 @@ describe("benchmark target collection", () => {
 
     expect(plan.runs).toHaveLength(36);
     expect(new Set(plan.runs.map((run) => `${run.fixtureId}:${run.mode}`))).toHaveLength(36);
-    expect(plan.target).toEqual({ agent: "claude", model: "fixed-model", settings: targetSettings });
+    expect(plan.target).toEqual({
+      agent: "claude",
+      model: "fixed-model",
+      provider: "unspecified",
+      settings: targetSettings
+    });
     expect(plan.runs[0]?.fixtureId.localeCompare(plan.runs.at(-1)!.fixtureId)).toBeLessThan(0);
+  });
+
+  it("records an explicit routed provider and its user-setting dependency", () => {
+    const plan = createBenchmarkRunPlan(fixtures, "gpt-5.6-sol", {
+      provider: "cc-switch-codex-oauth",
+      settingSources: "user"
+    });
+
+    expect(plan.target).toEqual({
+      agent: "claude",
+      model: "gpt-5.6-sol",
+      provider: "cc-switch-codex-oauth",
+      settings: createTargetSettings("user")
+    });
   });
 
   it("collects every raw result once and resumes without overwriting", async () => {

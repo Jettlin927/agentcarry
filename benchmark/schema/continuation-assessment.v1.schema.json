@@ -24,10 +24,11 @@
     "target": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["agent", "model", "settings"],
+      "required": ["agent", "model", "provider", "settings"],
       "properties": {
         "agent": { "$ref": "#/$defs/nonEmptyString" },
         "model": { "$ref": "#/$defs/nonEmptyString" },
+        "provider": { "$ref": "#/$defs/nonEmptyString" },
         "settings": { "type": "object", "additionalProperties": true }
       }
     },

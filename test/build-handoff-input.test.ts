@@ -80,6 +80,19 @@ describe("benchmark handoff inputs", () => {
       '{"mcpServers":{}}'
     );
     expect(invocation.persistence).toBe("disabled");
+    expect(invocation.args[invocation.args.indexOf("--setting-sources") + 1]).toBe("");
+  });
+
+  it("can explicitly load trusted user settings without enabling tools or persistence", async () => {
+    const invocation = await createSourceAssistedInvocation(
+      fixture,
+      "routed-model",
+      { settingSources: "user" }
+    );
+
+    expect(invocation.args[invocation.args.indexOf("--setting-sources") + 1]).toBe("user");
+    expect(invocation.args[invocation.args.indexOf("--tools") + 1]).toBe("");
+    expect(invocation.persistence).toBe("disabled");
   });
 
   it("records summarizer token usage without reading or mutating a source session", async () => {

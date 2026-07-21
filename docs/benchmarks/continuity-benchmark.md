@@ -138,3 +138,26 @@ re-running the same plan skips validated results and never overwrites them.
 The collector does not install Claude Code, log in, repair credentials, review
 outputs, score facts, or hide failed runs. Human review and deterministic scoring
 remain separate steps.
+
+### Explicit routed-provider mode
+
+Some local routing tools configure Claude Code through its user settings. The
+collector can opt into that dependency, but never does so implicitly:
+
+```shell
+npm run --silent benchmark:collect -- benchmark/fixtures \
+  --model <exact-upstream-model> \
+  --setting-sources user \
+  --provider <public-route-label> \
+  --output <directory>
+```
+
+`--setting-sources user` requires `--provider`. Both values are written to the
+plan and every result, while credential values are neither read into the result
+model nor serialized. The explicit model must describe the actual upstream
+model, not a Claude role alias. Use this mode only with trusted local settings:
+Claude Code may load user-defined hooks and other behavior from that file even
+though the benchmark still disables tools, persistence, slash commands, and MCP.
+
+A routed non-Anthropic model measures the AgentCarry handoff through the Claude
+Code CLI harness; it is not evidence about the quality of a native Claude model.

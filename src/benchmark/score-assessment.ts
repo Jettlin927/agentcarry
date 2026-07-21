@@ -24,6 +24,7 @@ export interface ContinuationAssessment {
   readonly target: {
     readonly agent: string;
     readonly model: string;
+    readonly provider: string;
     readonly settings: Readonly<Record<string, unknown>>;
   };
   readonly tokens: {
@@ -228,6 +229,7 @@ export function renderScoreMarkdown(report: ContinuationScoreReport): string {
 - Fixture: ${report.fixtureId}
 - Mode: ${report.mode}
 - Target: ${report.target.agent} / ${report.target.model}
+- Provider route: ${report.target.provider}
 - Human reviewer: ${report.reviewer}
 - Fidelity: ${report.fidelityScore.toFixed(2)} / 100.00
 - Token ratio: ${report.tokens.ratio.toFixed(4)}

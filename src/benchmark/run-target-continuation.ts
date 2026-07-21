@@ -19,23 +19,42 @@ function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
-export const targetSettings = {
-  permissionMode: "plan",
-  maxTurns: 1,
-  tools: "disabled",
-  persistence: "disabled",
-  slashCommands: "disabled",
-  mcp: "empty-strict",
-  settingSources: "none",
-  systemPromptSha256: sha256(systemPrompt)
-} as const;
+export type TargetSettingSources = "none" | "user";
+
+export interface TargetSettings {
+  readonly permissionMode: "plan";
+  readonly maxTurns: 1;
+  readonly tools: "disabled";
+  readonly persistence: "disabled";
+  readonly slashCommands: "disabled";
+  readonly mcp: "empty-strict";
+  readonly settingSources: TargetSettingSources;
+  readonly systemPromptSha256: string;
+}
+
+export function createTargetSettings(
+  settingSources: TargetSettingSources = "none"
+): TargetSettings {
+  return {
+    permissionMode: "plan",
+    maxTurns: 1,
+    tools: "disabled",
+    persistence: "disabled",
+    slashCommands: "disabled",
+    mcp: "empty-strict",
+    settingSources,
+    systemPromptSha256: sha256(systemPrompt)
+  };
+}
+
+export const targetSettings = createTargetSettings();
 
 export interface TargetInvocation {
   readonly command: "claude";
   readonly args: readonly string[];
   readonly stdin: string;
   readonly model: string;
-  readonly settings: typeof targetSettings;
+  readonly settings: TargetSettings;
 }
 
 export interface TargetRunResult {
@@ -47,7 +66,8 @@ export interface TargetRunResult {
   readonly target: {
     readonly agent: "claude";
     readonly model: string;
-    readonly settings: typeof targetSettings;
+    readonly provider: string;
+    readonly settings: TargetSettings;
   };
   readonly input: {
     readonly sha256: string;
@@ -80,11 +100,13 @@ ${artifact.content}`;
 
 export function createTargetInvocation(
   artifact: HandoffInputArtifact,
-  model: string
+  model: string,
+  options: { readonly settingSources?: TargetSettingSources } = {}
 ): TargetInvocation {
   if (model.trim().length === 0) {
     throw new Error("target model must be explicit and non-empty");
   }
+  const settings = createTargetSettings(options.settingSources);
   return {
     command: "claude",
     args: [
@@ -99,7 +121,7 @@ export function createTargetInvocation(
       "--permission-mode",
       "plan",
       "--setting-sources",
-      "",
+      settings.settingSources === "none" ? "" : settings.settingSources,
       "--max-turns",
       "1",
       "--system-prompt",
@@ -111,7 +133,7 @@ export function createTargetInvocation(
     ],
     stdin: targetPrompt(artifact),
     model,
-    settings: targetSettings
+    settings
   };
 }
 
@@ -121,9 +143,11 @@ export async function runTargetContinuation(
   options: {
     readonly runner?: ProcessRunner;
     readonly now?: () => Date;
+    readonly provider?: string;
+    readonly settingSources?: TargetSettingSources;
   } = {}
 ): Promise<TargetRunResult> {
-  const invocation = createTargetInvocation(artifact, model);
+  const invocation = createTargetInvocation(artifact, model, options);
   const runner = options.runner ?? defaultProcessRunner;
   const now = options.now ?? (() => new Date());
   const startedAt = now().toISOString();
@@ -153,7 +177,12 @@ export async function runTargetContinuation(
       fixtureId: artifact.fixtureId,
       mode: artifact.mode,
       sourceFingerprint: artifact.sourceFingerprint,
-      target: { agent: "claude", model, settings: targetSettings },
+      target: {
+        agent: "claude",
+        model,
+        provider: options.provider ?? "unspecified",
+        settings: invocation.settings
+      },
       input: {
         sha256: sha256(invocation.stdin),
         utf8Bytes: Buffer.byteLength(invocation.stdin, "utf8"),

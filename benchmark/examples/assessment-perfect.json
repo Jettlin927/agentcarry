@@ -6,6 +6,7 @@
   "target": {
     "agent": "claude",
     "model": "controlled-example",
+    "provider": "example-provider",
     "settings": { "temperature": 0 }
   },
   "tokens": {

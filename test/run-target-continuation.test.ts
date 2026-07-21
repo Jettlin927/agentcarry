@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { buildVisibleTranscript, type BenchmarkSourceFixture } from "../src/benchmark/build-handoff-input.js";
 import {
+  createTargetSettings,
   createTargetInvocation,
   runTargetContinuation,
   targetSettings
@@ -32,7 +33,18 @@ describe("target continuation runner", () => {
     expect(invocation.args).not.toContain("--continue");
     expect(invocation.args[invocation.args.indexOf("--tools") + 1]).toBe("");
     expect(invocation.args[invocation.args.indexOf("--setting-sources") + 1]).toBe("");
-    expect(invocation.settings).toBe(targetSettings);
+    expect(invocation.settings).toEqual(targetSettings);
+  });
+
+  it("loads only explicit user settings for a declared provider route", () => {
+    const invocation = createTargetInvocation(
+      buildVisibleTranscript(fixture),
+      "routed-model",
+      { settingSources: "user" }
+    );
+
+    expect(invocation.args[invocation.args.indexOf("--setting-sources") + 1]).toBe("user");
+    expect(invocation.settings).toEqual(createTargetSettings("user"));
   });
 
   it("records raw output and all exact input-token categories", async () => {
@@ -60,12 +72,18 @@ describe("target continuation runner", () => {
 
     const result = await runTargetContinuation(buildVisibleTranscript(fixture), "fixed-model", {
       runner,
+      provider: "test-provider",
       now: () => times.shift()!
     });
 
     expect(result).toMatchObject({
       runId: `${fixture.id}:visible-transcript:initial`,
-      target: { agent: "claude", model: "fixed-model", settings: targetSettings },
+      target: {
+        agent: "claude",
+        model: "fixed-model",
+        provider: "test-provider",
+        settings: targetSettings
+      },
       input: { exactTargetInputTokens: 66 },
       output: { text: "Objective retained. Next action: run the focused regression." },
       invocation: {
