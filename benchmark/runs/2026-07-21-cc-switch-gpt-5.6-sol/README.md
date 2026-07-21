@@ -75,9 +75,11 @@ The preview exposes two real problems rather than a passing launch result:
 
 ## Required human review
 
-A human reviewer must inspect every target output against every fixture fact in
-[`REVIEW_PACKET.md`](REVIEW_PACKET.md), confirm or correct all suggested
-verdicts, and own the final timestamp. Only then may the repository materialize
-final assessments, deterministic scores, and the aggregate PASS/FAIL report.
-The required action is tracked in
+A human reviewer should use the self-contained [`REVIEW.html`](REVIEW.html)
+workbench: it presents the exact input and output side by side, stores progress
+only in the local browser, and exports the completed decisions as JSON.
+[`REVIEW_PACKET.md`](REVIEW_PACKET.md) remains the non-interactive archival
+copy. The reviewer must confirm or correct all suggested verdicts and own the
+final timestamp. Only then may the repository materialize final assessments,
+deterministic scores, and the aggregate PASS/FAIL report. The required action is tracked in
 [GitHub Issue #5](https://github.com/Jettlin927/agentcarry/issues/5).

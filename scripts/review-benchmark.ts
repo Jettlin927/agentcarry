@@ -15,11 +15,17 @@ import {
 } from "../src/benchmark/aggregate-report.js";
 import { canonicalJson } from "../src/benchmark/build-handoff-input.js";
 import {
-  finalizeBenchmarkReview,
+  finalizeBenchmarkReviewFromExport,
   renderReviewPacket,
   type AdvisoryVerdictSet,
+  type HumanReviewExport,
+  type MaterializedBenchmarkReview,
   type ReviewFixture
 } from "../src/benchmark/review-materialization.js";
+import {
+  renderReviewHtml,
+  type ReviewInputArtifact
+} from "../src/benchmark/render-review-html.js";
 import type { TargetRunResult } from "../src/benchmark/run-target-continuation.js";
 import {
   renderScoreJson,
@@ -52,6 +58,14 @@ async function readResults(runDirectory: string): Promise<TargetRunResult[]> {
   ));
 }
 
+async function readInputs(runDirectory: string): Promise<ReviewInputArtifact[]> {
+  const directory = join(runDirectory, "inputs");
+  const names = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
+  return await Promise.all(names.map(async (name) =>
+    await readJson(join(directory, name)) as ReviewInputArtifact
+  ));
+}
+
 function option(args: readonly string[], name: string): string | undefined {
   const index = args.indexOf(name);
   return index === -1 ? undefined : args[index + 1];
@@ -79,7 +93,7 @@ function artifactStem(runId: string): string {
 
 async function writeFinalArtifacts(
   outputDirectory: string,
-  materialized: ReturnType<typeof finalizeBenchmarkReview>
+  materialized: MaterializedBenchmarkReview
 ): Promise<void> {
   const output = resolve(outputDirectory);
   if (await exists(output)) {
@@ -108,7 +122,7 @@ async function writeFinalArtifacts(
     await Promise.all([
       writeFile(
         join(temporary, "human-review.json"),
-        canonicalJson(materialized.confirmation),
+        canonicalJson(materialized.humanReview ?? materialized.confirmation),
         "utf8"
       ),
       writeFile(join(temporary, "result-set.json"), canonicalJson(materialized.resultSet), "utf8"),
@@ -131,25 +145,29 @@ async function main(): Promise<void> {
   const runDirectory = args.shift();
   const output = option(args, "--output");
   if (
-    (command !== "packet" && command !== "finalize")
+    (command !== "packet" && command !== "html" && command !== "finalize")
     || fixtureDirectory === undefined
     || runDirectory === undefined
     || output === undefined
   ) {
     throw new Error(
       "Usage: review-benchmark packet <fixture-dir> <run-dir> --output <file>\n"
+        + "   or: review-benchmark html <fixture-dir> <run-dir> --output <file>\n"
         + "   or: review-benchmark finalize <fixture-dir> <run-dir> --output <dir> "
-        + "--reviewer <name> --reviewed-at <iso> --confirmation-source <url> --human-confirmed"
+        + "--review-file <json> --confirmation-source <url> --human-confirmed"
     );
   }
   const fixtures = await readFixtures(resolve(fixtureDirectory));
   const runRoot = resolve(runDirectory);
   const results = await readResults(runRoot);
   const advisory = await readJson(join(runRoot, "advisory-verdicts.json")) as AdvisoryVerdictSet;
-  if (command === "packet") {
+  if (command === "packet" || command === "html") {
     const outputPath = resolve(output);
+    const content = command === "html"
+      ? renderReviewHtml(fixtures, await readInputs(runRoot), results, advisory)
+      : renderReviewPacket(fixtures, results, advisory);
     await mkdir(dirname(outputPath), { recursive: true });
-    await writeFile(outputPath, renderReviewPacket(fixtures, results, advisory), {
+    await writeFile(outputPath, content, {
       encoding: "utf8",
       flag: "wx"
     });
@@ -157,23 +175,23 @@ async function main(): Promise<void> {
     return;
   }
 
-  const reviewer = option(args, "--reviewer");
-  const reviewedAt = option(args, "--reviewed-at");
+  const reviewFile = option(args, "--review-file");
   const confirmationSource = option(args, "--confirmation-source");
   if (
     !args.includes("--human-confirmed")
-    || reviewer === undefined
-    || reviewedAt === undefined
+    || reviewFile === undefined
     || confirmationSource === undefined
   ) {
     throw new Error("finalization requires all human confirmation flags");
   }
-  const materialized = finalizeBenchmarkReview(fixtures, results, advisory, {
-    confirmed: true,
-    humanReviewer: reviewer,
-    reviewedAt,
+  const humanReview = await readJson(resolve(reviewFile)) as HumanReviewExport;
+  const materialized = finalizeBenchmarkReviewFromExport(
+    fixtures,
+    results,
+    advisory,
+    humanReview,
     confirmationSource
-  });
+  );
   await writeFinalArtifacts(output, materialized);
   process.stdout.write(canonicalJson({
     output: resolve(output),

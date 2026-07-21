@@ -86,18 +86,42 @@ export interface HumanReviewConfirmation {
   readonly advisoryReviewedAt: string;
 }
 
+export interface HumanRunReview {
+  readonly runId: string;
+  readonly outcome: "pass" | "fail";
+  readonly factVerdicts: Readonly<Record<string, FactVerdict>>;
+  readonly note: string;
+  readonly reviewedAt: string;
+}
+
+export interface HumanReviewExport {
+  readonly schemaVersion: "1.0.0";
+  readonly benchmarkId: string;
+  readonly humanReviewer: string;
+  readonly exportedAt: string;
+  readonly complete: true;
+  readonly reviews: readonly HumanRunReview[];
+}
+
 export interface MaterializedBenchmarkReview {
   readonly assessments: readonly ContinuationAssessment[];
   readonly scores: readonly ContinuationScoreReport[];
   readonly resultSet: BenchmarkResultSet;
   readonly report: AggregateBenchmarkReport;
   readonly confirmation: HumanReviewConfirmation;
+  readonly humanReview?: HumanReviewExport;
 }
 
 interface ValidatedReviewInputs {
   readonly fixtures: readonly ReviewFixture[];
   readonly resultsByRunId: ReadonlyMap<string, TargetRunResult>;
   readonly advisoryByRunId: ReadonlyMap<string, AdvisoryRunVerdicts>;
+}
+
+export interface PreparedReviewRun {
+  readonly fixture: ReviewFixture;
+  readonly result: TargetRunResult;
+  readonly advisory: AdvisoryRunVerdicts;
 }
 
 function compareText(left: string, right: string): number {
@@ -175,6 +199,22 @@ function validateReviewInputs(
     throw new Error(`benchmark review requires ${expectedRunIds.size} advisory runs`);
   }
   return { fixtures: sortedFixtures, resultsByRunId, advisoryByRunId };
+}
+
+export function prepareReviewRuns(
+  fixtures: readonly ReviewFixture[],
+  results: readonly TargetRunResult[],
+  advisory: AdvisoryVerdictSet
+): readonly PreparedReviewRun[] {
+  const validated = validateReviewInputs(fixtures, results, advisory);
+  return validated.fixtures.flatMap((fixture) => modes.map((mode) => {
+    const runId = `${fixture.id}:${mode}:initial`;
+    return {
+      fixture,
+      result: validated.resultsByRunId.get(runId)!,
+      advisory: validated.advisoryByRunId.get(runId)!
+    };
+  }));
 }
 
 function factAssessments(
@@ -297,6 +337,99 @@ export function finalizeBenchmarkReview(
       advisoryReviewedAt: advisory.reviewer.reviewedAt
     }
   };
+}
+
+function humanAdjustedAdvisory(
+  fixtures: readonly ReviewFixture[],
+  results: readonly TargetRunResult[],
+  advisory: AdvisoryVerdictSet,
+  humanReview: HumanReviewExport
+): AdvisoryVerdictSet {
+  const validated = validateReviewInputs(fixtures, results, advisory);
+  if (
+    humanReview.schemaVersion !== "1.0.0"
+    || humanReview.benchmarkId !== advisory.benchmarkId
+    || humanReview.complete !== true
+    || humanReview.humanReviewer.trim().length === 0
+    || Number.isNaN(Date.parse(humanReview.exportedAt))
+  ) {
+    throw new Error("human review export metadata is invalid or incomplete");
+  }
+  const reviews = new Map<string, HumanRunReview>();
+  for (const review of humanReview.reviews) {
+    const result = validated.resultsByRunId.get(review.runId);
+    if (
+      result === undefined
+      || reviews.has(review.runId)
+      || (review.outcome !== "pass" && review.outcome !== "fail")
+      || Number.isNaN(Date.parse(review.reviewedAt))
+      || typeof review.note !== "string"
+    ) {
+      throw new Error(`invalid or duplicate human review ${review.runId}`);
+    }
+    const fixture = validated.fixtures.find((candidate) => candidate.id === result.fixtureId)!;
+    const factIds = allFacts(fixture).map((fact) => fact.id);
+    const submittedIds = Object.keys(review.factVerdicts);
+    if (
+      submittedIds.length !== factIds.length
+      || submittedIds.some((factId) => !factIds.includes(factId))
+      || factIds.some((factId) => !["preserved", "partial", "missing", "contradicted"]
+        .includes(review.factVerdicts[factId]!))
+    ) {
+      throw new Error(`human review ${review.runId} does not cover every known fact`);
+    }
+    reviews.set(review.runId, review);
+  }
+  if (reviews.size !== validated.resultsByRunId.size) {
+    throw new Error(`human review export requires ${validated.resultsByRunId.size} completed runs`);
+  }
+
+  return {
+    ...advisory,
+    runs: advisory.runs.map((run) => {
+      const review = reviews.get(run.runId)!;
+      const result = validated.resultsByRunId.get(run.runId)!;
+      const fixture = validated.fixtures.find((candidate) => candidate.id === result.fixtureId)!;
+      const exceptions = Object.fromEntries(allFacts(fixture).flatMap((fact) => {
+        const verdict = review.factVerdicts[fact.id]!;
+        if (verdict === "preserved") {
+          return [];
+        }
+        const original = run.exceptions[fact.id];
+        const note = review.note.trim().length > 0
+          ? review.note.trim()
+          : original?.verdict === verdict
+            ? original.note
+            : `Human reviewer selected ${verdict} after comparing the exact input and output.`;
+        return [[fact.id, { verdict, note }]];
+      }));
+      return { ...run, exceptions };
+    })
+  };
+}
+
+export function finalizeBenchmarkReviewFromExport(
+  fixtures: readonly ReviewFixture[],
+  results: readonly TargetRunResult[],
+  advisory: AdvisoryVerdictSet,
+  humanReview: HumanReviewExport,
+  confirmationSource: string
+): MaterializedBenchmarkReview {
+  if (confirmationSource.trim().length === 0) {
+    throw new Error("finalization requires an auditable confirmation source");
+  }
+  const materialized = finalizeBenchmarkReview(
+    fixtures,
+    results,
+    humanAdjustedAdvisory(fixtures, results, advisory, humanReview),
+    {
+      confirmed: true,
+      humanReviewer: humanReview.humanReviewer,
+      reviewedAt: humanReview.exportedAt,
+      confirmationSource
+    }
+  );
+  return { ...materialized, humanReview };
 }
 
 function markdownCell(value: string): string {

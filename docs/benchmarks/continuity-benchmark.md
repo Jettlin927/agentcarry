@@ -141,31 +141,41 @@ remain separate steps.
 
 ## Human review packet and finalization
 
-Generate one Markdown packet containing every raw output, every ground-truth
-fact, and every advisory verdict:
+Generate the self-contained browser workbench. It shows the exact handoff input
+and target output side by side, keeps pass/fail decisions in browser-local
+storage, allows fact-level corrections, and exports the review as JSON:
+
+```shell
+npm run --silent benchmark:review -- html benchmark/fixtures <run-directory> \
+  --output <run-directory>/REVIEW.html
+```
+
+The Markdown packet remains available as a non-interactive archival form of the
+same evidence:
 
 ```shell
 npm run --silent benchmark:review -- packet benchmark/fixtures <run-directory> \
   --output <run-directory>/REVIEW_PACKET.md
 ```
 
-The packet remains advisory until a human checks every run. After the reviewer
-records an approval or corrections in an auditable location, materialize all
-assessments, deterministic scores, and aggregate reports atomically:
+Both views remain advisory until a human checks every run. After the reviewer
+exports the browser decisions and records an approval or corrections in an
+auditable location, materialize all assessments, deterministic scores, and
+aggregate reports atomically:
 
 ```shell
 npm run --silent benchmark:review -- finalize benchmark/fixtures <run-directory> \
   --output <run-directory>/final \
-  --reviewer <human-name> \
-  --reviewed-at <iso-timestamp> \
+  --review-file <exported-human-review.json> \
   --confirmation-source <issue-comment-url> \
   --human-confirmed
 ```
 
 Finalization refuses to overwrite an existing output directory. It validates
-all 12 fixtures, 36 target results, 36 advisory entries, fact IDs, reviewer
-metadata, and aggregate integrity before publishing `assessments/`, `scores/`,
-`human-review.json`, `result-set.json`, `report.json`, and `REPORT.md`.
+all 12 fixtures, 36 target results, 36 advisory entries, 36 completed browser
+decisions, every fact ID and verdict, reviewer metadata, and aggregate integrity
+before publishing `assessments/`, `scores/`, `human-review.json`,
+`result-set.json`, `report.json`, and `REPORT.md`.
 
 ### Explicit routed-provider mode
 

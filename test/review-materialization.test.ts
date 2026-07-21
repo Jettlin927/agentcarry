@@ -4,10 +4,16 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   finalizeBenchmarkReview,
+  finalizeBenchmarkReviewFromExport,
   renderReviewPacket,
   type AdvisoryVerdictSet,
+  type HumanReviewExport,
   type ReviewFixture
 } from "../src/benchmark/review-materialization.js";
+import {
+  renderReviewHtml,
+  type ReviewInputArtifact
+} from "../src/benchmark/render-review-html.js";
 import { targetSettings, type TargetRunResult } from "../src/benchmark/run-target-continuation.js";
 
 const fixtureDirectory = fileURLToPath(new URL("../benchmark/fixtures/", import.meta.url));
@@ -56,6 +62,12 @@ function result(
 }
 
 const results = fixtures.flatMap((fixture) => modes.map((mode) => result(fixture, mode)));
+const inputs: ReviewInputArtifact[] = fixtures.flatMap((fixture) => modes.map((mode) => ({
+  fixtureId: fixture.id,
+  mode,
+  contentType: "text/markdown",
+  content: `Handoff input for ${fixture.id}:${mode}`
+})));
 
 function advisory(): AdvisoryVerdictSet {
   return {
@@ -82,6 +94,34 @@ const confirmation = {
   reviewedAt: "2026-07-21T02:00:00Z",
   confirmationSource: "https://github.com/example/repo/issues/5#issuecomment-1"
 };
+
+function humanReviewExport(): HumanReviewExport {
+  return {
+    schemaVersion: "1.0.0",
+    benchmarkId: "first-36",
+    humanReviewer: "human-reviewer",
+    exportedAt: "2026-07-21T02:00:00Z",
+    complete: true,
+    reviews: results.map((entry) => {
+      const fixture = fixtures.find((candidate) => candidate.id === entry.fixtureId)!;
+      const facts = [
+        ...fixture.groundTruth.criticalConstraints,
+        ...fixture.groundTruth.objectiveAndState,
+        ...fixture.groundTruth.decisionsAndFailedAttempts,
+        ...fixture.groundTruth.completedAndPending,
+        ...fixture.groundTruth.workspaceEvidence,
+        fixture.groundTruth.nextAction
+      ];
+      return {
+        runId: entry.runId,
+        outcome: "pass" as const,
+        factVerdicts: Object.fromEntries(facts.map((fact) => [fact.id, "preserved"])),
+        note: "Compared the exact input and output.",
+        reviewedAt: "2026-07-21T01:59:00Z"
+      };
+    })
+  };
+}
 
 describe("benchmark review materialization", () => {
   it("materializes all assessments, deterministic scores, and the aggregate report", () => {
@@ -151,5 +191,67 @@ describe("benchmark review materialization", () => {
     expect(packet).toContain("Target continuation for architecture-01-streaming-log");
     expect(packet).toContain(fixtures[0]!.groundTruth.nextAction.id);
     expect(packet).toContain("- [ ] Human checked every fact and the target output for this run.");
+  });
+
+  it("renders a self-contained Chinese side-by-side review workbench", () => {
+    const html = renderReviewHtml(fixtures, inputs, results, advisory());
+
+    expect(html).toContain('<html lang="zh-CN">');
+    expect(html).toContain("输入 · 交接内容");
+    expect(html).toContain("输出 · Agent 回答");
+    expect(html).toContain("通过 · 足以继续工作");
+    expect(html).toContain("不通过 · 可能导致错误续接");
+    expect(html).toContain("导出复核结果");
+    expect(html).toContain("localStorage");
+    expect(html).toContain("Handoff input for architecture-01-streaming-log:visible-transcript");
+
+    const hostileInputs = inputs.map((input, index) => index === 0
+      ? { ...input, content: "</script><script>alert('unsafe')</script>" }
+      : input);
+    const hostileHtml = renderReviewHtml(fixtures, hostileInputs, results, advisory());
+    expect(hostileHtml).not.toContain("</script><script>alert('unsafe')</script>");
+    expect(hostileHtml).toContain("\\u003c/script\\u003e");
+  });
+
+  it("materializes exported browser decisions instead of trusting advisory verdicts", () => {
+    const humanReview = humanReviewExport();
+    const first = humanReview.reviews[0]!;
+    const firstFactId = Object.keys(first.factVerdicts)[0]!;
+    const corrected: HumanReviewExport = {
+      ...humanReview,
+      reviews: humanReview.reviews.map((review, index) => index === 0
+        ? {
+            ...review,
+            outcome: "fail",
+            factVerdicts: { ...review.factVerdicts, [firstFactId]: "contradicted" },
+            note: "The output reverses this constraint."
+          }
+        : review)
+    };
+
+    const materialized = finalizeBenchmarkReviewFromExport(
+      fixtures,
+      results,
+      advisory(),
+      corrected,
+      "https://github.com/example/repo/issues/5#issuecomment-2"
+    );
+
+    const correctedAssessment = materialized.assessments.find(
+      (assessment) => assessment.runId === first.runId
+    );
+    expect(correctedAssessment?.categories.criticalConstraints[0]).toMatchObject({
+      factId: firstFactId,
+      verdict: "contradicted"
+    });
+    expect(materialized.humanReview).toEqual(corrected);
+
+    expect(() => finalizeBenchmarkReviewFromExport(
+      fixtures,
+      results,
+      advisory(),
+      { ...humanReview, complete: false } as unknown as HumanReviewExport,
+      "https://github.com/example/repo/issues/5#issuecomment-3"
+    )).toThrow("metadata is invalid or incomplete");
   });
 });
