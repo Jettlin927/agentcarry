@@ -1,5 +1,6 @@
 {
   "schemaVersion": "1.0.0",
+  "benchmarkId": "first-36",
   "status": "advisory-only-pending-human-review",
   "reviewer": {
     "kind": "llm",

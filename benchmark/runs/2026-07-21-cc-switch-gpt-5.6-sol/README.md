@@ -75,8 +75,9 @@ The preview exposes two real problems rather than a passing launch result:
 
 ## Required human review
 
-A human reviewer must inspect every target output against every fixture fact,
-confirm or correct all suggested verdicts, and own the final timestamp. Only
-then may the repository materialize final assessments, deterministic scores,
-and the aggregate PASS/FAIL report. The required action is tracked in
+A human reviewer must inspect every target output against every fixture fact in
+[`REVIEW_PACKET.md`](REVIEW_PACKET.md), confirm or correct all suggested
+verdicts, and own the final timestamp. Only then may the repository materialize
+final assessments, deterministic scores, and the aggregate PASS/FAIL report.
+The required action is tracked in
 [GitHub Issue #5](https://github.com/Jettlin927/agentcarry/issues/5).
