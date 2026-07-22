@@ -23,6 +23,7 @@ export interface PreparedTargetLaunch {
   readonly capsule: WorkCapsule;
   readonly capsuleJson: string;
   readonly capsuleMarkdown: string;
+  readonly continuationBrief: string;
   readonly lossReceipt: CapsuleBuildResult["receipt"];
   readonly prompt: string;
   readonly steps: readonly LaunchStep[];

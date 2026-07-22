@@ -98,6 +98,11 @@ checkpoint。AgentCarry 会先验证 native session 的稳定字节前缀；chec
 Capsule 中仍逐字保留 native session 最后一条完整用户消息。partial assistant output 与隐藏状态不会被冒充为已迁移。
 哪些损失可以继续、必须停止或允许一次性 force，见[损失收据语义](docs/loss-semantics.md)。
 
+Claude 的目标提示词由规范化 Capsule 单独编译成精简 continuation brief：第一动作和禁止提前
+执行项排在最前，相同事实只出现一次并合并证据引用，同时保留约束、当前状态、失败路径、
+工作区与 Git、涉及文件、已运行命令、验证结果和迁移损失。完整规范化 JSON、Markdown 渲染和 loss receipt 仍保留在 dry-run
+输出中，供机器消费与审计，但不再重复塞进目标提示词。
+
 ## 先评测，再宣传
 
 Phase 0 使用 12 个受控任务，对每个任务比较三种交接：

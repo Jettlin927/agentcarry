@@ -59,8 +59,10 @@ Data-access preference:
 
 ### Target Launcher
 
-A Launcher reports target capabilities and starts a new session with rendered
-capsule content. It never installs the target agent, manages authentication,
+A Launcher reports target capabilities, compiles a deduplicated continuation
+brief from the canonical Capsule, and starts a new session with that brief. The
+complete Capsule remains available for machine use and audit. A Launcher never
+installs the target agent, manages authentication,
 changes the model, expands permissions, or rewrites native session storage.
 
 ### Capsule builder

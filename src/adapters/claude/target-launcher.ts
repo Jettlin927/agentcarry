@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
-import type { CapsuleBuildResult, CapsuleLoss, WorkCapsule } from "../../capsule/build-capsule.js";
+import type {
+  CapsuleBuildResult,
+  CapsuleFact,
+  CapsuleLoss,
+  WorkCapsule
+} from "../../capsule/build-capsule.js";
 import type {
   LaunchStep,
   PreparedTargetLaunch,
@@ -97,16 +102,134 @@ ${capsuleJson}
 `;
 }
 
+interface BriefFact extends CapsuleFact {
+  label?: string;
+}
+
+function normalizedFact(text: string): string {
+  return compactText(text).toLocaleLowerCase("en-US");
+}
+
+function compactText(text: string): string {
+  return text.trim().replace(/\s+/g, " ");
+}
+
+function evidenceLabel(evidenceRefs: readonly string[]): string {
+  return evidenceRefs.length === 0 ? "none" : evidenceRefs.join(", ");
+}
+
+function renderBriefFact(fact: BriefFact): string {
+  const label = fact.label === undefined ? "" : `${fact.label}: `;
+  return `- ${label}${compactText(fact.text)} [evidence: ${evidenceLabel(fact.evidenceRefs)}]`;
+}
+
+function renderBriefSection(title: string, facts: readonly BriefFact[]): string {
+  const rows = facts.length === 0 ? "- None evidenced." : facts.map(renderBriefFact).join("\n");
+  return `## ${title}\n${rows}`;
+}
+
+export function renderContinuationBrief(capsule: WorkCapsule): string {
+  const seen = new Map<string, BriefFact>();
+  const add = (facts: readonly BriefFact[]): BriefFact[] => facts.flatMap((candidate) => {
+    const key = normalizedFact(candidate.text);
+    const existing = seen.get(key);
+    if (existing !== undefined) {
+      const evidenceRefs = [...new Set([...existing.evidenceRefs, ...candidate.evidenceRefs])];
+      Object.assign(existing, { evidenceRefs });
+      return [];
+    }
+    const stored = { ...candidate, text: compactText(candidate.text) };
+    seen.set(key, stored);
+    return [stored];
+  });
+
+  const first = add([capsule.nextAction.first]);
+  const forbidden = add(capsule.nextAction.forbiddenBefore);
+  const constraints = add(capsule.constraints);
+  const currentState = add([
+    { ...capsule.objective, label: "Objective" },
+    { ...capsule.currentUserMessage, label: "Current request" },
+    ...capsule.completed.map((item) => ({ ...item, label: "Completed" })),
+    ...capsule.pending.map((item) => ({ ...item, label: "Pending" })),
+    ...capsule.decisions.map((item) => ({ ...item, label: "Decision" })),
+    ...capsule.failedAttempts.flatMap((item) => [
+      { text: item.attempt, evidenceRefs: item.evidenceRefs, inferred: item.inferred, label: "Failed attempt" },
+      { text: item.outcome, evidenceRefs: item.evidenceRefs, inferred: item.inferred, label: "Failed outcome" },
+      ...(item.reason === undefined
+        ? []
+        : [{ text: item.reason, evidenceRefs: item.evidenceRefs, inferred: item.inferred, label: "Failure reason" }])
+    ]),
+    ...capsule.openQuestions.map((item) => ({ ...item, label: "Open question" }))
+  ]);
+  const later = add(capsule.nextAction.then);
+  const losses = capsule.losses.length === 0
+    ? "- None recorded."
+    : capsule.losses.map((loss) =>
+        `- ${loss.severity.toUpperCase()} ${loss.code}: ${compactText(loss.description)}`
+      ).join("\n");
+  const primaryRoot = typeof capsule.workspace.primaryRoot === "string"
+    ? capsule.workspace.primaryRoot
+    : "unavailable";
+  const git = capsule.workspace.git;
+  const gitRecord = git !== null && typeof git === "object"
+    ? git as Record<string, unknown>
+    : undefined;
+  const gitRow = gitRecord === undefined
+    ? []
+    : [`- Git: branch=${String(gitRecord.branch ?? "unknown")}; head=${String(gitRecord.head ?? "unknown")}; dirty=${String(gitRecord.dirty ?? "unknown")}`];
+  const fileRows = capsule.files.map((file) =>
+    `- File: ${file.kind} ${file.path} [evidence: ${evidenceLabel(file.evidenceRefs)}]`
+  );
+  const workspaceRows = [`- Root: ${primaryRoot}`, ...gitRow, ...fileRows].join("\n");
+  const commandRows = capsule.commands.length === 0
+    ? "- None evidenced."
+    : capsule.commands.map((command) => {
+        const exit = command.exitCode === undefined ? "unknown" : String(command.exitCode);
+        return `- Command: \`${command.command}\` (cwd: ${command.cwd}; exit: ${exit}) [evidence: ${evidenceLabel(command.evidenceRefs)}]`;
+      }).join("\n");
+  const validationRows = capsule.validations.length === 0
+    ? "- None evidenced."
+    : capsule.validations.map((validation) =>
+        `- Validation: ${validation.status.toUpperCase()} ${validation.name} — ${compactText(validation.summary)} [evidence: ${evidenceLabel(validation.evidenceRefs)}]`
+      ).join("\n");
+
+  return `# AgentCarry Continuation Brief
+
+${renderBriefSection("First action", first)}
+
+${renderBriefSection("Forbidden before first action", forbidden)}
+
+${renderBriefSection("Constraints", constraints)}
+
+${renderBriefSection("Current state", currentState)}
+
+${renderBriefSection("Later actions", later)}
+
+## Validations
+${validationRows}
+
+## Commands already run
+${commandRows}
+
+## Transfer losses
+${losses}
+
+## Workspace
+${workspaceRows}
+`;
+}
+
 export function buildContinuationPrompt(capsule: WorkCapsule): string {
   return `You are continuing an existing coding task from another coding agent.
 
-1. Restate the objective, critical constraints, completed work, pending work, and next action from the Work Capsule.
-2. Verify the current workspace and reread native instruction files referenced by path. Current workspace facts override stale transcript claims.
-3. If the workspace is consistent and the next action is clear, continue the task. If evidence conflicts or a critical decision is unclear, ask the user before editing.
-4. Do not claim hidden reasoning, prompt caches, permissions, tools, tests, or attachments transferred when the loss receipt says they did not.
-5. Keep the source session unchanged.
+1. Start with the First action in the continuation brief.
+2. Do not perform any Forbidden before first action item early.
+3. Verify the current workspace and reread native instruction files referenced by path. Current workspace facts override stale transcript claims.
+4. If evidence conflicts or a critical decision is unclear, ask the user before editing.
+5. Do not claim hidden reasoning, prompt caches, permissions, tools, tests, or attachments transferred when the transfer losses say they did not.
+6. Keep the source session unchanged.
 
-${renderCapsuleMarkdown(capsule)}`;
+${renderContinuationBrief(capsule)}`;
 }
 
 function seedStep(cwd: string, sessionId: string): LaunchStep {
@@ -154,12 +277,14 @@ export class ClaudeTargetLauncher implements TargetLauncher {
 
   prepare(result: CapsuleBuildResult): PreparedTargetLaunch {
     const targetSessionId = this.#createSessionId();
+    const continuationBrief = renderContinuationBrief(result.capsule);
     return {
       agent: this.agent,
       targetSessionId,
       capsule: result.capsule,
       capsuleJson: renderCapsuleJson(result.capsule),
       capsuleMarkdown: renderCapsuleMarkdown(result.capsule),
+      continuationBrief,
       lossReceipt: result.receipt,
       prompt: buildContinuationPrompt(result.capsule),
       steps: [

@@ -39,13 +39,13 @@ export interface WorkCapsule {
   readonly objective: CapsuleFact;
   readonly constraints: readonly CapsuleFact[];
   readonly decisions: readonly CapsuleFact[];
-  readonly failedAttempts: readonly Record<string, unknown>[];
+  readonly failedAttempts: readonly CapsuleFailedAttempt[];
   readonly completed: readonly CapsuleFact[];
   readonly pending: readonly CapsuleFact[];
   readonly nextAction: CapsuleNextAction;
-  readonly files: readonly object[];
-  readonly commands: readonly object[];
-  readonly validations: readonly object[];
+  readonly files: readonly CapsuleFile[];
+  readonly commands: readonly CapsuleCommand[];
+  readonly validations: readonly CapsuleValidation[];
   readonly openQuestions: readonly CapsuleFact[];
   readonly evidenceRefs: readonly Record<string, unknown>[];
   readonly losses: readonly CapsuleLoss[];
@@ -62,6 +62,39 @@ export interface CapsuleNextAction {
   readonly first: CapsuleFact;
   readonly then: readonly CapsuleFact[];
   readonly forbiddenBefore: readonly CapsuleFact[];
+}
+
+export interface CapsuleFailedAttempt {
+  readonly attempt: string;
+  readonly outcome: string;
+  readonly reason?: string;
+  readonly evidenceRefs: readonly string[];
+  readonly inferred: boolean;
+}
+
+export interface CapsuleFile {
+  readonly path: string;
+  readonly kind: "modified" | "created" | "deleted" | "referenced" | "attachment";
+  readonly sha256?: string;
+  readonly availableToTarget?: boolean;
+  readonly evidenceRefs: readonly string[];
+}
+
+export interface CapsuleCommand {
+  readonly command: string;
+  readonly cwd: string;
+  readonly exitCode?: number;
+  readonly executedAt?: string;
+  readonly evidenceRefs: readonly string[];
+}
+
+export interface CapsuleValidation {
+  readonly name: string;
+  readonly status: "passed" | "failed" | "partial" | "unknown";
+  readonly summary: string;
+  readonly executedAt?: string;
+  readonly gitHead?: string;
+  readonly evidenceRefs: readonly string[];
 }
 
 export interface BuildCapsuleOptions {
@@ -371,7 +404,7 @@ export function buildWorkCapsule(
       })),
       ...attachments.map((event) => ({
         path: event.attachmentPath ?? "unavailable-attachment",
-        kind: "attachment",
+        kind: "attachment" as const,
         availableToTarget: false,
         evidenceRefs: [eventEvidenceId(event)]
       }))
