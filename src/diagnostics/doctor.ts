@@ -212,7 +212,7 @@ function claudeChecks(diagnostic: TargetDiagnostic): DoctorCheck[] {
       version: claudeLauncherMetadata.adapterVersion,
       compatibility,
       detail: versionCovered
-        ? "Dry-run launcher verified against this Claude Code version."
+        ? "Dry-run and interactive launch protocol supported for this Claude Code version."
         : "Launcher compatibility is not verified for this Claude Code version."
     }
   ];

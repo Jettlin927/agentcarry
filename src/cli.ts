@@ -51,7 +51,10 @@ export interface CliHandlers {
 export interface CliIo {
   readonly stdout: { write(value: string): void };
   readonly stderr: { write(value: string): void };
-  readonly stdin?: { readLine(): Promise<string> };
+  readonly stdin?: {
+    readLine(): Promise<string>;
+    release?(): void;
+  };
 }
 
 export const agentCarryVersion = "0.0.0-development";
@@ -62,7 +65,8 @@ Continue coding tasks across agents with evidence and explicit loss.
 
 Usage:
   agentcarry inspect [--session <id>] [--json]
-  agentcarry continue --to <agent> [--source <agent>] [--session <id>] [--active --checkpoint-stdin] [--dry-run] [--force] [--json]
+  agentcarry continue --to <agent> [--source <agent>] [--session <id>] [--active --checkpoint-stdin] [--dry-run] [--force]
+  agentcarry continue --to <agent> [selectors] --dry-run --json
   agentcarry doctor [--json]
 
 Exit codes:
@@ -262,6 +266,7 @@ export async function runCli(
       const session = parsed.values.get("--session");
       const active = parsed.flags.has("--active");
       const checkpointStdin = parsed.flags.has("--checkpoint-stdin");
+      const dryRun = parsed.flags.has("--dry-run");
       if (active !== checkpointStdin) {
         return writeResult(
           io,
@@ -282,6 +287,30 @@ export async function runCli(
           parsed.json
         );
       }
+      if (!dryRun && parsed.json) {
+        return writeResult(
+          io,
+          parsed.command,
+          failure(
+            ExitCode.usage,
+            "INTERACTIVE_JSON_UNSUPPORTED",
+            "interactive target launch cannot preserve the single-document JSON stdout contract; use --dry-run --json"
+          ),
+          true
+        );
+      }
+      if (!dryRun && io.stdin === undefined) {
+        return writeResult(
+          io,
+          parsed.command,
+          failure(
+            ExitCode.usage,
+            "CONFIRMATION_STDIN_UNAVAILABLE",
+            "interactive target launch requires one confirmation on stdin"
+          ),
+          parsed.json
+        );
+      }
       const options: ContinueOptions = {
         target,
         ...(source === undefined ? {} : { source }),
@@ -298,8 +327,39 @@ export async function runCli(
           : {})
       };
       const prepared = await handlers.prepareContinue(options);
-      if (!prepared.ok || parsed.flags.has("--dry-run")) {
+      if (!prepared.ok || dryRun) {
         return writeResult(io, parsed.command, prepared, parsed.json);
+      }
+      writeResult(io, parsed.command, prepared, false);
+      io.stderr.write("Launch Claude Code now? [y/N] ");
+      let answer: string;
+      try {
+        answer = await io.stdin!.readLine();
+      } catch (error: unknown) {
+        return writeResult(
+          io,
+          parsed.command,
+          failure(
+            ExitCode.usage,
+            "CONFIRMATION_FAILED",
+            error instanceof Error ? error.message : "confirmation input failed"
+          ),
+          false
+        );
+      } finally {
+        io.stdin!.release?.();
+      }
+      if (!/^(?:y|yes)$/i.test(answer.trim())) {
+        return writeResult(
+          io,
+          parsed.command,
+          {
+            ok: true,
+            data: { launched: false, cancelled: true },
+            human: "Launch cancelled; no target process was started."
+          },
+          false
+        );
       }
       return writeResult(
         io,

@@ -12,8 +12,8 @@ decisions, completed work, pending work, workspace facts, validations, and
 references to the original evidence. Before launch, it prints a **loss receipt**
 for state that cannot be transferred.
 
-> Status: design and benchmark phase. The first vertical slice is
-> Codex → Claude Code with `--dry-run`.
+> Status: v0.1 implementation and benchmark validation. Codex → Claude Code
+> supports both audited `--dry-run` preparation and confirmed interactive launch.
 
 [简体中文](README.zh-CN.md)
 
@@ -47,6 +47,12 @@ agentcarry doctor --json
 
 AgentCarry never installs coding agents, manages provider credentials, changes
 permissions, mutates the source session, or silently uploads transcripts.
+
+The non-dry-run command prints a compact handoff summary, every transfer loss,
+and the exact target steps, then asks once before starting Claude Code. Any
+answer other than `y` or `yes` cancels without creating a target session.
+Interactive target output cannot share stdout with the single-document JSON
+contract, so live launch rejects `--json`; use `--dry-run --json` for automation.
 
 ## Product wedge
 
@@ -94,6 +100,26 @@ This cross-platform demo runs the real built CLI against a temporary sanitized
 Codex session, prints the loss and exact Claude commands, proves that no Claude
 process starts, and verifies the source hash is unchanged. See the
 [Codex to Claude Code dry-run demo](docs/demos/codex-to-claude-dry-run.md).
+
+## Continue interactively
+
+From the repository to continue the latest completed Codex task in the current
+workspace:
+
+```text
+npm run build
+node dist/cli-main.js continue --to claude
+```
+
+After one affirmative confirmation, AgentCarry creates a fresh Claude session
+in two internal steps. It seeds the redacted brief through stdin in a tool-free
+non-interactive turn, then resumes that same session in Claude Code's native
+interactive UI with target-owned model, provider, permissions, skills, MCP, and
+authentication. A failed seed never reaches the resume step. AgentCarry does
+not install Claude Code or start a login flow.
+
+See the sanitized [real-target interactive smoke](docs/demos/codex-to-claude-interactive.md)
+and its separate three-platform process boundary.
 
 ## Install the repository Skill
 

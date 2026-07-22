@@ -4,26 +4,38 @@ import { createAgentCarryHandlers } from "./application.js";
 import { runCli } from "./cli.js";
 import { createInterface } from "node:readline";
 
-const maximumCheckpointBytes = 256 * 1024;
+const maximumStdinLineBytes = 256 * 1024;
+let input: ReturnType<typeof createInterface> | undefined;
+let lines: AsyncIterator<string> | undefined;
 
-async function readCheckpointLine(): Promise<string> {
-  const input = createInterface({ input: process.stdin, crlfDelay: Number.POSITIVE_INFINITY });
-  try {
-    for await (const line of input) {
-      if (Buffer.byteLength(line, "utf8") > maximumCheckpointBytes) {
-        throw new Error(`active checkpoint exceeds ${maximumCheckpointBytes} UTF-8 bytes`);
-      }
-      return line;
-    }
-  } finally {
-    input.close();
+async function readStdinLine(): Promise<string> {
+  if (input === undefined) {
+    input = createInterface({ input: process.stdin, crlfDelay: Number.POSITIVE_INFINITY });
+    lines = input[Symbol.asyncIterator]();
   }
-  throw new Error("active checkpoint stdin closed before one JSON line was received");
+  const next = await lines!.next();
+  if (next.done) {
+    throw new Error("stdin closed before one line was received");
+  }
+  if (Buffer.byteLength(next.value, "utf8") > maximumStdinLineBytes) {
+    throw new Error(`stdin line exceeds ${maximumStdinLineBytes} UTF-8 bytes`);
+  }
+  return next.value;
 }
 
-process.exitCode = await runCli(process.argv.slice(2), {
-  stdout: process.stdout,
-  stderr: process.stderr,
-  stdin: { readLine: readCheckpointLine }
-}, createAgentCarryHandlers());
+function releaseStdin(): void {
+  input?.close();
+  input = undefined;
+  lines = undefined;
+}
+
+try {
+  process.exitCode = await runCli(process.argv.slice(2), {
+    stdout: process.stdout,
+    stderr: process.stderr,
+    stdin: { readLine: readStdinLine, release: releaseStdin }
+  }, createAgentCarryHandlers());
+} finally {
+  releaseStdin();
+}
 

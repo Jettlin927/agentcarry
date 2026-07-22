@@ -30,9 +30,16 @@ export interface PreparedTargetLaunch {
   readonly prerequisitesVerified: false;
 }
 
+export interface TargetLaunchOutcome {
+  readonly agent: string;
+  readonly targetSessionId: string;
+  readonly completedSteps: readonly LaunchStep["purpose"][];
+}
+
 export interface TargetLauncher {
   readonly agent: string;
   prepare(capsule: CapsuleBuildResult): PreparedTargetLaunch;
+  launch(prepared: PreparedTargetLaunch): Promise<TargetLaunchOutcome>;
   diagnose(): Promise<TargetDiagnostic>;
 }
 

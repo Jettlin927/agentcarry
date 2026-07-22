@@ -59,7 +59,7 @@ a screenshot, an upload, or a temporary transcript file.
    - the required Source Reader or Target Launcher is `unsupported`.
 4. Treat `reported-authenticated` only as the target CLI's local self-report,
    never as proof that a live provider request will succeed.
-5. Prepare only a dry-run:
+5. For machine-readable inspection, prepare a dry-run:
 
    ```text
    agentcarry continue --to <target> --dry-run --json
@@ -70,6 +70,17 @@ a screenshot, an upload, or a temporary transcript file.
 6. Summarize the Capsule's current user message, objective, pending work,
    workspace freshness, loss receipt, and exact target steps. State explicitly
    that no target session was created.
+7. For an actual handoff, the user runs the human-mode command in an interactive
+   terminal:
+
+   ```text
+   agentcarry continue --to <target>
+   ```
+
+   Add selectors only when already established. AgentCarry shows the same
+   summary, losses, and target steps, then accepts exactly one confirmation.
+   Do not combine live launch with `--json`, answer the confirmation without
+   user authorization, or emulate the target TUI through transcript copying.
 
 ## Fail closed
 
@@ -89,7 +100,8 @@ a screenshot, an upload, or a temporary transcript file.
 
 ## Current capability boundary
 
-The repository's current vertical slice is Codex to Claude Code dry-run.
-Unsupported source/target pairs must stop and report the compatibility result.
-Do not remove `--dry-run` or execute the displayed Claude commands until a
-released AgentCarry launcher explicitly supports interactive launch.
+The repository's current vertical slice is Codex to Claude Code dry-run plus a
+confirmed interactive launcher. Unsupported source/target pairs must stop and
+report the compatibility result. The Skill uses dry-run JSON for inspection;
+the public non-dry-run command owns confirmation and target launch. Never run
+the displayed internal Claude commands separately.
