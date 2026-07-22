@@ -26,78 +26,42 @@
     "lineage"
   ],
   "properties": {
-    "schemaVersion": {
-      "const": "2.0.0"
-    },
-    "source": {
-      "$ref": "#/$defs/source"
-    },
-    "workspace": {
-      "$ref": "#/$defs/workspace"
-    },
-    "currentUserMessage": {
-      "$ref": "#/$defs/fact"
-    },
-    "objective": {
-      "$ref": "#/$defs/fact"
-    },
-    "constraints": {
-      "$ref": "#/$defs/facts"
-    },
-    "decisions": {
-      "$ref": "#/$defs/facts"
-    },
+    "schemaVersion": { "const": "2.0.0" },
+    "source": { "$ref": "#/$defs/source" },
+    "workspace": { "$ref": "#/$defs/workspace" },
+    "currentUserMessage": { "$ref": "#/$defs/fact" },
+    "objective": { "$ref": "#/$defs/fact" },
+    "constraints": { "$ref": "#/$defs/facts" },
+    "decisions": { "$ref": "#/$defs/facts" },
     "failedAttempts": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/failedAttempt"
-      }
+      "items": { "$ref": "#/$defs/failedAttempt" }
     },
-    "completed": {
-      "$ref": "#/$defs/facts"
-    },
-    "pending": {
-      "$ref": "#/$defs/facts"
-    },
+    "completed": { "$ref": "#/$defs/facts" },
+    "pending": { "$ref": "#/$defs/facts" },
+    "nextAction": { "$ref": "#/$defs/nextAction" },
     "files": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/file"
-      }
+      "items": { "$ref": "#/$defs/file" }
     },
     "commands": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/command"
-      }
+      "items": { "$ref": "#/$defs/command" }
     },
     "validations": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/validation"
-      }
+      "items": { "$ref": "#/$defs/validation" }
     },
-    "openQuestions": {
-      "$ref": "#/$defs/facts"
-    },
+    "openQuestions": { "$ref": "#/$defs/facts" },
     "evidenceRefs": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/evidence"
-      }
+      "items": { "$ref": "#/$defs/evidence" }
     },
     "losses": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/loss"
-      }
+      "items": { "$ref": "#/$defs/loss" }
     },
-    "lineage": {
-      "$ref": "#/$defs/lineage"
-    },
-    "nextAction": {
-      "$ref": "#/$defs/nextAction"
-    }
+    "lineage": { "$ref": "#/$defs/lineage" }
   },
   "$defs": {
     "nonEmptyString": {
@@ -106,362 +70,193 @@
     },
     "evidenceIds": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/nonEmptyString"
-      },
+      "items": { "$ref": "#/$defs/nonEmptyString" },
       "uniqueItems": true
     },
     "fact": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "text",
-        "evidenceRefs",
-        "inferred"
-      ],
+      "required": ["text", "evidenceRefs", "inferred"],
       "properties": {
-        "text": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "evidenceRefs": {
-          "$ref": "#/$defs/evidenceIds"
-        },
-        "inferred": {
-          "type": "boolean"
-        }
+        "text": { "$ref": "#/$defs/nonEmptyString" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" },
+        "inferred": { "type": "boolean" }
       }
     },
     "facts": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/fact"
+      "items": { "$ref": "#/$defs/fact" }
+    },
+    "nextActionFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "evidenceRefs", "inferred"],
+      "properties": {
+        "text": { "$ref": "#/$defs/nonEmptyString" },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonEmptyString" },
+          "uniqueItems": true
+        },
+        "inferred": { "type": "boolean" }
+      }
+    },
+    "nextActionFacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nextActionFact" }
+    },
+    "nextAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["first", "then", "forbiddenBefore"],
+      "properties": {
+        "first": { "$ref": "#/$defs/nextActionFact" },
+        "then": { "$ref": "#/$defs/nextActionFacts" },
+        "forbiddenBefore": { "$ref": "#/$defs/nextActionFacts" }
       }
     },
     "source": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "agent",
-        "sessionId",
-        "capturedAt"
-      ],
+      "required": ["agent", "sessionId", "capturedAt"],
       "properties": {
-        "agent": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "agentVersion": {
-          "type": "string"
-        },
-        "sessionId": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "sessionLocator": {
-          "type": "string"
-        },
-        "capturedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "snapshot": {
-          "$ref": "#/$defs/sourceSnapshot"
-        }
+        "agent": { "$ref": "#/$defs/nonEmptyString" },
+        "agentVersion": { "type": "string" },
+        "sessionId": { "$ref": "#/$defs/nonEmptyString" },
+        "sessionLocator": { "type": "string" },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "snapshot": { "$ref": "#/$defs/sourceSnapshot" }
       }
     },
     "sourceSnapshot": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "capturedAt",
-        "byteLength",
-        "sha256",
-        "changedDuringCapture",
-        "trailingFragmentIgnored"
-      ],
+      "required": ["capturedAt", "byteLength", "sha256", "changedDuringCapture", "trailingFragmentIgnored"],
       "properties": {
-        "capturedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "byteLength": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "sha256": {
-          "type": "string",
-          "pattern": "^[a-fA-F0-9]{64}$"
-        },
-        "changedDuringCapture": {
-          "type": "boolean"
-        },
-        "trailingFragmentIgnored": {
-          "type": "boolean"
-        }
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "byteLength": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+        "changedDuringCapture": { "type": "boolean" },
+        "trailingFragmentIgnored": { "type": "boolean" }
       }
     },
     "workspace": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "primaryRoot",
-        "additionalRoots",
-        "capturedAt"
-      ],
+      "required": ["primaryRoot", "additionalRoots", "capturedAt"],
       "properties": {
-        "primaryRoot": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
+        "primaryRoot": { "$ref": "#/$defs/nonEmptyString" },
         "additionalRoots": {
           "type": "array",
-          "items": {
-            "$ref": "#/$defs/nonEmptyString"
-          },
+          "items": { "$ref": "#/$defs/nonEmptyString" },
           "uniqueItems": true
         },
-        "capturedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "git": {
-          "$ref": "#/$defs/git"
-        },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "git": { "$ref": "#/$defs/git" },
         "instructionFiles": {
           "type": "array",
-          "items": {
-            "$ref": "#/$defs/instructionFile"
-          }
+          "items": { "$ref": "#/$defs/instructionFile" }
         }
       }
     },
     "git": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "repoRoot",
-        "dirty"
-      ],
+      "required": ["repoRoot", "dirty"],
       "properties": {
-        "repoRoot": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "branch": {
-          "type": "string"
-        },
-        "head": {
-          "type": "string"
-        },
-        "base": {
-          "type": "string"
-        },
-        "dirty": {
-          "type": "boolean"
-        }
+        "repoRoot": { "$ref": "#/$defs/nonEmptyString" },
+        "branch": { "type": "string" },
+        "head": { "type": "string" },
+        "base": { "type": "string" },
+        "dirty": { "type": "boolean" }
       }
     },
     "instructionFile": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "path",
-        "sha256",
-        "scope"
-      ],
+      "required": ["path", "sha256", "scope"],
       "properties": {
-        "path": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "sha256": {
-          "type": "string",
-          "pattern": "^[a-fA-F0-9]{64}$"
-        },
-        "scope": {
-          "$ref": "#/$defs/nonEmptyString"
-        }
+        "path": { "$ref": "#/$defs/nonEmptyString" },
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+        "scope": { "$ref": "#/$defs/nonEmptyString" }
       }
     },
     "failedAttempt": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "attempt",
-        "outcome",
-        "evidenceRefs",
-        "inferred"
-      ],
+      "required": ["attempt", "outcome", "evidenceRefs", "inferred"],
       "properties": {
-        "attempt": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "outcome": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "reason": {
-          "type": "string"
-        },
-        "evidenceRefs": {
-          "$ref": "#/$defs/evidenceIds"
-        },
-        "inferred": {
-          "type": "boolean"
-        }
+        "attempt": { "$ref": "#/$defs/nonEmptyString" },
+        "outcome": { "$ref": "#/$defs/nonEmptyString" },
+        "reason": { "type": "string" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" },
+        "inferred": { "type": "boolean" }
       }
     },
     "file": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "path",
-        "kind",
-        "evidenceRefs"
-      ],
+      "required": ["path", "kind", "evidenceRefs"],
       "properties": {
-        "path": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
+        "path": { "$ref": "#/$defs/nonEmptyString" },
         "kind": {
-          "enum": [
-            "modified",
-            "created",
-            "deleted",
-            "referenced",
-            "attachment"
-          ]
+          "enum": ["modified", "created", "deleted", "referenced", "attachment"]
         },
-        "sha256": {
-          "type": "string",
-          "pattern": "^[a-fA-F0-9]{64}$"
-        },
-        "availableToTarget": {
-          "type": "boolean"
-        },
-        "evidenceRefs": {
-          "$ref": "#/$defs/evidenceIds"
-        }
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+        "availableToTarget": { "type": "boolean" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" }
       }
     },
     "command": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "command",
-        "cwd",
-        "evidenceRefs"
-      ],
+      "required": ["command", "cwd", "evidenceRefs"],
       "properties": {
-        "command": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "cwd": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "exitCode": {
-          "type": "integer"
-        },
-        "executedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "evidenceRefs": {
-          "$ref": "#/$defs/evidenceIds"
-        }
+        "command": { "$ref": "#/$defs/nonEmptyString" },
+        "cwd": { "$ref": "#/$defs/nonEmptyString" },
+        "exitCode": { "type": "integer" },
+        "executedAt": { "type": "string", "format": "date-time" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" }
       }
     },
     "validation": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "name",
-        "status",
-        "summary",
-        "evidenceRefs"
-      ],
+      "required": ["name", "status", "summary", "evidenceRefs"],
       "properties": {
-        "name": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "status": {
-          "enum": [
-            "passed",
-            "failed",
-            "partial",
-            "unknown"
-          ]
-        },
-        "summary": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "executedAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "gitHead": {
-          "type": "string"
-        },
-        "evidenceRefs": {
-          "$ref": "#/$defs/evidenceIds"
-        }
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "status": { "enum": ["passed", "failed", "partial", "unknown"] },
+        "summary": { "$ref": "#/$defs/nonEmptyString" },
+        "executedAt": { "type": "string", "format": "date-time" },
+        "gitHead": { "type": "string" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" }
       }
     },
     "evidence": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "kind",
-        "locator"
-      ],
+      "required": ["id", "kind", "locator"],
       "properties": {
-        "id": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
+        "id": { "$ref": "#/$defs/nonEmptyString" },
         "kind": {
-          "enum": [
-            "session-event",
-            "session-snapshot",
-            "checkpoint",
-            "workspace",
-            "git",
-            "instruction",
-            "lineage"
-          ]
+          "enum": ["session-event", "session-snapshot", "checkpoint", "workspace", "git", "instruction", "lineage"]
         },
-        "locator": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "sha256": {
-          "type": "string",
-          "pattern": "^[a-fA-F0-9]{64}$"
-        }
+        "locator": { "$ref": "#/$defs/nonEmptyString" },
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
       }
     },
     "loss": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "code",
-        "severity",
-        "description",
-        "affectedFields"
-      ],
+      "required": ["code", "severity", "description", "affectedFields"],
       "properties": {
-        "code": {
-          "type": "string",
-          "pattern": "^[A-Z0-9_]+$"
-        },
-        "severity": {
-          "enum": [
-            "critical",
-            "warning",
-            "info"
-          ]
-        },
-        "description": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
+        "code": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+        "severity": { "enum": ["critical", "warning", "info"] },
+        "description": { "$ref": "#/$defs/nonEmptyString" },
         "affectedFields": {
           "type": "array",
-          "items": {
-            "$ref": "#/$defs/nonEmptyString"
-          },
+          "items": { "$ref": "#/$defs/nonEmptyString" },
           "uniqueItems": true
         }
       }
@@ -469,70 +264,25 @@
     "lineage": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "capsuleId",
-        "rootCapsuleId",
-        "hops"
-      ],
+      "required": ["capsuleId", "rootCapsuleId", "hops"],
       "properties": {
-        "capsuleId": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "rootCapsuleId": {
-          "$ref": "#/$defs/nonEmptyString"
-        },
-        "parentCapsuleId": {
-          "type": "string"
-        },
+        "capsuleId": { "$ref": "#/$defs/nonEmptyString" },
+        "rootCapsuleId": { "$ref": "#/$defs/nonEmptyString" },
+        "parentCapsuleId": { "type": "string" },
         "hops": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "sourceAgent",
-              "sourceSessionId",
-              "createdAt"
-            ],
+            "required": ["sourceAgent", "sourceSessionId", "createdAt"],
             "properties": {
-              "sourceAgent": {
-                "$ref": "#/$defs/nonEmptyString"
-              },
-              "sourceSessionId": {
-                "$ref": "#/$defs/nonEmptyString"
-              },
-              "targetAgent": {
-                "type": "string"
-              },
-              "targetSessionId": {
-                "type": "string"
-              },
-              "createdAt": {
-                "type": "string",
-                "format": "date-time"
-              }
+              "sourceAgent": { "$ref": "#/$defs/nonEmptyString" },
+              "sourceSessionId": { "$ref": "#/$defs/nonEmptyString" },
+              "targetAgent": { "type": "string" },
+              "targetSessionId": { "type": "string" },
+              "createdAt": { "type": "string", "format": "date-time" }
             }
           }
-        }
-      }
-    },
-    "nextAction": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "first",
-        "then",
-        "forbiddenBefore"
-      ],
-      "properties": {
-        "first": {
-          "$ref": "#/$defs/fact"
-        },
-        "then": {
-          "$ref": "#/$defs/facts"
-        },
-        "forbiddenBefore": {
-          "$ref": "#/$defs/facts"
         }
       }
     }

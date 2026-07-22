@@ -109,7 +109,7 @@ describe("buildWorkCapsule", () => {
     expect(result.capsule.currentUserMessage.text).toBe("Write the focused regression next.");
     expect(result.capsule.nextAction).toEqual({
       first: {
-        text: "Write the focused regression.",
+        text: "Write and run the focused regression.",
         evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
         inferred: true
       },
@@ -212,7 +212,7 @@ describe("buildWorkCapsule", () => {
     }));
   });
 
-  it("makes a later unresolved tool result the first action instead of repeating completed work", () => {
+  it("turns a later unresolved tool result into an executable action", () => {
     const events = sourceEvents()
       .filter((event) => event.id !== "event-user-2" && event.kind !== "attachment");
     events.push({
@@ -227,7 +227,7 @@ describe("buildWorkCapsule", () => {
     const result = buildWorkCapsule(session, events, workspace);
 
     expect(result.capsule.nextAction.first).toMatchObject({
-      text: "Resolve the unresolved source result: The focused parser regression still fails on negative adjustments.",
+      text: expect.stringMatching(/fix.*negative adjustments.*rerun.*focused parser regression/i),
       inferred: true
     });
     expect(result.capsule.nextAction.first.evidenceRefs).toEqual([
@@ -265,7 +265,7 @@ describe("buildWorkCapsule", () => {
 
     expect(result.capsule.nextAction).toEqual({
       first: {
-        text: "Add the parser regression.",
+        text: "Add and run the parser regression.",
         evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
         inferred: true
       },
@@ -276,5 +276,20 @@ describe("buildWorkCapsule", () => {
         inferred: true
       }]
     });
+  });
+
+  it.each([
+    ["Run the regression first, then implement the fix.", /^Run the regression\.$/, /^Implement the fix\.$/],
+    ["Implement the fix after running the regression.", /^Run the regression\.$/, /^Implement the fix\.$/],
+    ["先运行回归测试，再实现修复。", /^运行回归测试。$/, /^实现修复。$/]
+  ])("preserves explicit action order in %s", (message, first, then) => {
+    const events = sourceEvents();
+    const currentIndex = events.findIndex((event) => event.id === "event-user-2");
+    events[currentIndex] = { ...events[currentIndex]!, text: message };
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toMatch(first);
+    expect(result.capsule.nextAction.then[0]?.text).toMatch(then);
   });
 });

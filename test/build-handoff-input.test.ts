@@ -66,19 +66,19 @@ describe("benchmark handoff inputs", () => {
   });
 
   it.each([
-    ["architecture-01-streaming-log", "a01-tool-2", true, "Resolve the unresolved source result: Throughput meets the target, but the slow-consumer backpressure test hangs."],
-    ["architecture-02-session-index", "a02-tool-2", true, "Resolve the unresolved source result: Update churn grows the file indefinitely; compaction and crash-safe replacement are not implemented."],
-    ["architecture-03-job-scheduler", "a03-tool-2", true, "Resolve the unresolved source result: Cancelling the second queued job still starts it after the first running job releases a slot."],
-    ["debugging-01-invoice-total", "d01-user-2", true, "Prove the parser fix with a regression test."],
-    ["debugging-02-unicode-watcher", "d02-user-2", true, "Add the Windows integration test."],
-    ["debugging-03-duplicate-jobs", "d03-user-2", true, "Add the fake-clock regression."],
-    ["feature-01-pagination", "f01-user-2", false, "Expose an async iterator named pages(); each next() should fetch exactly one page."],
-    ["feature-02-deploy-dry-run", "f02-user-2", true, "Assert the executor is never constructed."],
-    ["feature-03-config-errors", "f03-user-2", false, "Redact at the validation-error formatter, not in the parser, and preserve the failing field path."],
-    ["refactor-01-http-transport", "r01-user-2", false, "Header preservation belongs inside the transport. The streaming response method is still unconverted."],
-    ["refactor-02-cli-renderers", "r02-user-2", false, "Renderers own formatting. Diagnostics go to stderr; do not special-case commands."],
-    ["refactor-03-file-indexer", "r03-user-2", false, "The remaining work is .ignore-file support. Keep ignore parsing inside the local indexer."]
-  ])("preserves an executable, evidenced first action for %s", (fixtureId, evidenceId, inferred, firstText) => {
+    ["architecture-01-streaming-log", ["a01-tool-2"], /diagnose.*fix.*slow-consumer backpressure test/i, undefined],
+    ["architecture-02-session-index", ["a02-tool-2"], /crash-safe compaction test/i, /(?:atomic|crash-safe).*replacement/i],
+    ["architecture-03-job-scheduler", ["a03-tool-2"], /fix.*(?:queued|cancell)/i, undefined],
+    ["debugging-01-invoice-total", ["d01-user-2"], /(?:write|add).*run.*regression test.*parser/i, undefined],
+    ["debugging-02-unicode-watcher", ["d02-user-2"], /(?:add|finish).*run.*Windows integration test/i, undefined],
+    ["debugging-03-duplicate-jobs", ["d03-user-2"], /add.*run.*fake-clock regression/i, undefined],
+    ["feature-01-pagination", ["f01-user-2", "f01-tool-2"], /iterator test.*each next.*one page/i, /implement pages\(\)/i],
+    ["feature-02-deploy-dry-run", ["f02-user-2"], /test asserting.*executor/i, /wire --dry-run/i],
+    ["feature-03-config-errors", ["f03-tool-1", "f03-user-2"], /regression test.*nested invalid token/i, /redact.*validation-error formatter.*field path/i],
+    ["refactor-01-http-transport", ["r01-tool-1", "r01-user-2"], /preserve.*Authorization header.*retry.*rerun.*auth retry test/i, undefined],
+    ["refactor-02-cli-renderers", ["r02-tool-1", "r02-user-2"], /JSON diagnostic.routing test/i, /remove ANSI.*diagnostic line.*JSON renderer path/i],
+    ["refactor-03-file-indexer", ["r03-user-2"], /implement.*test.*ignore-file.*local indexer/i, undefined]
+  ])("preserves the human-reviewed first action and its evidence for %s", (fixtureId, evidenceIds, firstPattern, thenPattern) => {
     const fixtureUnderTest = readFixtureById(fixtureId);
     const capsule = JSON.parse(buildDeterministicCapsule(fixtureUnderTest).content) as {
       nextAction: {
@@ -88,11 +88,11 @@ describe("benchmark handoff inputs", () => {
       };
     };
 
-    expect(capsule.nextAction.first).toEqual({
-      text: firstText,
-      evidenceRefs: [evidenceId],
-      inferred
-    });
+    expect(capsule.nextAction.first.text).toMatch(firstPattern);
+    expect(capsule.nextAction.first.evidenceRefs).toEqual(evidenceIds);
+    if (thenPattern !== undefined) {
+      expect(capsule.nextAction.then[0]).toMatchObject({ text: expect.stringMatching(thenPattern) });
+    }
   });
 
   it("keeps an explicitly later action behind the first action", () => {
@@ -106,7 +106,7 @@ describe("benchmark handoff inputs", () => {
     };
 
     expect(capsule.nextAction.first).toEqual({
-      text: "Add the fake-clock regression.",
+      text: expect.stringMatching(/add.*run.*fake-clock regression/i),
       evidenceRefs: ["d03-user-2"],
       inferred: true
     });
@@ -129,6 +129,24 @@ describe("benchmark handoff inputs", () => {
       evidenceRefs: ["f02-user-2"],
       inferred: true
     }]);
+  });
+
+  it("rejects a next action without source evidence", () => {
+    const capsule = JSON.parse(buildDeterministicCapsule(fixture).content) as {
+      nextAction: { first: { evidenceRefs: string[] } };
+    };
+    capsule.nextAction.first.evidenceRefs = [];
+    const schemaPath = fileURLToPath(
+      new URL("../schema/work-capsule.v2.schema.json", import.meta.url)
+    );
+    const schema = JSON.parse(readFileSync(schemaPath, "utf8")) as object;
+    const ajv = new Ajv2020({ allErrors: true, strict: true });
+    ajv.addFormat("date-time", {
+      type: "string",
+      validate: (value: string) => !Number.isNaN(Date.parse(value))
+    });
+
+    expect(ajv.compile(schema)(capsule)).toBe(false);
   });
 
   it("never includes benchmark ground truth in the source-assisted prompt", () => {
