@@ -12,7 +12,8 @@ logic.
 
 Each supported agent supplies a Source Reader and/or Target Launcher. Readers
 produce a verified native snapshot plus canonical evidence events. Launchers
-consume a rendered Work Capsule and target capability report.
+consume a canonical Work Capsule and target capability report, then compile the
+target-specific continuation brief without mutating the Capsule.
 
 Adapters are internal to one npm package during 0.x. Community adapters live in
 the core repository and require fixtures and version metadata. No runtime plugin

@@ -5,6 +5,7 @@ import {
   buildContinuationPrompt,
   renderCapsuleJson,
   renderCapsuleMarkdown,
+  renderContinuationBrief,
   type CommandRunner
 } from "../src/adapters/claude/target-launcher.js";
 
@@ -103,15 +104,127 @@ describe("ClaudeTargetLauncher", () => {
     ]);
     expect(prepared.steps.flatMap((step) => step.args)).not.toContain("--model");
     expect(prepared.steps.flatMap((step) => step.args)).not.toContain("--permission-mode");
+    expect(prepared.continuationBrief).toBe(renderContinuationBrief(capsule));
+    expect(prepared.capsuleJson).toBe(renderCapsuleJson(capsule));
+    expect(prepared.lossReceipt).toBe(result.receipt);
   });
 
-  it("renders Markdown around the exact canonical JSON facts", () => {
+  it("keeps the exact canonical Capsule separate for audit", () => {
     const json = renderCapsuleJson(capsule).trim();
     const markdown = renderCapsuleMarkdown(capsule);
 
     expect(markdown).toContain(json);
     expect(markdown).toContain("HIDDEN_AGENT_STATE_UNAVAILABLE");
-    expect(buildContinuationPrompt(capsule)).toContain(markdown);
+  });
+
+  it("compiles a prioritized brief with each normalized fact exactly once", () => {
+    const duplicated = {
+      ...capsule,
+      constraints: [
+        ...capsule.constraints,
+        { text: "  write   the focused test. ", evidenceRefs: ["event:3"], inferred: false }
+      ],
+      nextAction: {
+        ...capsule.nextAction,
+        forbiddenBefore: [
+          { text: "Change public exports.", evidenceRefs: ["event:3"], inferred: false }
+        ]
+      }
+    } satisfies WorkCapsule;
+
+    const brief = renderContinuationBrief(duplicated);
+
+    expect(brief.match(/Write the focused test\./gi)).toHaveLength(1);
+    expect(Buffer.byteLength(brief)).toBeLessThan(Buffer.byteLength(renderCapsuleJson(duplicated)));
+    expect(brief).toContain("evidence: event:1, event:3");
+    expect(brief.indexOf("## First action")).toBeLessThan(brief.indexOf("## Constraints"));
+    expect(brief.indexOf("## Forbidden before first action")).toBeLessThan(
+      brief.indexOf("## Current state")
+    );
+    expect(brief).toMatchInlineSnapshot(`
+      "# AgentCarry Continuation Brief
+
+      ## First action
+      - Write the focused test. [evidence: event:1, event:3]
+
+      ## Forbidden before first action
+      - Change public exports. [evidence: event:3]
+
+      ## Constraints
+      - Do not change exports. [evidence: event:3]
+
+      ## Current state
+      - Objective: Fix the parser. [evidence: event:2]
+
+      ## Later actions
+      - None evidenced.
+
+      ## Validations
+      - None evidenced.
+
+      ## Commands already run
+      - None evidenced.
+
+      ## Transfer losses
+      - INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden state is not transferable.
+
+      ## Workspace
+      - Root: C:\\Users\\dev\\中文 项目
+      "
+    `);
+  });
+
+  it("seeds Claude with the brief instead of duplicated canonical JSON", () => {
+    const prompt = buildContinuationPrompt(capsule);
+
+    expect(prompt).toContain(renderContinuationBrief(capsule));
+    expect(prompt).toContain("Start with the First action");
+    expect(prompt).toContain("Do not perform any Forbidden before first action item early");
+    expect(prompt).not.toContain("Canonical capsule");
+    expect(prompt).not.toContain('"schemaVersion"');
+  });
+
+  it("keeps failed paths in the brief without embedding the full Capsule", () => {
+    const withFailure = {
+      ...capsule,
+      completed: [{
+        text: "Disabled the cache.",
+        evidenceRefs: ["event:3"],
+        inferred: false
+      }],
+      failedAttempts: [{
+        attempt: "Disabled the cache.",
+        outcome: "The failing total did not change.",
+        evidenceRefs: ["event:3"],
+        inferred: false
+      }]
+    } satisfies WorkCapsule;
+
+    const brief = renderContinuationBrief(withFailure);
+
+    expect(brief.match(/Disabled the cache\./g)).toHaveLength(1);
+    expect(brief).toContain("Failed outcome: The failing total did not change. [evidence: event:3]");
+    expect(brief).not.toContain('"failedAttempts"');
+  });
+
+  it("keeps compact Git, file, command, and validation state", () => {
+    const withWorkspaceState = {
+      ...capsule,
+      workspace: {
+        ...capsule.workspace,
+        git: { repoRoot: "C:\\Users\\dev\\中文 项目", branch: "agent/38", head: "abc123", dirty: true }
+      },
+      files: [{ path: "src/parser.ts", kind: "modified", evidenceRefs: ["event:3"] }],
+      commands: [{ command: "npm test", cwd: "C:\\Users\\dev\\中文 项目", exitCode: 1, evidenceRefs: ["event:3"] }],
+      validations: [{ name: "npm test", status: "failed", summary: "One regression failed.", evidenceRefs: ["event:3"] }]
+    } satisfies WorkCapsule;
+
+    const brief = renderContinuationBrief(withWorkspaceState);
+
+    expect(brief).toContain("Git: branch=agent/38; head=abc123; dirty=true");
+    expect(brief).toContain("File: modified src/parser.ts [evidence: event:3]");
+    expect(brief).toContain("Command: `npm test` (cwd: C:\\Users\\dev\\中文 项目; exit: 1) [evidence: event:3]");
+    expect(brief).toContain("Validation: FAILED npm test — One regression failed. [evidence: event:3]");
   });
 
   it("diagnoses CLI and auth metadata without returning account identity", async () => {

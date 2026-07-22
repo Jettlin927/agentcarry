@@ -131,6 +131,14 @@ message after terminal line-ending normalization. The native message remains
 verbatim; partial assistant output and hidden state are never claimed as moved.
 Fail-closed behavior is defined in [Loss receipt semantics](docs/loss-semantics.md).
 
+The Claude target prompt is compiled from the canonical Capsule into a compact
+continuation brief. It puts the first and forbidden-early actions first, merges
+duplicate facts and evidence references, and retains constraints, current state,
+failed attempts, workspace and Git facts, relevant files, commands, validations,
+and transfer losses. The complete canonical
+JSON, Markdown rendering, and loss receipt remain available in dry-run output
+for machine use and audit; they are not duplicated into the target prompt.
+
 ## Benchmark before claims
 
 AgentCarry will not claim that a capsule preserves continuity merely because it
