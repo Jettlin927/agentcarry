@@ -65,6 +65,13 @@ complete Capsule remains available for machine use and audit. A Launcher never
 installs the target agent, manages authentication,
 changes the model, expands permissions, or rewrites native session storage.
 
+The Claude Launcher keeps preparation pure. Confirmed launch first seeds a new
+session from stdin in a tool-free print turn, captures that process output so it
+cannot corrupt AgentCarry's terminal contract, and resumes the same session
+interactively only after a zero exit. The resume invocation inherits stdin,
+stdout, and stderr and supplies no model, provider, permission, Skill, MCP, or
+authentication override.
+
 ### Capsule builder
 
 The builder combines evidence events with current read-only workspace facts,

@@ -48,6 +48,31 @@ Internally, preparation and launch are separate seams. The CLI returns after
 `prepareContinue` during dry-run and therefore cannot rely on an adapter to
 remember not to launch.
 
+## Interactive launch invariant
+
+`continue --to claude` uses the same preparation path as dry-run. Before any
+target process starts, human mode prints the source and target session IDs,
+workspace, first action, complete loss receipt, and exact target steps. It then
+reads exactly one line from stdin. Only `y` or `yes`, case-insensitively, starts
+the target; every other answer is a successful cancellation with no target
+process.
+
+The Claude Launcher creates one fresh session in two fail-closed steps:
+
+1. send the redacted continuation brief through stdin to a non-interactive,
+   tool-free seed turn;
+2. only after a zero seed exit, resume the same session in Claude Code's native
+   interactive mode with a short fixed start prompt.
+
+The continuation brief is never a command-line argument. The resume step does
+not select a model, provider, permission mode, skills, MCP configuration, or
+authentication. AgentCarry does not install Claude Code or initiate login.
+
+Native target interaction owns stdout and the terminal. Therefore a live
+non-dry-run launch with `--json` fails with `INTERACTIVE_JSON_UNSUPPORTED`
+before reading a source session. `--dry-run --json` remains the machine-mode
+contract and writes exactly one JSON document.
+
 ## Active checkpoint invariant
 
 `continue --active --checkpoint-stdin` is an inseparable flag pair. It selects

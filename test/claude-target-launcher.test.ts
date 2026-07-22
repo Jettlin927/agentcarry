@@ -4,6 +4,7 @@ import {
   ClaudeTargetLauncher,
   TargetLaunchError,
   buildContinuationPrompt,
+  defaultLaunchRunner,
   renderCapsuleJson,
   renderCapsuleMarkdown,
   renderContinuationBrief,
@@ -155,6 +156,28 @@ describe("ClaudeTargetLauncher", () => {
       exitCode: 7
     } satisfies Partial<TargetLaunchError>);
     expect(runLaunch).toHaveBeenCalledOnce();
+  });
+
+  it("runs captured and inherited child-process steps cross-platform", async () => {
+    const seed = await defaultLaunchRunner({
+      purpose: "seed-session",
+      command: process.execPath,
+      args: ["-e", "process.stdin.pipe(process.stdout)"],
+      cwd: process.cwd(),
+      stdin: "capsule-prompt",
+      displayCommand: "node seed"
+    }, "redacted capsule");
+    const resume = await defaultLaunchRunner({
+      purpose: "resume-interactive",
+      command: process.execPath,
+      args: ["-e", "process.exit(0)"],
+      cwd: process.cwd(),
+      stdin: "inherit",
+      displayCommand: "node resume"
+    }, undefined);
+
+    expect(seed).toEqual({ exitCode: 0, stdout: "redacted capsule", stderr: "" });
+    expect(resume).toEqual({ exitCode: 0, stdout: "", stderr: "" });
   });
 
   it("keeps the exact canonical Capsule separate for audit", () => {

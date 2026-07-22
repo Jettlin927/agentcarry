@@ -213,6 +213,34 @@ describe("AgentCarry CLI contract", () => {
     expect(JSON.parse(output.stdout.join("")).data).toEqual({ received: checkpoint });
   });
 
+  it("reads an active checkpoint and one later launch confirmation from the same stdin", async () => {
+    const checkpoint = JSON.stringify({
+      schemaVersion: "1.0.0",
+      currentUserMessage: "Switch this active task.",
+      assistantCheckpoint: "Run the full suite next."
+    });
+    const output = harness();
+    output.readLine
+      .mockResolvedValueOnce(checkpoint)
+      .mockResolvedValueOnce("y");
+    const handlers = successfulHandlers();
+    handlers.prepareContinue = vi.fn(async (options) => {
+      options.checkpointStdin!.ready();
+      await options.checkpointStdin!.read();
+      return { ok: true as const, data: { accepted: true }, human: "Prepared active handoff" };
+    });
+
+    expect(await runCli([
+      "continue", "--to", "claude", "--active", "--checkpoint-stdin"
+    ], output.io, handlers)).toBe(ExitCode.success);
+    expect(output.readLine).toHaveBeenCalledTimes(2);
+    expect(output.release).toHaveBeenCalledOnce();
+    expect(handlers.launchContinue).toHaveBeenCalledOnce();
+    expect(output.stderr.join("")).toBe(
+      "CHECKPOINT_STDIN_READY\nLaunch Claude Code now? [y/N] "
+    );
+  });
+
   it("doctor declares that it does not install agents or manage auth", async () => {
     const output = harness();
 

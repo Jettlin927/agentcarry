@@ -65,7 +65,8 @@ Continue coding tasks across agents with evidence and explicit loss.
 
 Usage:
   agentcarry inspect [--session <id>] [--json]
-  agentcarry continue --to <agent> [--source <agent>] [--session <id>] [--active --checkpoint-stdin] [--dry-run] [--force] [--json]
+  agentcarry continue --to <agent> [--source <agent>] [--session <id>] [--active --checkpoint-stdin] [--dry-run] [--force]
+  agentcarry continue --to <agent> [selectors] --dry-run --json
   agentcarry doctor [--json]
 
 Exit codes:
