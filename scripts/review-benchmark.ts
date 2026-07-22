@@ -58,12 +58,28 @@ async function readResults(runDirectory: string): Promise<TargetRunResult[]> {
   ));
 }
 
-async function readInputs(runDirectory: string): Promise<ReviewInputArtifact[]> {
+async function readInputs(
+  runDirectory: string,
+  results: readonly TargetRunResult[]
+): Promise<ReviewInputArtifact[]> {
   const directory = join(runDirectory, "inputs");
   const names = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
-  return await Promise.all(names.map(async (name) =>
-    await readJson(join(directory, name)) as ReviewInputArtifact
-  ));
+  const resultByPair = new Map(results.map((result) => [
+    `${result.fixtureId}:${result.mode}`,
+    result
+  ]));
+  return await Promise.all(names.map(async (name) => {
+    const artifact = await readJson(join(directory, name)) as ReviewInputArtifact;
+    const result = resultByPair.get(`${artifact.fixtureId}:${artifact.mode}`);
+    if (result === undefined) {
+      throw new Error(`missing target result for input ${artifact.fixtureId}:${artifact.mode}`);
+    }
+    return {
+      ...artifact,
+      contentType: result.input.agentCarryPayload.contentType,
+      content: result.input.agentCarryPayload.text
+    };
+  }));
 }
 
 function option(args: readonly string[], name: string): string | undefined {
@@ -169,7 +185,7 @@ async function main(): Promise<void> {
   if (command === "packet" || command === "html") {
     const outputPath = resolve(output);
     const content = command === "html"
-      ? renderReviewHtml(fixtures, await readInputs(runRoot), results, advisory)
+      ? renderReviewHtml(fixtures, await readInputs(runRoot, results), results, advisory)
       : renderReviewPacket(fixtures, results, advisory);
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(outputPath, content, {
@@ -202,7 +218,7 @@ async function main(): Promise<void> {
     output: resolve(output),
     assessments: materialized.assessments.length,
     scores: materialized.scores.length,
-    phase0Passed: materialized.report.phase0Passed
+    benchmarkV2Passed: materialized.report.benchmarkV2Passed
   }));
 }
 

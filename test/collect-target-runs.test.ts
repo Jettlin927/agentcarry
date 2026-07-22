@@ -1,5 +1,6 @@
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,8 +16,10 @@ import {
   createBenchmarkRunPlan
 } from "../src/benchmark/collect-target-runs.js";
 import {
+  createTargetCalibrationInvocation,
   createTargetSettings,
   targetSettings,
+  type TargetCalibration,
   type TargetRunResult
 } from "../src/benchmark/run-target-continuation.js";
 
@@ -52,19 +55,58 @@ async function sourceAssisted(
 function targetResult(
   artifact: HandoffInputArtifact,
   model: string,
+  calibration: TargetCalibration,
   provider = "unspecified"
 ): TargetRunResult {
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     runId: `${artifact.fixtureId}:${artifact.mode}:initial`,
     fixtureId: artifact.fixtureId,
     mode: artifact.mode,
     sourceFingerprint: artifact.sourceFingerprint,
     target: { agent: "claude", model, provider, settings: targetSettings },
-    input: { sha256: "a".repeat(64), utf8Bytes: 100, exactTargetInputTokens: 50 },
+    input: {
+      promptSha256: "a".repeat(64),
+      promptUtf8Bytes: 100,
+      fullCallInputTokens: calibration.input.exactInputTokens + 50,
+      fixedOverheadInputTokens: calibration.input.exactInputTokens,
+      agentCarryPayload: {
+        contentType: "text/markdown",
+        text: "Reviewed handoff payload.",
+        sha256: "d".repeat(64),
+        utf8Bytes: 25,
+        tokens: 50
+      }
+    },
     output: { text: "Reviewed continuation state.", sha256: "b".repeat(64) },
     invocation: {
       promptSha256: "a".repeat(64),
+      startedAt: "2026-07-21T00:00:00Z",
+      completedAt: "2026-07-21T00:00:01Z"
+    }
+  };
+}
+
+function calibration(
+  model = "fixed-model",
+  provider = "unspecified",
+  settingSources: "none" | "user" = "none"
+): TargetCalibration {
+  const invocation = createTargetCalibrationInvocation(model, { settingSources });
+  return {
+    schemaVersion: "2.0.0",
+    target: {
+      agent: "claude",
+      model,
+      provider,
+      settings: createTargetSettings(settingSources)
+    },
+    input: {
+      promptSha256: createHash("sha256").update(invocation.stdin, "utf8").digest("hex"),
+      promptUtf8Bytes: Buffer.byteLength(invocation.stdin, "utf8"),
+      exactInputTokens: 1_000
+    },
+    invocation: {
       startedAt: "2026-07-21T00:00:00Z",
       completedAt: "2026-07-21T00:00:01Z"
     }
@@ -76,6 +118,12 @@ describe("benchmark target collection", () => {
     const plan = createBenchmarkRunPlan([...fixtures].reverse(), "fixed-model");
 
     expect(plan.runs).toHaveLength(36);
+    expect(plan).toMatchObject({ schemaVersion: "2.0.0", benchmarkId: "second-36" });
+    expect(plan.metering).toMatchObject({
+      method: "target-calibration-delta-v1",
+      calibrationPromptSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      calibrationPromptUtf8Bytes: expect.any(Number)
+    });
     expect(new Set(plan.runs.map((run) => `${run.fixtureId}:${run.mode}`))).toHaveLength(36);
     expect(plan.target).toEqual({
       agent: "claude",
@@ -104,14 +152,17 @@ describe("benchmark target collection", () => {
     const root = await outputRoot("collect");
     const buildSourceAssisted = vi.fn(sourceAssisted);
     const runTarget = vi.fn(async (artifact: HandoffInputArtifact, model: string) =>
-      targetResult(artifact, model));
+      targetResult(artifact, model, calibration(model)));
+    const calibrateTarget = vi.fn(async (model: string) => calibration(model));
 
     const first = await collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted,
+      calibrateTarget,
       runTarget
     });
     const second = await collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted,
+      calibrateTarget,
       runTarget
     });
 
@@ -119,6 +170,7 @@ describe("benchmark target collection", () => {
     expect(second).toMatchObject({ planned: 36, completed: 0, skipped: 36 });
     expect(buildSourceAssisted).toHaveBeenCalledTimes(12);
     expect(runTarget).toHaveBeenCalledTimes(36);
+    expect(calibrateTarget).toHaveBeenCalledTimes(1);
     expect(await readdir(join(root, "inputs"))).toHaveLength(36);
     expect(await readdir(join(root, "results"))).toHaveLength(36);
   });
@@ -131,11 +183,12 @@ describe("benchmark target collection", () => {
       if (calls === 3) {
         throw new Error("simulated provider failure");
       }
-      return targetResult(artifact, model);
+      return targetResult(artifact, model, calibration(model));
     });
 
     await expect(collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted: sourceAssisted,
+      calibrateTarget: async (model) => calibration(model),
       runTarget: failingTarget
     })).rejects.toThrow("simulated provider failure");
     expect(await readdir(join(root, "results"))).toHaveLength(2);
@@ -143,7 +196,8 @@ describe("benchmark target collection", () => {
 
     const resumed = await collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted: sourceAssisted,
-      runTarget: async (artifact, model) => targetResult(artifact, model)
+      calibrateTarget: async (model) => calibration(model),
+      runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
     });
     expect(resumed).toMatchObject({ planned: 36, completed: 34, skipped: 2 });
     expect(await readdir(join(root, "results"))).toHaveLength(36);
@@ -153,12 +207,43 @@ describe("benchmark target collection", () => {
     const root = await outputRoot("model");
     await collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted: sourceAssisted,
-      runTarget: async (artifact, model) => targetResult(artifact, model)
+      calibrateTarget: async (model) => calibration(model),
+      runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
     });
 
     await expect(collectTargetRuns(fixtures, "different-model", root, {
       buildSourceAssisted: sourceAssisted,
-      runTarget: async (artifact, model) => targetResult(artifact, model)
+      calibrateTarget: async (model) => calibration(model),
+      runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
     })).rejects.toThrow("existing benchmark plan differs");
+  });
+
+  it("rejects a tampered stored calibration before resuming target runs", async () => {
+    const root = await outputRoot("calibration-integrity");
+    await collectTargetRuns(fixtures, "fixed-model", root, {
+      buildSourceAssisted: sourceAssisted,
+      calibrateTarget: async (model) => calibration(model),
+      runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
+    });
+    const calibrationPath = join(root, "calibration.json");
+    const stored = JSON.parse(await readFile(calibrationPath, "utf8")) as TargetCalibration;
+    await writeFile(calibrationPath, JSON.stringify({
+      ...stored,
+      input: { ...stored.input, promptSha256: "f".repeat(64) }
+    }), "utf8");
+    const calibrateTarget = vi.fn(async (model: string) => calibration(model));
+    const runTarget = vi.fn(async (
+      artifact: HandoffInputArtifact,
+      model: string,
+      targetCalibration: TargetCalibration
+    ) => targetResult(artifact, model, targetCalibration));
+
+    await expect(collectTargetRuns(fixtures, "fixed-model", root, {
+      buildSourceAssisted: sourceAssisted,
+      calibrateTarget,
+      runTarget
+    })).rejects.toThrow("stored target calibration does not match the benchmark plan");
+    expect(calibrateTarget).not.toHaveBeenCalled();
+    expect(runTarget).not.toHaveBeenCalled();
   });
 });

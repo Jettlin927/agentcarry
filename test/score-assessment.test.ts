@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 import {
   renderScoreMarkdown,
@@ -26,13 +27,107 @@ describe("scoreAssessment", () => {
     const report = scoreAssessment(fixture, perfect);
 
     expect(report.fidelityScore).toBe(100);
-    expect(report.tokens.ratio).toBe(0.4);
+    expect(report.tokens).toMatchObject({
+      fullCallInput: 1400,
+      fixedOverhead: 1000,
+      agentCarryPayload: 400,
+      visibleTranscriptPayloadBaseline: 1000,
+      payloadRatio: 0.4
+    });
     expect(report.criticalConstraintMisses).toEqual([]);
     expect(report.gates).toEqual({
       criticalConstraints100Percent: true,
       correctNextAction: true,
       noRepeatedFailedPath: true,
-      tokenRatioAtMost40Percent: true
+      payloadRatioAtMost40Percent: true
+    });
+  });
+
+  it("passes exactly 40% and fails the next measurable payload token", () => {
+    const boundary = scoreAssessment(fixture, perfect);
+    const above = scoreAssessment(fixture, {
+      ...perfect,
+      tokens: {
+        ...perfect.tokens,
+        fullCallInput: 1401,
+        agentCarryPayload: 401
+      }
+    });
+
+    expect(boundary.gates.payloadRatioAtMost40Percent).toBe(true);
+    expect(above.tokens.payloadRatio).toBe(0.401);
+    expect(above.gates.payloadRatioAtMost40Percent).toBe(false);
+
+    const roundedDown = scoreAssessment(fixture, {
+      ...perfect,
+      tokens: {
+        ...perfect.tokens,
+        fullCallInput: 101_000 + 40_001,
+        fixedOverhead: 101_000,
+        agentCarryPayload: 40_001,
+        visibleTranscriptPayloadBaseline: 100_000
+      }
+    });
+    expect(roundedDown.tokens.payloadRatio).toBe(0.4);
+    expect(roundedDown.gates.payloadRatioAtMost40Percent).toBe(false);
+  });
+
+  it("rejects missing or internally inconsistent calibration metering", () => {
+    expect(() => scoreAssessment(fixture, {
+      ...perfect,
+      tokens: {
+        ...perfect.tokens,
+        fixedOverhead: 999
+      }
+    })).toThrow("payload tokens must equal full-call input minus fixed overhead");
+
+    expect(() => scoreAssessment(fixture, {
+      ...perfect,
+      tokens: {
+        ...perfect.tokens,
+        method: undefined
+      }
+    } as unknown as ContinuationAssessment)).toThrow("requires target-calibration-delta-v1");
+  });
+
+  it("requires every Benchmark v2 token field in the assessment schema", () => {
+    const schema = readJson<object>(
+      "../benchmark/schema/continuation-assessment.v2.schema.json"
+    );
+    const ajv = new Ajv2020({ allErrors: true, strict: true });
+    ajv.addFormat("date-time", {
+      type: "string",
+      validate: (value: string) => !Number.isNaN(Date.parse(value))
+    });
+    const validate = ajv.compile(schema);
+    expect(validate(perfect), JSON.stringify(validate.errors)).toBe(true);
+
+    const missingFixedOverhead = {
+      ...perfect,
+      tokens: { ...perfect.tokens }
+    } as Record<string, unknown> & { tokens: Record<string, unknown> };
+    delete missingFixedOverhead.tokens.fixedOverhead;
+    expect(validate(missingFixedOverhead)).toBe(false);
+    expect(validate.errors).toEqual(expect.arrayContaining([
+      expect.objectContaining({ instancePath: "/tokens", keyword: "required" })
+    ]));
+  });
+
+  it("keeps the published Phase 0 v1 report and raw token fields frozen", () => {
+    const report = readJson<{
+      schemaVersion: string;
+      modes: Array<{ meanTokenRatio: number }>;
+    }>("../benchmark/runs/2026-07-21-cc-switch-gpt-5.6-sol/final/report.json");
+    const result = readJson<{
+      schemaVersion: string;
+      input: { exactTargetInputTokens: number };
+    }>("../benchmark/runs/2026-07-21-cc-switch-gpt-5.6-sol/results/debugging-01-invoice-total--visible-transcript.json");
+
+    expect(report.schemaVersion).toBe("1.0.0");
+    expect(report.modes[0]?.meanTokenRatio).toBeTypeOf("number");
+    expect(result).toMatchObject({
+      schemaVersion: "1.0.0",
+      input: { exactTargetInputTokens: 1431 }
     });
   });
 
@@ -86,7 +181,8 @@ describe("scoreAssessment", () => {
     expect(markdown).toContain("- Fidelity: 100.00 / 100.00");
     expect(markdown).toContain("- Provider route: example-provider");
     expect(markdown).toContain("| criticalConstraints | 30.00 | 30.00 |");
-    expect(markdown).toContain("- PASS token ratio at most 40%");
+    expect(markdown).toContain("- Fixed target overhead tokens: 1000");
+    expect(markdown).toContain("- PASS payload ratio at most 40%");
   });
 
   it("renders deterministic JSON regardless of settings key insertion order", () => {

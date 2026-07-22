@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "2.0.0",
   "runId": "example-deterministic-01",
   "fixtureId": "debugging-01-invoice-total",
   "mode": "deterministic-capsule",
@@ -10,8 +10,11 @@
     "settings": { "temperature": 0 }
   },
   "tokens": {
-    "input": 400,
-    "visibleTranscriptBaseline": 1000
+    "method": "target-calibration-delta-v1",
+    "fullCallInput": 1400,
+    "fixedOverhead": 1000,
+    "agentCarryPayload": 400,
+    "visibleTranscriptPayloadBaseline": 1000
   },
   "review": {
     "humanReviewer": "benchmark-reviewer",

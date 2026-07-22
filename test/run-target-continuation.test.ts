@@ -2,11 +2,18 @@ import { stat } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
-import { buildVisibleTranscript, type BenchmarkSourceFixture } from "../src/benchmark/build-handoff-input.js";
 import {
+  buildDeterministicCapsule,
+  buildVisibleTranscript,
+  type BenchmarkSourceFixture
+} from "../src/benchmark/build-handoff-input.js";
+import {
+  createTargetCalibrationInvocation,
   createTargetSettings,
   createTargetInvocation,
+  runTargetCalibration,
   runTargetContinuation,
+  targetPayload,
   targetSettings
 } from "../src/benchmark/run-target-continuation.js";
 import type { ProcessRunner } from "../src/benchmark/run-source-assisted.js";
@@ -47,7 +54,39 @@ describe("target continuation runner", () => {
     expect(invocation.settings).toEqual(createTargetSettings("user"));
   });
 
-  it("records raw output and all exact input-token categories", async () => {
+  it("sends the compact continuation brief while retaining the canonical capsule", () => {
+    const artifact = buildDeterministicCapsule(fixture);
+    const invocation = createTargetInvocation(artifact, "fixed-model");
+
+    expect(artifact.content).toContain('"schemaVersion": "2.0.0"');
+    expect(invocation.payload).toBe(targetPayload(artifact));
+    expect(invocation.payload).toContain("## First action");
+    expect(invocation.payload).not.toContain('"schemaVersion"');
+    expect(invocation.stdin).toContain(invocation.payload);
+  });
+
+  it("measures fixed target overhead with an empty AgentCarry payload", async () => {
+    const invocation = createTargetCalibrationInvocation("fixed-model");
+    expect(invocation.payload).toBe("");
+
+    const calibration = await runTargetCalibration("fixed-model", {
+      runner: async () => ({
+        exitCode: 0,
+        stdout: JSON.stringify({ result: "No handoff supplied.", usage: { input_tokens: 100 } }),
+        stderr: ""
+      }),
+      provider: "test-provider",
+      now: () => new Date("2026-07-21T00:00:00Z")
+    });
+
+    expect(calibration).toMatchObject({
+      schemaVersion: "2.0.0",
+      target: { model: "fixed-model", provider: "test-provider" },
+      input: { exactInputTokens: 100 }
+    });
+  });
+
+  it("records full-call, calibrated overhead, and AgentCarry payload tokens", async () => {
     let temporaryCwd = "";
     const runner: ProcessRunner = vi.fn(async (_command, _args, options) => {
       temporaryCwd = options.cwd;
@@ -73,6 +112,33 @@ describe("target continuation runner", () => {
     const result = await runTargetContinuation(buildVisibleTranscript(fixture), "fixed-model", {
       runner,
       provider: "test-provider",
+      calibration: {
+        schemaVersion: "2.0.0",
+        target: {
+          agent: "claude",
+          model: "fixed-model",
+          provider: "test-provider",
+          settings: {
+            systemPromptSha256: targetSettings.systemPromptSha256,
+            settingSources: "none",
+            mcp: "empty-strict",
+            slashCommands: "disabled",
+            persistence: "disabled",
+            tools: "disabled",
+            maxTurns: 1,
+            permissionMode: "plan"
+          }
+        },
+        input: {
+          promptSha256: "a".repeat(64),
+          promptUtf8Bytes: 100,
+          exactInputTokens: 26
+        },
+        invocation: {
+          startedAt: "2026-07-21T00:00:00Z",
+          completedAt: "2026-07-21T00:00:01Z"
+        }
+      },
       now: () => times.shift()!
     });
 
@@ -84,7 +150,12 @@ describe("target continuation runner", () => {
         provider: "test-provider",
         settings: targetSettings
       },
-      input: { exactTargetInputTokens: 66 },
+      schemaVersion: "2.0.0",
+      input: {
+        fullCallInputTokens: 66,
+        fixedOverheadInputTokens: 26,
+        agentCarryPayload: { tokens: 40, text: buildVisibleTranscript(fixture).content }
+      },
       output: { text: "Objective retained. Next action: run the focused regression." },
       invocation: {
         startedAt: "2026-07-21T00:00:00.000Z",
@@ -92,6 +163,19 @@ describe("target continuation runner", () => {
       }
     });
     await expect(stat(temporaryCwd)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("rejects missing calibration before invoking the target", async () => {
+    const runner: ProcessRunner = vi.fn(async () => ({
+      exitCode: 0,
+      stdout: JSON.stringify({ result: "Unexpected", usage: { input_tokens: 10 } }),
+      stderr: ""
+    }));
+
+    await expect(runTargetContinuation(buildVisibleTranscript(fixture), "fixed-model", {
+      runner
+    })).rejects.toThrow("requires fixed-overhead calibration");
+    expect(runner).not.toHaveBeenCalled();
   });
 
   it("reports process failure without retrying or managing authentication", async () => {
@@ -102,7 +186,25 @@ describe("target continuation runner", () => {
     }));
 
     await expect(runTargetContinuation(buildVisibleTranscript(fixture), "fixed-model", {
-      runner
+      runner,
+      calibration: {
+        schemaVersion: "2.0.0",
+        target: {
+          agent: "claude",
+          model: "fixed-model",
+          provider: "unspecified",
+          settings: targetSettings
+        },
+        input: {
+          promptSha256: "a".repeat(64),
+          promptUtf8Bytes: 100,
+          exactInputTokens: 10
+        },
+        invocation: {
+          startedAt: "2026-07-21T00:00:00Z",
+          completedAt: "2026-07-21T00:00:01Z"
+        }
+      }
     })).rejects.toThrow("target continuation failed (1): authentication required");
     expect(runner).toHaveBeenCalledOnce();
   });

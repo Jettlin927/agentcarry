@@ -32,8 +32,9 @@ function result(
   mode: TargetRunResult["mode"]
 ): TargetRunResult {
   const runId = `${fixture.id}:${mode}:initial`;
+  const payloadTokens = mode === "visible-transcript" ? 1_000 : 300;
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     runId,
     fixtureId: fixture.id,
     mode,
@@ -45,9 +46,17 @@ function result(
       settings: targetSettings
     },
     input: {
-      sha256: "b".repeat(64),
-      utf8Bytes: 100,
-      exactTargetInputTokens: mode === "visible-transcript" ? 1_000 : 300
+      promptSha256: "b".repeat(64),
+      promptUtf8Bytes: 100,
+      fullCallInputTokens: 1_000 + payloadTokens,
+      fixedOverheadInputTokens: 1_000,
+      agentCarryPayload: {
+        contentType: "text/markdown",
+        text: `Exact target payload for ${runId}`,
+        sha256: "d".repeat(64),
+        utf8Bytes: 100,
+        tokens: payloadTokens
+      }
     },
     output: {
       text: `Target continuation for ${runId}`,
@@ -72,7 +81,7 @@ const inputs: ReviewInputArtifact[] = fixtures.flatMap((fixture) => modes.map((m
 function advisory(): AdvisoryVerdictSet {
   return {
     schemaVersion: "1.0.0",
-    benchmarkId: "first-36",
+    benchmarkId: "second-36",
     status: "advisory-only-pending-human-review",
     reviewer: {
       kind: "llm",
@@ -98,7 +107,7 @@ const confirmation = {
 function humanReviewExport(): HumanReviewExport {
   return {
     schemaVersion: "1.0.0",
-    benchmarkId: "first-36",
+    benchmarkId: "second-36",
     reviewerKind: "human",
     humanReviewer: "human-reviewer",
     humanConfirmed: true,
@@ -132,7 +141,7 @@ describe("benchmark review materialization", () => {
     expect(materialized.assessments).toHaveLength(36);
     expect(materialized.scores).toHaveLength(36);
     expect(materialized.resultSet.reports).toHaveLength(36);
-    expect(materialized.report.phase0Passed).toBe(true);
+    expect(materialized.report.benchmarkV2Passed).toBe(true);
     expect(materialized.report.target).toMatchObject({
       model: "review-test-model",
       provider: "review-test-provider"

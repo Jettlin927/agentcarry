@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { HandoffInputArtifact } from "./build-handoff-input.js";
+import { renderContinuationBrief } from "../adapters/claude/target-launcher.js";
+import type { WorkCapsule } from "../capsule/build-capsule.js";
+import { canonicalJson, type HandoffInputArtifact } from "./build-handoff-input.js";
 import { totalInputTokens, type ClaudeUsage } from "./claude-usage.js";
 import {
   defaultProcessRunner,
@@ -55,10 +57,11 @@ export interface TargetInvocation {
   readonly stdin: string;
   readonly model: string;
   readonly settings: TargetSettings;
+  readonly payload: string;
 }
 
 export interface TargetRunResult {
-  readonly schemaVersion: "1.0.0";
+  readonly schemaVersion: "2.0.0";
   readonly runId: string;
   readonly fixtureId: string;
   readonly mode: HandoffInputArtifact["mode"];
@@ -70,9 +73,17 @@ export interface TargetRunResult {
     readonly settings: TargetSettings;
   };
   readonly input: {
-    readonly sha256: string;
-    readonly utf8Bytes: number;
-    readonly exactTargetInputTokens: number;
+    readonly promptSha256: string;
+    readonly promptUtf8Bytes: number;
+    readonly fullCallInputTokens: number;
+    readonly fixedOverheadInputTokens: number;
+    readonly agentCarryPayload: {
+      readonly contentType: HandoffInputArtifact["contentType"];
+      readonly text: string;
+      readonly sha256: string;
+      readonly utf8Bytes: number;
+      readonly tokens: number;
+    };
   };
   readonly output: {
     readonly text: string;
@@ -85,28 +96,49 @@ export interface TargetRunResult {
   };
 }
 
+export interface TargetCalibration {
+  readonly schemaVersion: "2.0.0";
+  readonly target: TargetRunResult["target"];
+  readonly input: {
+    readonly promptSha256: string;
+    readonly promptUtf8Bytes: number;
+    readonly exactInputTokens: number;
+  };
+  readonly invocation: {
+    readonly startedAt: string;
+    readonly completedAt: string;
+  };
+}
+
 interface ClaudeEnvelope {
   readonly result?: string;
   readonly is_error?: boolean;
   readonly usage?: ClaudeUsage;
 }
 
-function targetPrompt(artifact: HandoffInputArtifact): string {
+function targetPrompt(payload: string): string {
   return `Continue from this handoff input. Preserve qualifiers and explicitly avoid recorded failed paths.
 
-HANDOFF INPUT (${artifact.contentType})
-${artifact.content}`;
+HANDOFF INPUT
+${payload}`;
 }
 
-export function createTargetInvocation(
-  artifact: HandoffInputArtifact,
+export function targetPayload(artifact: HandoffInputArtifact): string {
+  if (artifact.mode === "visible-transcript") {
+    return artifact.content;
+  }
+  return renderContinuationBrief(JSON.parse(artifact.content) as WorkCapsule);
+}
+
+function invocationForPayload(
+  payload: string,
   model: string,
-  options: { readonly settingSources?: TargetSettingSources } = {}
+  settingSources: TargetSettingSources | undefined
 ): TargetInvocation {
   if (model.trim().length === 0) {
     throw new Error("target model must be explicit and non-empty");
   }
-  const settings = createTargetSettings(options.settingSources);
+  const settings = createTargetSettings(settingSources);
   return {
     command: "claude",
     args: [
@@ -131,27 +163,44 @@ export function createTargetInvocation(
       "--model",
       model
     ],
-    stdin: targetPrompt(artifact),
+    stdin: targetPrompt(payload),
     model,
-    settings
+    settings,
+    payload
   };
 }
 
-export async function runTargetContinuation(
+export function createTargetInvocation(
   artifact: HandoffInputArtifact,
   model: string,
-  options: {
-    readonly runner?: ProcessRunner;
-    readonly now?: () => Date;
-    readonly provider?: string;
-    readonly settingSources?: TargetSettingSources;
-  } = {}
-): Promise<TargetRunResult> {
-  const invocation = createTargetInvocation(artifact, model, options);
-  const runner = options.runner ?? defaultProcessRunner;
-  const now = options.now ?? (() => new Date());
+  options: { readonly settingSources?: TargetSettingSources } = {}
+): TargetInvocation {
+  return invocationForPayload(targetPayload(artifact), model, options.settingSources);
+}
+
+export function createTargetCalibrationInvocation(
+  model: string,
+  options: { readonly settingSources?: TargetSettingSources } = {}
+): TargetInvocation {
+  return invocationForPayload("", model, options.settingSources);
+}
+
+async function executeTarget(
+  invocation: TargetInvocation,
+  runner: ProcessRunner,
+  now: () => Date,
+  workingDirectory?: string
+): Promise<{
+  readonly envelope: ClaudeEnvelope;
+  readonly startedAt: string;
+  readonly completedAt: string;
+}> {
   const startedAt = now().toISOString();
-  const temporaryDirectory = await mkdtemp(join(tmpdir(), "agentcarry-target-run-"));
+  const temporaryDirectory = workingDirectory
+    ?? await mkdtemp(join(tmpdir(), "agentcarry-target-run-"));
+  if (workingDirectory !== undefined) {
+    await mkdir(workingDirectory, { recursive: true });
+  }
   try {
     const processResult = await runner(invocation.command, invocation.args, {
       cwd: temporaryDirectory,
@@ -171,8 +220,94 @@ export async function runTargetContinuation(
     ) {
       throw new Error("target continuation returned no successful result text");
     }
-    return {
-      schemaVersion: "1.0.0",
+    return { envelope, startedAt, completedAt: now().toISOString() };
+  } finally {
+    if (workingDirectory === undefined) {
+      await rm(temporaryDirectory, { recursive: true, force: true });
+    }
+  }
+}
+
+export async function runTargetCalibration(
+  model: string,
+  options: {
+    readonly runner?: ProcessRunner;
+    readonly now?: () => Date;
+    readonly provider?: string;
+    readonly settingSources?: TargetSettingSources;
+    readonly workingDirectory?: string;
+  } = {}
+): Promise<TargetCalibration> {
+  const invocation = createTargetCalibrationInvocation(model, options);
+  const { envelope, startedAt, completedAt } = await executeTarget(
+    invocation,
+    options.runner ?? defaultProcessRunner,
+    options.now ?? (() => new Date()),
+    options.workingDirectory
+  );
+  return {
+    schemaVersion: "2.0.0",
+    target: {
+      agent: "claude",
+      model,
+      provider: options.provider ?? "unspecified",
+      settings: invocation.settings
+    },
+    input: {
+      promptSha256: sha256(invocation.stdin),
+      promptUtf8Bytes: Buffer.byteLength(invocation.stdin, "utf8"),
+      exactInputTokens: totalInputTokens(envelope.usage)
+    },
+    invocation: { startedAt, completedAt }
+  };
+}
+
+export async function runTargetContinuation(
+  artifact: HandoffInputArtifact,
+  model: string,
+  options: {
+    readonly runner?: ProcessRunner;
+    readonly now?: () => Date;
+    readonly provider?: string;
+    readonly settingSources?: TargetSettingSources;
+    readonly calibration?: TargetCalibration;
+    readonly workingDirectory?: string;
+  } = {}
+): Promise<TargetRunResult> {
+  const invocation = createTargetInvocation(artifact, model, options);
+  const runner = options.runner ?? defaultProcessRunner;
+  const now = options.now ?? (() => new Date());
+  if (options.calibration === undefined) {
+    throw new Error("Benchmark v2 target run requires fixed-overhead calibration");
+  }
+  const expectedTarget = {
+    agent: "claude",
+    model,
+    provider: options.provider ?? "unspecified",
+    settings: invocation.settings
+  } as const;
+  if (canonicalJson(options.calibration.target) !== canonicalJson(expectedTarget)) {
+    throw new Error("target calibration does not match the target model, provider, and settings");
+  }
+  const { envelope, startedAt, completedAt } = await executeTarget(
+    invocation,
+    runner,
+    now,
+    options.workingDirectory
+  );
+  const resultText = envelope.result;
+  if (resultText === undefined) {
+    throw new Error("target continuation returned no successful result text");
+  }
+  const fullCallInputTokens = totalInputTokens(envelope.usage);
+  const fixedOverheadInputTokens = options.calibration.input.exactInputTokens;
+  const payloadTokens = fullCallInputTokens - fixedOverheadInputTokens;
+  if (payloadTokens < 0) {
+    throw new Error("target input tokens are lower than the calibrated fixed overhead");
+  }
+  const payload = targetPayload(artifact);
+  return {
+      schemaVersion: "2.0.0",
       runId: `${artifact.fixtureId}:${artifact.mode}:initial`,
       fixtureId: artifact.fixtureId,
       mode: artifact.mode,
@@ -184,21 +319,28 @@ export async function runTargetContinuation(
         settings: invocation.settings
       },
       input: {
-        sha256: sha256(invocation.stdin),
-        utf8Bytes: Buffer.byteLength(invocation.stdin, "utf8"),
-        exactTargetInputTokens: totalInputTokens(envelope.usage)
+        promptSha256: sha256(invocation.stdin),
+        promptUtf8Bytes: Buffer.byteLength(invocation.stdin, "utf8"),
+        fullCallInputTokens,
+        fixedOverheadInputTokens,
+        agentCarryPayload: {
+          contentType: artifact.mode === "visible-transcript"
+            ? artifact.contentType
+            : "text/markdown",
+          text: payload,
+          sha256: sha256(payload),
+          utf8Bytes: Buffer.byteLength(payload, "utf8"),
+          tokens: payloadTokens
+        }
       },
       output: {
-        text: envelope.result,
-        sha256: sha256(envelope.result)
+        text: resultText,
+        sha256: sha256(resultText)
       },
       invocation: {
         promptSha256: sha256(invocation.stdin),
         startedAt,
-        completedAt: now().toISOString()
+        completedAt
       }
-    };
-  } finally {
-    await rm(temporaryDirectory, { recursive: true, force: true });
-  }
+  };
 }

@@ -24,6 +24,8 @@ Exit criteria:
   verified native snapshot, without screenshots, clipboard, or transcript files;
 - critical constraints score 100% in the benchmark;
 - capsule fidelity is no worse than the visible-transcript baseline;
+- Benchmark v2 AgentCarry payload is no more than 40% of the visible-transcript
+  payload, excluding calibrated fixed target-harness overhead;
 - secret redaction, fail-closed behavior, dry-run, and large/live JSONL tests;
 - Windows, macOS, and Ubuntu CI;
 - `doctor` diagnoses prerequisites without installing or authenticating agents.
