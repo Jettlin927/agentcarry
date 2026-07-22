@@ -1,5 +1,5 @@
 node_modules/
-dist/
+dist/**/*.d.ts
 coverage/
 .env
 .env.*
@@ -7,4 +7,4 @@ coverage/
 *.log
 *.capsule.json
 .agentcarry/
-
+.claude/

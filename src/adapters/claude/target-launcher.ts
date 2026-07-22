@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
+import { finished } from "node:stream/promises";
 import type {
   CapsuleBuildResult,
   CapsuleFact,
@@ -10,6 +11,7 @@ import type {
   LaunchStep,
   PreparedTargetLaunch,
   TargetDiagnostic,
+  TargetLaunchOutcome,
   TargetLauncher
 } from "../target-launcher.js";
 
@@ -24,10 +26,16 @@ export type CommandRunner = (
   args: readonly string[]
 ) => Promise<CommandResult>;
 
+export type LaunchRunner = (
+  step: LaunchStep,
+  stdin: string | undefined
+) => Promise<CommandResult>;
+
 export interface ClaudeTargetLauncherOptions {
   readonly cwd: string;
   readonly createSessionId?: () => string;
   readonly runCommand?: CommandRunner;
+  readonly runLaunch?: LaunchRunner;
 }
 
 export const claudeLauncherMetadata = {
@@ -39,6 +47,8 @@ export const claudeLauncherMetadata = {
   changesPermissions: false,
   managesAuthentication: false
 } as const;
+
+const seedAcknowledgement = "AgentCarry context received.";
 
 export const defaultCommandRunner: CommandRunner = async (command, args) =>
   await new Promise((resolve, reject) => {
@@ -58,6 +68,48 @@ export const defaultCommandRunner: CommandRunner = async (command, args) =>
       stderr: Buffer.concat(stderr).toString("utf8")
     }));
   });
+
+export const defaultLaunchRunner: LaunchRunner = async (step, stdin) => {
+  const captured = step.stdin === "capsule-prompt";
+  const child = spawn(step.command, [...step.args], {
+    cwd: step.cwd,
+    env: process.env,
+    shell: false,
+    stdio: captured ? ["pipe", "pipe", "pipe"] : "inherit"
+  });
+  const stdout: Buffer[] = [];
+  const stderr: Buffer[] = [];
+  child.stdout?.on("data", (chunk: Buffer) => stdout.push(chunk));
+  child.stderr?.on("data", (chunk: Buffer) => stderr.push(chunk));
+  const completed = new Promise<CommandResult>((resolve, reject) => {
+    child.on("error", reject);
+    child.on("close", (exitCode) => resolve({
+      exitCode: exitCode ?? 1,
+      stdout: Buffer.concat(stdout).toString("utf8"),
+      stderr: Buffer.concat(stderr).toString("utf8")
+    }));
+  });
+  if (!captured) return await completed;
+  if (child.stdin === null) throw new Error("seed stdin pipe is unavailable");
+
+  const stdinFinished = finished(child.stdin, { cleanup: true });
+  child.stdin.end(stdin ?? "", "utf8");
+  const [result] = await Promise.all([completed, stdinFinished]);
+  return result;
+};
+
+export class TargetLaunchError extends Error {
+  constructor(
+    readonly code: string,
+    readonly step: LaunchStep["purpose"],
+    readonly exitCode?: number
+  ) {
+    super(exitCode === undefined
+      ? `${step} could not start`
+      : `${step} exited with code ${exitCode}`);
+    this.name = "TargetLaunchError";
+  }
+}
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -220,7 +272,13 @@ ${workspaceRows}
 }
 
 export function buildContinuationPrompt(capsule: WorkCapsule): string {
-  return `You are continuing an existing coding task from another coding agent.
+  return `This is a context-seeding turn for a coding task transferred from another agent.
+
+Do not use tools, edit files, run commands, or begin the task in this seeding turn.
+Reply only: ${seedAcknowledgement}
+The next interactive user turn will tell you to begin.
+
+When that next turn arrives:
 
 1. Start with the First action in the continuation brief.
 2. Do not perform any Forbidden before first action item early.
@@ -233,26 +291,49 @@ ${renderContinuationBrief(capsule)}`;
 }
 
 function seedStep(cwd: string, sessionId: string): LaunchStep {
-  const args = ["--session-id", sessionId, "--print", "--output-format", "json"];
+  const args = [
+    "--session-id",
+    sessionId,
+    "--print",
+    "--output-format",
+    "json",
+    "--tools",
+    ""
+  ];
   return {
     purpose: "seed-session",
     command: "claude",
     args,
     cwd,
     stdin: "capsule-prompt",
-    displayCommand: `claude --session-id ${sessionId} --print --output-format json < capsule-prompt`
+    displayCommand: `claude --session-id ${sessionId} --print --output-format json --tools "" < capsule-prompt`
   };
 }
 
+function hasValidSeedAcknowledgement(stdout: string, targetSessionId: string): boolean {
+  try {
+    const value = JSON.parse(stdout) as Record<string, unknown>;
+    return value.type === "result"
+      && value.subtype === "success"
+      && value.is_error === false
+      && value.session_id === targetSessionId
+      && typeof value.result === "string"
+      && value.result.trim() === seedAcknowledgement;
+  } catch {
+    return false;
+  }
+}
+
 function resumeStep(cwd: string, sessionId: string): LaunchStep {
-  const args = ["--resume", sessionId];
+  const startPrompt = "Continue the AgentCarry handoff now. Start with the recorded First action.";
+  const args = ["--resume", sessionId, startPrompt];
   return {
     purpose: "resume-interactive",
     command: "claude",
     args,
     cwd,
     stdin: "inherit",
-    displayCommand: `claude --resume ${sessionId}`
+    displayCommand: `claude --resume ${sessionId} "${startPrompt}"`
   };
 }
 
@@ -268,11 +349,62 @@ export class ClaudeTargetLauncher implements TargetLauncher {
   readonly #cwd: string;
   readonly #createSessionId: () => string;
   readonly #runCommand: CommandRunner;
+  readonly #runLaunch: LaunchRunner;
 
   constructor(options: ClaudeTargetLauncherOptions) {
     this.#cwd = options.cwd;
     this.#createSessionId = options.createSessionId ?? randomUUID;
     this.#runCommand = options.runCommand ?? defaultCommandRunner;
+    this.#runLaunch = options.runLaunch ?? defaultLaunchRunner;
+  }
+
+  async launch(prepared: PreparedTargetLaunch): Promise<TargetLaunchOutcome> {
+    const [seed, resume] = prepared.steps;
+    if (
+      prepared.agent !== this.agent
+      || prepared.steps.length !== 2
+      || seed?.purpose !== "seed-session"
+      || seed.stdin !== "capsule-prompt"
+      || resume?.purpose !== "resume-interactive"
+      || resume.stdin !== "inherit"
+      || seed.cwd !== this.#cwd
+      || resume.cwd !== this.#cwd
+    ) {
+      throw new TargetLaunchError("TARGET_LAUNCH_PLAN_INVALID", "seed-session");
+    }
+
+    let seeded: CommandResult;
+    try {
+      seeded = await this.#runLaunch(seed, prepared.prompt);
+    } catch {
+      throw new TargetLaunchError("TARGET_SEED_FAILED", "seed-session");
+    }
+    if (seeded.exitCode !== 0) {
+      throw new TargetLaunchError("TARGET_SEED_FAILED", "seed-session", seeded.exitCode);
+    }
+    if (!hasValidSeedAcknowledgement(seeded.stdout, prepared.targetSessionId)) {
+      throw new TargetLaunchError("TARGET_SEED_INVALID", "seed-session");
+    }
+
+    let resumed: CommandResult;
+    try {
+      resumed = await this.#runLaunch(resume, undefined);
+    } catch {
+      throw new TargetLaunchError("TARGET_INTERACTIVE_FAILED", "resume-interactive");
+    }
+    if (resumed.exitCode !== 0) {
+      throw new TargetLaunchError(
+        "TARGET_INTERACTIVE_FAILED",
+        "resume-interactive",
+        resumed.exitCode
+      );
+    }
+
+    return {
+      agent: this.agent,
+      targetSessionId: prepared.targetSessionId,
+      completedSteps: [seed.purpose, resume.purpose]
+    };
   }
 
   prepare(result: CapsuleBuildResult): PreparedTargetLaunch {

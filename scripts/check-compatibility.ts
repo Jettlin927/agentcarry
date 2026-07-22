@@ -6,7 +6,7 @@ const path = new URL("../docs/compatibility.md", import.meta.url);
 const matrix = await readFile(path, "utf8");
 const expected = [
   "| Codex | Local JSONL |",
-  "| Claude Code | Planned | Dry-run |",
+  "| Claude Code | Planned | Dry-run + interactive |",
   ...codexAdapterMetadata.observedCodexVersions,
   ...claudeLauncherMetadata.observedClaudeVersions
 ];

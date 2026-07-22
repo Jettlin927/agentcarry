@@ -1,4 +1,7 @@
-import { ClaudeTargetLauncher } from "./adapters/claude/target-launcher.js";
+import {
+  ClaudeTargetLauncher,
+  TargetLaunchError
+} from "./adapters/claude/target-launcher.js";
 import { CodexSourceReader } from "./adapters/codex/source-reader.js";
 import {
   SourceCaptureError,
@@ -32,7 +35,7 @@ import {
 } from "./diagnostics/doctor.js";
 
 type WorkspaceCollector = (cwd: string) => Promise<CollectedWorkspaceEvidence>;
-type ClaudeLauncherFactory = (cwd: string) => Pick<TargetLauncher, "prepare" | "diagnose">;
+type ClaudeLauncherFactory = (cwd: string) => TargetLauncher;
 
 export interface AgentCarryHandlerOptions {
   readonly cwd?: string;
@@ -74,6 +77,44 @@ function preparationFailure(error: unknown): CommandFailure {
     "SOURCE_PREPARATION_FAILED",
     error instanceof Error ? error.message : String(error)
   );
+}
+
+function isPreparedTargetLaunch(value: unknown): value is PreparedTargetLaunch {
+  if (value === null || typeof value !== "object") return false;
+  const prepared = value as Partial<PreparedTargetLaunch>;
+  return prepared.agent === "claude"
+    && typeof prepared.targetSessionId === "string"
+    && typeof prepared.prompt === "string"
+    && Array.isArray(prepared.steps)
+    && prepared.capsule !== undefined;
+}
+
+function renderLaunchPreview(prepared: PreparedTargetLaunch): string {
+  const sourceAgent = String(prepared.capsule.source.agent ?? "unknown");
+  const sourceSession = String(prepared.capsule.source.sessionId ?? "unknown");
+  const losses = prepared.lossReceipt.losses.length === 0
+    ? "  none"
+    : prepared.lossReceipt.losses.map((loss) =>
+        `  - ${loss.severity.toUpperCase()} ${loss.code}: ${loss.description}`
+      ).join("\n");
+  const commands = prepared.steps.map((step, index) =>
+    `  ${index + 1}. ${step.displayCommand}`
+  ).join("\n");
+
+  return `AgentCarry handoff ready
+
+${sourceAgent === "codex" ? "Codex" : sourceAgent} session: ${sourceSession}
+Target session: ${prepared.agent} ${prepared.targetSessionId}
+Workspace: ${prepared.capsule.workspace.primaryRoot}
+First action: ${prepared.capsule.nextAction.first.text}
+
+Loss receipt: ${prepared.lossReceipt.criticalLosses} critical, ${prepared.lossReceipt.warnings} warning, ${prepared.lossReceipt.information} info
+${losses}
+
+Target commands:
+${commands}
+
+Source session: read-only; AgentCarry will not install agents or manage authentication.`;
 }
 
 export function createAgentCarryHandlers(options: AgentCarryHandlerOptions = {}): CliHandlers {
@@ -148,18 +189,49 @@ export function createAgentCarryHandlers(options: AgentCarryHandlerOptions = {})
         const prepared: PreparedTargetLaunch = createClaudeLauncher(
           workspace.workspace.primaryRoot
         ).prepare(result);
-        return { ok: true, data: prepared };
+        return { ok: true, data: prepared, human: renderLaunchPreview(prepared) };
       } catch (error: unknown) {
         return preparationFailure(error);
       }
     },
 
-    async launchContinue() {
-      return failure(
-        ExitCode.target,
-        "TARGET_LAUNCH_NOT_IMPLEMENTED",
-        "This build supports Claude dry-run preparation only."
-      );
+    async launchContinue(continueOptions, preparedResult) {
+      if (continueOptions.target !== "claude" || !isPreparedTargetLaunch(preparedResult.data)) {
+        return failure(
+          ExitCode.target,
+          "TARGET_LAUNCH_PLAN_INVALID",
+          "The prepared target launch is invalid or does not match Claude Code."
+        );
+      }
+      const prepared = preparedResult.data;
+      const targetCwd = prepared.capsule.workspace.primaryRoot;
+      if (typeof targetCwd !== "string" || targetCwd.length === 0) {
+        return failure(
+          ExitCode.target,
+          "TARGET_LAUNCH_PLAN_INVALID",
+          "The prepared target launch has no workspace root."
+        );
+      }
+      try {
+        const launched = await createClaudeLauncher(targetCwd).launch(prepared);
+        return {
+          ok: true,
+          data: launched,
+          human: "Claude Code session ended normally."
+        };
+      } catch (error: unknown) {
+        if (error instanceof TargetLaunchError) {
+          return failure(ExitCode.target, error.code, error.message, {
+            step: error.step,
+            ...(error.exitCode === undefined ? {} : { exitCode: error.exitCode })
+          });
+        }
+        return failure(
+          ExitCode.target,
+          "TARGET_LAUNCH_FAILED",
+          "Claude Code could not be launched."
+        );
+      }
     },
 
     async doctor() {

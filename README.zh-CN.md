@@ -4,8 +4,8 @@
 
 AgentCarry 是本地优先、完全开源的 CLI。它面向频繁使用 Codex、Claude Code、OpenCode、Gemini CLI、Pi 等产品的开发者，解决的不是“导出聊天记录”，而是“换 Agent 后继续当前工作”。
 
-> 当前状态：产品定义与 benchmark 阶段。第一个纵向切片是
-> `Codex → Claude Code --dry-run`。
+> 当前状态：v0.1 实现与 benchmark 验证阶段。Codex → Claude Code 已同时支持
+> 可审计的 `--dry-run` 准备和经确认的交互式启动。
 
 [English](README.md)
 
@@ -32,6 +32,11 @@ agentcarry doctor --json
 ```
 
 AgentCarry 不安装 Agent、不管理认证、不替用户切换模型或权限、不修改源 session，也不会默认上传 transcript。
+
+非 dry-run 命令会先输出便于人阅读的交接摘要、全部迁移损失和精确目标步骤，
+然后只确认一次；除 `y` / `yes` 以外的任何回答都会安全取消，不创建目标 session。
+交互式目标程序会占用 stdout，无法同时维持“stdout 只有一个 JSON 文档”的机器契约，
+因此实时启动拒绝 `--json`；自动化审计请使用 `--dry-run --json`。
 
 ## 为什么不是另一个聊天记录工具
 
@@ -73,6 +78,37 @@ npm run demo:tracer
 这个跨平台 demo 会用临时且已脱敏的 Codex session 运行真实构建后的
 CLI，输出损失项和精确的 Claude 命令，证明未启动 Claude 进程，并校验源文件
 哈希不变。详见 [Codex 到 Claude Code dry-run demo](docs/demos/codex-to-claude-dry-run.md)。
+
+## 交互式继续任务
+
+在目标仓库中，把当前工作区最新完成的 Codex 任务交给 Claude Code：
+
+```text
+npm run build
+node dist/cli-main.js continue --to claude
+```
+
+一次肯定确认后，AgentCarry 会在内部执行两步：先通过 stdin 在一个禁用工具的
+非交互回合中写入已脱敏的 continuation brief，再用同一个 session ID 进入 Claude
+Code 原生交互界面。交互回合仍使用用户自己的模型、provider、权限、Skill、MCP 与认证。
+seed 失败时不会执行 resume；AgentCarry 不安装 Claude Code，也不会发起登录。
+
+脱敏的 [真实 Claude 交互启动记录](docs/demos/codex-to-claude-interactive.md) 同时说明了
+Windows provider 冒烟与三平台进程边界各自证明了什么。
+
+## 两分钟外部验收
+
+没有参与过 AgentCarry 开发的 Windows/macOS 用户，可以安装固定的公开验收版本，
+再用一条命令完成真实交接：
+
+```text
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 continue --to claude
+```
+
+不收集私密聊天的验收协议和当前 cohort 进度见
+[外部用户真实 handoff 验收](docs/external-acceptance.zh-CN.md)与
+[`acceptance/REPORT.md`](acceptance/REPORT.md)。AgentCarry 仍然不会安装 Codex、
+Claude Code 或管理它们的认证。
 
 ## 安装仓库 Skill
 

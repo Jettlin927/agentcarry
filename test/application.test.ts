@@ -6,7 +6,10 @@ import type {
   SourceSession
 } from "../src/adapters/source-reader.js";
 import type { TargetLauncher } from "../src/adapters/target-launcher.js";
-import { ClaudeTargetLauncher } from "../src/adapters/claude/target-launcher.js";
+import {
+  ClaudeTargetLauncher,
+  type LaunchRunner
+} from "../src/adapters/claude/target-launcher.js";
 import type { CollectedWorkspaceEvidence } from "../src/workspace/collect-workspace.js";
 import type { DoctorReport } from "../src/diagnostics/doctor.js";
 
@@ -75,7 +78,7 @@ describe("AgentCarry production handlers", () => {
       createSessionId: () => "11111111-1111-4111-8111-111111111111",
       runCommand: commandRunner
     });
-    const createLauncher = vi.fn((_cwd: string): Pick<TargetLauncher, "prepare" | "diagnose"> => launcher);
+    const createLauncher = vi.fn((_cwd: string): TargetLauncher => launcher);
     const collectWorkspace = vi.fn(async () => workspace);
     const handlers = createAgentCarryHandlers({
       cwd: "C:\\repo",
@@ -102,7 +105,84 @@ describe("AgentCarry production handlers", () => {
         lossReceipt: { canContinue: true }
       });
       expect(JSON.stringify(result.data)).toContain("claude --resume 11111111-1111-4111-8111-111111111111");
+      expect(result.human).toContain("Codex session: source-session");
+      expect(result.human).toContain("First action:");
+      expect(result.human).toContain("Loss receipt:");
+      expect(result.human).toContain("claude --resume");
     }
+  });
+
+  it("launches the already prepared handoff and returns a human completion result", async () => {
+    const runLaunch = vi.fn<LaunchRunner>(async (step) => ({
+      exitCode: 0,
+      stdout: step.purpose === "seed-session"
+        ? JSON.stringify({
+            type: "result",
+            subtype: "success",
+            is_error: false,
+            session_id: "11111111-1111-4111-8111-111111111111",
+            result: "AgentCarry context received."
+          })
+        : "",
+      stderr: ""
+    }));
+    const launcher = new ClaudeTargetLauncher({
+      cwd: workspace.workspace.primaryRoot,
+      createSessionId: () => "11111111-1111-4111-8111-111111111111",
+      runLaunch
+    });
+    const handlers = createAgentCarryHandlers({
+      cwd: "C:\\repo",
+      codexReader: reader(),
+      collectWorkspace: async () => workspace,
+      createClaudeLauncher: () => launcher
+    });
+    const options = { target: "claude", session: "source-session", force: false };
+    const prepared = await handlers.prepareContinue(options);
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) return;
+
+    const launched = await handlers.launchContinue(options, prepared);
+
+    expect(launched).toMatchObject({
+      ok: true,
+      data: {
+        agent: "claude",
+        targetSessionId: "11111111-1111-4111-8111-111111111111",
+        completedSteps: ["seed-session", "resume-interactive"]
+      },
+      human: "Claude Code session ended normally."
+    });
+    expect(runLaunch).toHaveBeenCalledTimes(2);
+  });
+
+  it("maps a failed target seed to exit code 5 without leaking target output", async () => {
+    const runLaunch: LaunchRunner = vi.fn(async () => ({
+      exitCode: 9,
+      stdout: "private output",
+      stderr: "private error"
+    }));
+    const launcher = new ClaudeTargetLauncher({ cwd: workspace.workspace.primaryRoot, runLaunch });
+    const handlers = createAgentCarryHandlers({
+      cwd: "C:\\repo",
+      codexReader: reader(),
+      collectWorkspace: async () => workspace,
+      createClaudeLauncher: () => launcher
+    });
+    const options = { target: "claude", force: false };
+    const prepared = await handlers.prepareContinue(options);
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) return;
+
+    const launched = await handlers.launchContinue(options, prepared);
+
+    expect(launched).toMatchObject({
+      ok: false,
+      exitCode: 5,
+      code: "TARGET_SEED_FAILED"
+    });
+    expect(JSON.stringify(launched)).not.toContain("private output");
+    expect(JSON.stringify(launched)).not.toContain("private error");
   });
 
   it("captures before requesting an active checkpoint and records explicit losses", async () => {

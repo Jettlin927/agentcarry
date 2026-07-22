@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jettlin927/agentcarry/blob/main/schema/external-handoff-record.v1.schema.json",
+  "title": "AgentCarry External Handoff Record v1",
+  "description": "Privacy-safe evidence from one non-author Codex to Claude Code handoff attempt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "attemptId",
+    "recordedAt",
+    "participant",
+    "environment",
+    "attempt",
+    "timing",
+    "review",
+    "privacy"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "attemptId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,79}$" },
+    "recordedAt": { "type": "string", "format": "date-time" },
+    "participant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["githubHandle", "nonAuthorAtAttempt", "evidenceUrl", "consentToPublish"],
+      "properties": {
+        "githubHandle": { "$ref": "#/$defs/githubHandle" },
+        "nonAuthorAtAttempt": { "const": true },
+        "evidenceUrl": {
+          "type": "string",
+          "pattern": "^https://github\\.com/Jettlin927/agentcarry/issues/[0-9]+(?:#issuecomment-[0-9]+)?$"
+        },
+        "consentToPublish": { "const": true }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "osVersion",
+        "architecture",
+        "nodeVersion",
+        "agentCarryVersion",
+        "agentCarryCommit",
+        "codexVersion",
+        "claudeCodeVersion"
+      ],
+      "properties": {
+        "os": { "enum": ["windows", "macos"] },
+        "osVersion": { "$ref": "#/$defs/shortText" },
+        "architecture": { "enum": ["x64", "arm64"] },
+        "nodeVersion": { "type": "string", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "agentCarryVersion": { "const": "0.1.0-acceptance.1" },
+        "agentCarryCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "codexVersion": { "$ref": "#/$defs/shortText" },
+        "claudeCodeVersion": { "$ref": "#/$defs/shortText" }
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceState",
+        "selection",
+        "outcome",
+        "targetSessionCreated",
+        "firstActionStarted",
+        "manualSupplement",
+        "lossCodes",
+        "blockers"
+      ],
+      "properties": {
+        "sourceState": { "enum": ["idle", "active"] },
+        "selection": { "enum": ["automatic", "explicit-session"] },
+        "outcome": { "enum": ["continued", "blocked"] },
+        "targetSessionCreated": { "type": "boolean" },
+        "firstActionStarted": { "type": "boolean" },
+        "manualSupplement": { "$ref": "#/$defs/manualSupplement" },
+        "lossCodes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$",
+            "not": { "const": "NONE" }
+          },
+          "uniqueItems": true
+        },
+        "blockers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/blocker" }
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commandStartedAt",
+        "outcomeRecordedAt",
+        "secondsToOutcome",
+        "secondsToContinuation"
+      ],
+      "properties": {
+        "commandStartedAt": { "type": "string", "format": "date-time" },
+        "outcomeRecordedAt": { "type": "string", "format": "date-time" },
+        "secondsToOutcome": { "type": "integer", "minimum": 0 },
+        "secondsToContinuation": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewedBy",
+        "reviewedAt",
+        "evidenceAuthorMatchesParticipant",
+        "nonAuthorHistoryChecked",
+        "privacyReviewPassed"
+      ],
+      "properties": {
+        "reviewedBy": { "const": "Jettlin927" },
+        "reviewedAt": { "type": "string", "format": "date-time" },
+        "evidenceAuthorMatchesParticipant": { "const": true },
+        "nonAuthorHistoryChecked": { "const": true },
+        "privacyReviewPassed": { "const": true }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["noSecrets", "noPrivateTranscript", "noUnredactedSourceFile"],
+      "properties": {
+        "noSecrets": { "const": true },
+        "noPrivateTranscript": { "const": true },
+        "noUnredactedSourceFile": { "const": true }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "attempt": {
+            "type": "object",
+            "properties": { "outcome": { "const": "continued" } },
+            "required": ["outcome"]
+          }
+        },
+        "required": ["attempt"]
+      },
+      "then": {
+        "properties": {
+          "attempt": {
+            "type": "object",
+            "properties": {
+              "targetSessionCreated": { "const": true },
+              "firstActionStarted": { "const": true },
+              "blockers": { "type": "array", "maxItems": 0 }
+            }
+          },
+          "timing": {
+            "type": "object",
+            "properties": {
+              "secondsToContinuation": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "attempt": {
+            "type": "object",
+            "properties": {
+              "firstActionStarted": { "const": false },
+              "blockers": { "type": "array", "minItems": 1 }
+            }
+          },
+          "timing": {
+            "type": "object",
+            "properties": {
+              "secondsToContinuation": { "type": "null" }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "githubHandle": { "type": "string", "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$" },
+    "shortText": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "manualSupplement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "categories"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "categories": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "objective",
+              "constraint",
+              "decision",
+              "failed-attempt",
+              "workspace",
+              "validation",
+              "next-action",
+              "other"
+            ]
+          },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "required": { "const": true } },
+            "required": ["required"]
+          },
+          "then": {
+            "properties": { "categories": { "type": "array", "minItems": 1 } }
+          },
+          "else": {
+            "properties": { "categories": { "type": "array", "maxItems": 0 } }
+          }
+        }
+      ]
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "phase", "followUpIssueUrl"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z0-9_]+$",
+          "not": { "const": "NONE" }
+        },
+        "phase": {
+          "enum": [
+            "source-selection",
+            "capsule-build",
+            "confirmation",
+            "target-seed",
+            "target-resume",
+            "continuation"
+          ]
+        },
+        "followUpIssueUrl": {
+          "type": "string",
+          "pattern": "^https://github\\.com/Jettlin927/agentcarry/issues/[0-9]+$"
+        }
+      }
+    }
+  }
+}

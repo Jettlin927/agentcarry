@@ -7,15 +7,26 @@ import {
   type CommandSuccess
 } from "../src/cli.js";
 
-function harness(): { io: CliIo; stdout: string[]; stderr: string[] } {
+function harness(answer?: string): {
+  io: CliIo;
+  stdout: string[];
+  stderr: string[];
+  readLine: ReturnType<typeof vi.fn>;
+  release: ReturnType<typeof vi.fn>;
+} {
   const stdout: string[] = [];
   const stderr: string[] = [];
+  const readLine = vi.fn(async () => answer ?? "");
+  const release = vi.fn();
   return {
     stdout,
     stderr,
+    readLine,
+    release,
     io: {
       stdout: { write: (value) => { stdout.push(value); } },
-      stderr: { write: (value) => { stderr.push(value); } }
+      stderr: { write: (value) => { stderr.push(value); } },
+      stdin: { readLine, release }
     }
   };
 }
@@ -31,6 +42,13 @@ function successfulHandlers(): CliHandlers {
 }
 
 describe("AgentCarry CLI contract", () => {
+  it("prints the pinned acceptance build version", async () => {
+    const output = harness();
+
+    expect(await runCli(["--version"], output.io)).toBe(ExitCode.success);
+    expect(output.stdout.join("")).toBe("0.1.0-acceptance.1\n");
+  });
+
   it("prints a small public command surface", async () => {
     const output = harness();
 
@@ -94,14 +112,72 @@ describe("AgentCarry CLI contract", () => {
   });
 
   it("crosses the launch seam only for a prepared non-dry-run continue", async () => {
-    const output = harness();
+    const output = harness("yes");
     const handlers = successfulHandlers();
+    handlers.prepareContinue = vi.fn(async () => ({
+      ok: true as const,
+      data: { accepted: true },
+      human: "Prepared handoff"
+    }));
 
     expect(await runCli(["continue", "--to", "claude"], output.io, handlers)).toBe(
       ExitCode.success
     );
     expect(handlers.prepareContinue).toHaveBeenCalledOnce();
     expect(handlers.launchContinue).toHaveBeenCalledOnce();
+    expect(output.readLine).toHaveBeenCalledOnce();
+    expect(output.release).toHaveBeenCalledOnce();
+    expect(output.stdout.join("")).toContain("Prepared handoff\n");
+    expect(output.stderr.join("")).toBe("Launch Claude Code now? [y/N] ");
+  });
+
+  it("cancels safely after one non-affirmative answer", async () => {
+    const output = harness("no");
+    const handlers = successfulHandlers();
+    handlers.prepareContinue = vi.fn(async () => ({
+      ok: true as const,
+      data: { accepted: true },
+      human: "Prepared handoff"
+    }));
+
+    expect(await runCli(["continue", "--to", "claude"], output.io, handlers)).toBe(
+      ExitCode.success
+    );
+    expect(output.readLine).toHaveBeenCalledOnce();
+    expect(output.release).toHaveBeenCalledOnce();
+    expect(handlers.launchContinue).not.toHaveBeenCalled();
+    expect(output.stdout.join("")).toBe(
+      "Prepared handoff\nLaunch cancelled; no target process was started.\n"
+    );
+  });
+
+  it("fails closed when interactive confirmation has no stdin", async () => {
+    const output = harness();
+    const handlers = successfulHandlers();
+    const io: CliIo = { stdout: output.io.stdout, stderr: output.io.stderr };
+
+    expect(await runCli(["continue", "--to", "claude"], io, handlers)).toBe(
+      ExitCode.usage
+    );
+    expect(handlers.prepareContinue).not.toHaveBeenCalled();
+    expect(handlers.launchContinue).not.toHaveBeenCalled();
+    expect(output.stderr.join("")).toContain("CONFIRMATION_STDIN_UNAVAILABLE");
+  });
+
+  it("rejects interactive launch in JSON mode without reading the source", async () => {
+    const output = harness("yes");
+    const handlers = successfulHandlers();
+
+    expect(await runCli([
+      "continue", "--to", "claude", "--json"
+    ], output.io, handlers)).toBe(ExitCode.usage);
+    expect(handlers.prepareContinue).not.toHaveBeenCalled();
+    expect(handlers.launchContinue).not.toHaveBeenCalled();
+    expect(output.readLine).not.toHaveBeenCalled();
+    expect(JSON.parse(output.stdout.join(""))).toMatchObject({
+      ok: false,
+      code: "INTERACTIVE_JSON_UNSUPPORTED"
+    });
   });
 
   it("requires paired active checkpoint flags", async () => {
@@ -142,6 +218,34 @@ describe("AgentCarry CLI contract", () => {
       checkpointStdin: expect.any(Object)
     }));
     expect(JSON.parse(output.stdout.join("")).data).toEqual({ received: checkpoint });
+  });
+
+  it("reads an active checkpoint and one later launch confirmation from the same stdin", async () => {
+    const checkpoint = JSON.stringify({
+      schemaVersion: "1.0.0",
+      currentUserMessage: "Switch this active task.",
+      assistantCheckpoint: "Run the full suite next."
+    });
+    const output = harness();
+    output.readLine
+      .mockResolvedValueOnce(checkpoint)
+      .mockResolvedValueOnce("y");
+    const handlers = successfulHandlers();
+    handlers.prepareContinue = vi.fn(async (options) => {
+      options.checkpointStdin!.ready();
+      await options.checkpointStdin!.read();
+      return { ok: true as const, data: { accepted: true }, human: "Prepared active handoff" };
+    });
+
+    expect(await runCli([
+      "continue", "--to", "claude", "--active", "--checkpoint-stdin"
+    ], output.io, handlers)).toBe(ExitCode.success);
+    expect(output.readLine).toHaveBeenCalledTimes(2);
+    expect(output.release).toHaveBeenCalledOnce();
+    expect(handlers.launchContinue).toHaveBeenCalledOnce();
+    expect(output.stderr.join("")).toBe(
+      "CHECKPOINT_STDIN_READY\nLaunch Claude Code now? [y/N] "
+    );
   });
 
   it("doctor declares that it does not install agents or manage auth", async () => {
