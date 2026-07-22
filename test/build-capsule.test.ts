@@ -109,9 +109,9 @@ describe("buildWorkCapsule", () => {
     expect(result.capsule.currentUserMessage.text).toBe("Write the focused regression next.");
     expect(result.capsule.nextAction).toEqual({
       first: {
-        text: "Write the focused regression next.",
+        text: "Write the focused regression.",
         evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
-        inferred: false
+        inferred: true
       },
       then: [],
       forbiddenBefore: []
@@ -227,7 +227,7 @@ describe("buildWorkCapsule", () => {
     const result = buildWorkCapsule(session, events, workspace);
 
     expect(result.capsule.nextAction.first).toMatchObject({
-      text: "The focused parser regression still fails on negative adjustments.",
+      text: "Resolve the unresolved source result: The focused parser regression still fails on negative adjustments.",
       inferred: true
     });
     expect(result.capsule.nextAction.first.evidenceRefs).toEqual([
@@ -248,8 +248,33 @@ describe("buildWorkCapsule", () => {
     const result = buildWorkCapsule(session, events, workspace);
 
     expect(result.capsule.nextAction.first).toMatchObject({
-      text: "The parser fix is complete. Run the three-platform regression suite next.",
+      text: "Run the three-platform regression suite.",
       inferred: true
+    });
+  });
+
+  it("keeps explicitly blocked work behind the first action", () => {
+    const events = sourceEvents();
+    const currentIndex = events.findIndex((event) => event.id === "event-user-2");
+    events[currentIndex] = {
+      ...events[currentIndex]!,
+      text: "Add the parser regression before changing retry policy."
+    };
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction).toEqual({
+      first: {
+        text: "Add the parser regression.",
+        evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
+        inferred: true
+      },
+      then: [],
+      forbiddenBefore: [{
+        text: "Changing retry policy.",
+        evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
+        inferred: true
+      }]
     });
   });
 });

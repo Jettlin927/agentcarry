@@ -66,21 +66,20 @@ describe("benchmark handoff inputs", () => {
   });
 
   it.each([
-    ["architecture-01-streaming-log", "a01-tool-2", true],
-    ["architecture-02-session-index", "a02-tool-2", true],
-    ["architecture-03-job-scheduler", "a03-tool-2", true],
-    ["debugging-01-invoice-total", "d01-user-2", false],
-    ["debugging-02-unicode-watcher", "d02-user-2", false],
-    ["debugging-03-duplicate-jobs", "d03-user-2", false],
-    ["feature-01-pagination", "f01-user-2", false],
-    ["feature-02-deploy-dry-run", "f02-user-2", false],
-    ["feature-03-config-errors", "f03-user-2", false],
-    ["refactor-01-http-transport", "r01-user-2", false],
-    ["refactor-02-cli-renderers", "r02-user-2", false],
-    ["refactor-03-file-indexer", "r03-user-2", false]
-  ])("preserves ordered next-action evidence for %s", (fixtureId, evidenceId, inferred) => {
+    ["architecture-01-streaming-log", "a01-tool-2", true, "Resolve the unresolved source result: Throughput meets the target, but the slow-consumer backpressure test hangs."],
+    ["architecture-02-session-index", "a02-tool-2", true, "Resolve the unresolved source result: Update churn grows the file indefinitely; compaction and crash-safe replacement are not implemented."],
+    ["architecture-03-job-scheduler", "a03-tool-2", true, "Resolve the unresolved source result: Cancelling the second queued job still starts it after the first running job releases a slot."],
+    ["debugging-01-invoice-total", "d01-user-2", true, "Prove the parser fix with a regression test."],
+    ["debugging-02-unicode-watcher", "d02-user-2", true, "Add the Windows integration test."],
+    ["debugging-03-duplicate-jobs", "d03-user-2", true, "Add the fake-clock regression."],
+    ["feature-01-pagination", "f01-user-2", false, "Expose an async iterator named pages(); each next() should fetch exactly one page."],
+    ["feature-02-deploy-dry-run", "f02-user-2", true, "Assert the executor is never constructed."],
+    ["feature-03-config-errors", "f03-user-2", false, "Redact at the validation-error formatter, not in the parser, and preserve the failing field path."],
+    ["refactor-01-http-transport", "r01-user-2", false, "Header preservation belongs inside the transport. The streaming response method is still unconverted."],
+    ["refactor-02-cli-renderers", "r02-user-2", false, "Renderers own formatting. Diagnostics go to stderr; do not special-case commands."],
+    ["refactor-03-file-indexer", "r03-user-2", false, "The remaining work is .ignore-file support. Keep ignore parsing inside the local indexer."]
+  ])("preserves an executable, evidenced first action for %s", (fixtureId, evidenceId, inferred, firstText) => {
     const fixtureUnderTest = readFixtureById(fixtureId);
-    const sourceEvent = fixtureUnderTest.source.events.find((event) => event.id === evidenceId)!;
     const capsule = JSON.parse(buildDeterministicCapsule(fixtureUnderTest).content) as {
       nextAction: {
         first: { text: string; evidenceRefs: string[]; inferred: boolean };
@@ -89,15 +88,47 @@ describe("benchmark handoff inputs", () => {
       };
     };
 
-    expect(capsule.nextAction).toEqual({
-      first: {
-        text: sourceEvent.text,
-        evidenceRefs: [evidenceId],
-        inferred
-      },
-      then: [],
-      forbiddenBefore: []
+    expect(capsule.nextAction.first).toEqual({
+      text: firstText,
+      evidenceRefs: [evidenceId],
+      inferred
     });
+  });
+
+  it("keeps an explicitly later action behind the first action", () => {
+    const orderedFixture = readFixtureById("debugging-03-duplicate-jobs");
+    const capsule = JSON.parse(buildDeterministicCapsule(orderedFixture).content) as {
+      nextAction: {
+        first: { text: string; evidenceRefs: string[]; inferred: boolean };
+        then: Array<{ text: string }>;
+        forbiddenBefore: Array<{ text: string; evidenceRefs: string[]; inferred: boolean }>;
+      };
+    };
+
+    expect(capsule.nextAction.first).toEqual({
+      text: "Add the fake-clock regression.",
+      evidenceRefs: ["d03-user-2"],
+      inferred: true
+    });
+    expect(capsule.nextAction.then).toEqual([]);
+    expect(capsule.nextAction.forbiddenBefore).toEqual([{
+      text: "Touch retry policy.",
+      evidenceRefs: ["d03-user-2"],
+      inferred: true
+    }]);
+  });
+
+  it("puts a requested implementation after its proof", () => {
+    const orderedFixture = readFixtureById("feature-02-deploy-dry-run");
+    const capsule = JSON.parse(buildDeterministicCapsule(orderedFixture).content) as {
+      nextAction: { then: Array<{ text: string; evidenceRefs: string[]; inferred: boolean }> };
+    };
+
+    expect(capsule.nextAction.then).toEqual([{
+      text: "Wire --dry-run into the CLI.",
+      evidenceRefs: ["f02-user-2"],
+      inferred: true
+    }]);
   });
 
   it("never includes benchmark ground truth in the source-assisted prompt", () => {

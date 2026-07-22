@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { deriveNextAction, type DerivedActionFact } from "../capsule/derive-next-action.js";
 
 export type HandoffMode =
   | "visible-transcript"
@@ -94,35 +95,8 @@ function fact(event: BenchmarkEvent): CapsuleFact {
   return { text: event.text, evidenceRefs: [event.id], inferred: false };
 }
 
-function nextActionFact(events: readonly BenchmarkEvent[]): CapsuleFact {
-  let latestUserIndex = -1;
-  let latestAssistantIndex = -1;
-  for (let index = 0; index < events.length; index += 1) {
-    if (events[index]!.kind === "user-message") {
-      latestUserIndex = index;
-    }
-    if (events[index]!.kind === "assistant-message") {
-      latestAssistantIndex = index;
-    }
-  }
-  let unresolvedEvent: BenchmarkEvent | undefined;
-  if (latestAssistantIndex > latestUserIndex) {
-    for (let index = events.length - 1; index > latestAssistantIndex; index -= 1) {
-      if (events[index]!.kind === "tool-result") {
-        unresolvedEvent = events[index];
-        break;
-      }
-    }
-  }
-  const event = unresolvedEvent ?? events[latestUserIndex];
-  if (event === undefined) {
-    throw new Error("a deterministic capsule needs evidence for the next action");
-  }
-  return {
-    text: event.text,
-    evidenceRefs: [event.id],
-    inferred: unresolvedEvent !== undefined
-  };
+function actionFact(value: DerivedActionFact): CapsuleFact {
+  return { text: value.text, evidenceRefs: value.sourceEventIds, inferred: value.inferred };
 }
 
 function measurements(content: string): HandoffInputArtifact["measurements"] {
@@ -182,6 +156,7 @@ export function buildDeterministicCapsule(
   }
 
   const capsuleId = `capsule-${sourceFingerprint(fixture).slice(0, 24)}`;
+  const nextAction = deriveNextAction(fixture.source.events);
   const capsule = {
     schemaVersion: "2.0.0",
     source: {
@@ -217,9 +192,9 @@ export function buildDeterministicCapsule(
     completed: assistantEvents.map(fact),
     pending: [fact(currentUserMessage)],
     nextAction: {
-      first: nextActionFact(fixture.source.events),
-      then: [],
-      forbiddenBefore: []
+      first: actionFact(nextAction.first),
+      then: nextAction.then.map(actionFact),
+      forbiddenBefore: nextAction.forbiddenBefore.map(actionFact)
     },
     files: fixture.workspace.files.map((file) => ({
       path: file.path,

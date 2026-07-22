@@ -6,6 +6,7 @@ import type {
 } from "../adapters/source-reader.js";
 import { redactSensitive } from "../security/redact.js";
 import type { CollectedWorkspaceEvidence } from "../workspace/collect-workspace.js";
+import { deriveNextAction, type DerivedActionFact } from "./derive-next-action.js";
 import { validateWorkCapsule } from "./validate-capsule.js";
 
 export type LossSeverity = "critical" | "warning" | "info";
@@ -138,37 +139,6 @@ function uniqueEventIds(events: readonly CanonicalSourceEvent[]): void {
     }
     ids.add(event.id);
   }
-}
-
-function nextActionSource(
-  events: readonly CanonicalSourceEvent[],
-  currentUserMessage: CanonicalSourceEvent
-): { readonly event: CanonicalSourceEvent; readonly inferred: boolean } {
-  let latestUserIndex = -1;
-  let latestAssistantIndex = -1;
-  let latestAssistantEvent: CanonicalSourceEvent | undefined;
-  for (let index = 0; index < events.length; index += 1) {
-    const event = events[index]!;
-    if (event.kind === "user-message") {
-      latestUserIndex = index;
-    }
-    if (event.kind === "assistant-message" || event.kind === "agent-checkpoint") {
-      latestAssistantIndex = index;
-      latestAssistantEvent = event;
-    }
-  }
-  if (latestAssistantIndex > latestUserIndex) {
-    for (let index = events.length - 1; index > latestAssistantIndex; index -= 1) {
-      const event = events[index]!;
-      if (event.kind === "tool-result" && event.text !== undefined) {
-        return { event, inferred: true };
-      }
-    }
-    if (latestAssistantEvent?.kind === "agent-checkpoint") {
-      return { event: latestAssistantEvent, inferred: true };
-    }
-  }
-  return { event: currentUserMessage, inferred: false };
 }
 
 function inheritedEvidence(parent: WorkCapsule | undefined): Record<string, unknown>[] {
@@ -354,7 +324,12 @@ export function buildWorkCapsule(
     all.findIndex((candidate) => candidate.id === evidence.id) === index
   );
   const evidenceFingerprint = sha256(JSON.stringify(evidenceRefs));
-  const nextAction = nextActionSource(events, currentUserMessage);
+  const nextAction = deriveNextAction(events);
+  const actionFact = (value: DerivedActionFact): CapsuleFact => ({
+    text: value.text,
+    evidenceRefs: value.sourceEventIds.map((id) => eventEvidenceIds.get(id)!),
+    inferred: value.inferred
+  });
 
   const rawCapsule: WorkCapsule = {
     schemaVersion: "2.0.0",
@@ -385,9 +360,9 @@ export function buildWorkCapsule(
       ...checkpointMessages.map((event) => fact(event, eventEvidenceId(event)))
     ],
     nextAction: {
-      first: fact(nextAction.event, eventEvidenceId(nextAction.event), nextAction.inferred),
-      then: [],
-      forbiddenBefore: []
+      first: actionFact(nextAction.first),
+      then: nextAction.then.map(actionFact),
+      forbiddenBefore: nextAction.forbiddenBefore.map(actionFact)
     },
     files: [
       ...workspaceEvidence.files.map((file) => ({
