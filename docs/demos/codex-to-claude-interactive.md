@@ -34,9 +34,11 @@ process exit: 0
 ```
 
 AgentCarry invoked the planned stdin seed and exact interactive resume command
-with one generated target session ID. The real seed accepted the context, the
-resume saw that same context and returned the requested message, and no target
-output was used as AgentCarry control data.
+with one generated target session ID. The real seed accepted the context and
+its captured output was used only for strict same-session acknowledgment
+validation; it was not displayed. The interactive resume then saw that context
+and returned the requested message. Resume output is not AgentCarry control
+data.
 
 The source file was hashed immediately before and after the complete command:
 
