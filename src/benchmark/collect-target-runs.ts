@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { validateWorkCapsule } from "../capsule/validate-capsule.js";
 import {
   buildDeterministicCapsule,
   buildVisibleTranscript,
@@ -173,6 +174,17 @@ function assertArtifact(
     || artifact.content.length === 0
   ) {
     throw new Error(`stored input does not match run plan for ${expected.runId}`);
+  }
+  if (artifact.mode !== "visible-transcript") {
+    let capsule: unknown;
+    try {
+      capsule = JSON.parse(artifact.content) as unknown;
+    } catch {
+      throw new Error(`stored capsule input is not valid JSON for ${expected.runId}`);
+    }
+    if (validateWorkCapsule(capsule).length > 0) {
+      throw new Error(`stored capsule input is not Work Capsule v2 for ${expected.runId}`);
+    }
   }
   if (
     expected.mode === "source-assisted-capsule"

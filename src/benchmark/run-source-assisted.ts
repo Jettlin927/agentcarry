@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateWorkCapsule } from "../capsule/validate-capsule.js";
 import {
   buildSourceAssistedPrompt,
   sourceAssistedArtifact,
@@ -69,6 +70,7 @@ export async function createSourceAssistedInvocation(
     new URL("../../schema/work-capsule.v2.schema.json", import.meta.url)
   );
   const schema = JSON.parse(await readFile(schemaPath, "utf8")) as object;
+  const schemaJson = JSON.stringify(schema);
   const settingSources = options.settingSources ?? "none";
   return {
     command: "claude",
@@ -88,11 +90,15 @@ export async function createSourceAssistedInvocation(
       "--output-format",
       "json",
       "--json-schema",
-      JSON.stringify(schema),
+      schemaJson,
       "--model",
       model
     ],
-    stdin: buildSourceAssistedPrompt(fixture),
+    stdin: `${buildSourceAssistedPrompt(fixture)}
+
+WORK CAPSULE V2 JSON SCHEMA
+${schemaJson}
+`,
     model,
     persistence: "disabled",
     tools: "disabled",
@@ -130,7 +136,14 @@ export async function runSourceAssisted(
     if (capsule === undefined) {
       throw new Error("source-assisted summarizer returned no structured output");
     }
-    return sourceAssistedArtifact(fixture, model, capsule, inputTokens);
+    const schemaErrors = validateWorkCapsule(capsule);
+    if (schemaErrors.length > 0) {
+      const details = schemaErrors.slice(0, 5).map((error) =>
+        `${error.instancePath || "/"} ${error.message ?? error.keyword}`
+      ).join("; ");
+      throw new Error(`source-assisted summarizer returned invalid Work Capsule v2: ${details}`);
+    }
+    return sourceAssistedArtifact(fixture, model, capsule, inputTokens, invocation.stdin);
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
   }

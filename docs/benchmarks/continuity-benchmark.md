@@ -53,6 +53,11 @@ fixed event-role and text heuristics and reports that semantic limitation as a
 loss. Source-assisted mode invokes a fresh Claude Code print session with no
 tools, no slash commands, strict empty MCP configuration, and
 `--no-session-persistence`; it never resumes the source session.
+The complete Work Capsule v2 schema is supplied through both `--json-schema`
+and the model-visible prompt because routed providers may ignore Claude Code's
+structured-output metadata. The returned value must pass the v2 validator
+before it is persisted. Historical or malformed capsule shapes fail at this
+boundary; the target launcher never guesses field aliases.
 
 The canonical JSON capsule remains a separate input artifact for machine use
 and audit. Capsule target calls receive only the compiled continuation brief;

@@ -111,6 +111,8 @@ Phase 0 使用 12 个受控任务，对每个任务比较三种交接：
 2. 确定性 Work Capsule；
 3. source-assisted Work Capsule。
 
+source-assisted 生成会把完整 v2 schema 同时放进 Claude CLI structured-output 参数和模型可见 prompt，并在落盘前校验结果。忽略 structured-output metadata 的 routed provider 必须返回合法 v2 Capsule，否则在该边界明确失败，不会把旧字段留给 launcher 猜测。
+
 评分覆盖关键约束、目标与状态、决策与失败尝试、已完成与待办、工作区证据和正确下一步。规则见[连续性 benchmark](docs/benchmarks/continuity-benchmark.md)。
 仓库还提供不会启动 Agent 的 36-run plan，以及可断点续跑且不覆盖 initial result 的 raw-output collector，固定记录 target model、settings、原始回复与所有 input token 类别。
 Benchmark v2 会把目标 CLI 的完整调用 input、经校准的固定 harness 开销和 AgentCarry 可控 payload 分开记录；40% 门槛只比较 AgentCarry payload 与 visible-transcript payload。已发布的 Phase 0 v1 报告及其原始指标保持冻结，不会回写。

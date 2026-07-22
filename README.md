@@ -149,6 +149,11 @@ handoff modes:
 2. deterministic Work Capsule;
 3. source-assisted Work Capsule.
 
+Source-assisted generation supplies the complete v2 schema through both the
+Claude CLI structured-output option and the model-visible prompt, then validates
+the result before it can become an artifact. Routed providers that ignore
+structured-output metadata must still return a valid v2 capsule or fail closed.
+
 The benchmark scores critical constraints, objective and state, decisions and
 failed attempts, completed and pending work, workspace evidence, and the next
 correct action. A dry 36-run plan and resumable raw-output collector keep target

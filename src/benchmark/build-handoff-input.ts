@@ -280,9 +280,9 @@ export function sourceAssistedArtifact(
   fixture: BenchmarkSourceFixture,
   model: string,
   capsule: unknown,
-  summarizerInputTokens: number
+  summarizerInputTokens: number,
+  prompt: string
 ): HandoffInputArtifact {
-  const prompt = buildSourceAssistedPrompt(fixture);
   const content = canonicalJson(capsule);
   return artifact(fixture, "source-assisted-capsule", "application/json", content, {
     deterministic: false,
