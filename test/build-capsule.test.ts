@@ -109,7 +109,7 @@ describe("buildWorkCapsule", () => {
     expect(result.capsule.currentUserMessage.text).toBe("Write the focused regression next.");
     expect(result.capsule.nextAction).toEqual({
       first: {
-        text: "Write and run the focused regression.",
+        text: "Write the focused regression.",
         evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
         inferred: true
       },
@@ -227,7 +227,7 @@ describe("buildWorkCapsule", () => {
     const result = buildWorkCapsule(session, events, workspace);
 
     expect(result.capsule.nextAction.first).toMatchObject({
-      text: expect.stringMatching(/fix.*negative adjustments.*rerun.*focused parser regression/i),
+      text: expect.stringMatching(/investigate.*latest source result.*negative adjustments/i),
       inferred: true
     });
     expect(result.capsule.nextAction.first.evidenceRefs).toEqual([
@@ -265,7 +265,7 @@ describe("buildWorkCapsule", () => {
 
     expect(result.capsule.nextAction).toEqual({
       first: {
-        text: "Add and run the parser regression.",
+        text: "Add the parser regression.",
         evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
         inferred: true
       },
@@ -291,5 +291,46 @@ describe("buildWorkCapsule", () => {
 
     expect(result.capsule.nextAction.first.text).toMatch(first);
     expect(result.capsule.nextAction.then[0]?.text).toMatch(then);
+  });
+
+  it("uses a later failed result instead of repeating an earlier ordered instruction", () => {
+    const events = sourceEvents();
+    const currentIndex = events.findIndex((event) => event.id === "event-user-2");
+    events[currentIndex] = {
+      ...events[currentIndex]!,
+      text: "Run the regression first, then implement the fix."
+    };
+    events.push({
+      id: "event-assistant-2",
+      kind: "assistant-message",
+      timestamp: "2026-07-21T00:00:06Z",
+      locator: "session:6",
+      text: "The ordered work is complete."
+    });
+    events.push({
+      id: "event-tool-output-2",
+      kind: "tool-result",
+      timestamp: "2026-07-21T00:00:07Z",
+      locator: "session:7",
+      text: "The regression still fails on negative adjustments."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toMatch(/negative adjustments/i);
+    expect(result.capsule.nextAction.first.text).not.toBe("Run the regression.");
+  });
+
+  it("lets a newer explicit next instruction override an older failure", () => {
+    const events = sourceEvents();
+    const currentIndex = events.findIndex((event) => event.id === "event-user-2");
+    events[currentIndex] = {
+      ...events[currentIndex]!,
+      text: "Redact the password in README next."
+    };
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toBe("Redact the password in README.");
   });
 });
