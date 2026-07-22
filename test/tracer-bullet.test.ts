@@ -103,7 +103,19 @@ describe("Codex to Claude dry-run tracer bullet", () => {
     ];
     await writeFile(sessionPath, `${lines.map((line) => JSON.stringify(line)).join("\n")}\n`, "utf8");
     const before = hash(await readFile(sessionPath));
-    const runLaunch = vi.fn<LaunchRunner>(async () => ({ exitCode: 0, stdout: "", stderr: "" }));
+    const runLaunch = vi.fn<LaunchRunner>(async (step) => ({
+      exitCode: 0,
+      stdout: step.purpose === "seed-session"
+        ? JSON.stringify({
+            type: "result",
+            subtype: "success",
+            is_error: false,
+            session_id: "11111111-1111-4111-8111-111111111111",
+            result: "AgentCarry context received."
+          })
+        : "",
+      stderr: ""
+    }));
     const handlers = createAgentCarryHandlers({
       cwd: workspace,
       codexReader: new CodexSourceReader({ sessionRoot: sessions }),

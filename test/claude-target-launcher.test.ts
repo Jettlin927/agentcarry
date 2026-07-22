@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { CapsuleBuildResult, WorkCapsule } from "../src/capsule/build-capsule.js";
 import {
   ClaudeTargetLauncher,
@@ -119,9 +122,17 @@ describe("ClaudeTargetLauncher", () => {
   });
 
   it("seeds the redacted prompt before resuming the interactive session", async () => {
-    const runLaunch = vi.fn<LaunchRunner>(async () => ({
+    const runLaunch = vi.fn<LaunchRunner>(async (step) => ({
       exitCode: 0,
-      stdout: "",
+      stdout: step.purpose === "seed-session"
+        ? JSON.stringify({
+            type: "result",
+            subtype: "success",
+            is_error: false,
+            session_id: "11111111-1111-4111-8111-111111111111",
+            result: "AgentCarry context received."
+          })
+        : "",
       stderr: ""
     }));
     const launcher = new ClaudeTargetLauncher({
@@ -158,26 +169,73 @@ describe("ClaudeTargetLauncher", () => {
     expect(runLaunch).toHaveBeenCalledOnce();
   });
 
+  it("does not resume after a zero-exit seed without Claude acknowledgement", async () => {
+    const runLaunch = vi.fn<LaunchRunner>(async () => ({
+      exitCode: 0,
+      stdout: "",
+      stderr: ""
+    }));
+    const launcher = new ClaudeTargetLauncher({ cwd: ".", runLaunch });
+
+    await expect(launcher.launch(launcher.prepare(result))).rejects.toMatchObject({
+      code: "TARGET_SEED_INVALID",
+      step: "seed-session"
+    } satisfies Partial<TargetLaunchError>);
+    expect(runLaunch).toHaveBeenCalledOnce();
+  });
+
+  it("maps an incomplete seed stdin write to a seed failure", async () => {
+    const runLaunch = vi.fn<LaunchRunner>(async () => {
+      throw new Error("write EOF");
+    });
+    const launcher = new ClaudeTargetLauncher({ cwd: ".", runLaunch });
+
+    await expect(launcher.launch(launcher.prepare(result))).rejects.toMatchObject({
+      code: "TARGET_SEED_FAILED",
+      step: "seed-session",
+      exitCode: undefined
+    } satisfies Partial<TargetLaunchError>);
+    expect(runLaunch).toHaveBeenCalledOnce();
+  });
+
   it("runs captured and inherited child-process steps cross-platform", async () => {
-    const seed = await defaultLaunchRunner({
-      purpose: "seed-session",
-      command: process.execPath,
-      args: ["-e", "process.stdin.pipe(process.stdout)"],
-      cwd: process.cwd(),
-      stdin: "capsule-prompt",
-      displayCommand: "node seed"
-    }, "redacted capsule");
-    const resume = await defaultLaunchRunner({
-      purpose: "resume-interactive",
+    const cwd = await mkdtemp(join(tmpdir(), "agentcarry 中文 workspace "));
+    try {
+      const seed = await defaultLaunchRunner({
+        purpose: "seed-session",
+        command: process.execPath,
+        args: ["-e", "process.stdin.pipe(process.stdout)"],
+        cwd,
+        stdin: "capsule-prompt",
+        displayCommand: "node seed"
+      }, "redacted capsule");
+      const resume = await defaultLaunchRunner({
+        purpose: "resume-interactive",
+        command: process.execPath,
+        args: ["-e", "process.exit(0)"],
+        cwd,
+        stdin: "inherit",
+        displayCommand: "node resume"
+      }, undefined);
+
+      expect(seed).toEqual({ exitCode: 0, stdout: "redacted capsule", stderr: "" });
+      expect(resume).toEqual({ exitCode: 0, stdout: "", stderr: "" });
+    } finally {
+      await rm(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("fails when a seed exits before the complete prompt reaches stdin", async () => {
+    const step = {
+      purpose: "seed-session" as const,
       command: process.execPath,
       args: ["-e", "process.exit(0)"],
       cwd: process.cwd(),
-      stdin: "inherit",
-      displayCommand: "node resume"
-    }, undefined);
+      stdin: "capsule-prompt" as const,
+      displayCommand: "node early-exit"
+    };
 
-    expect(seed).toEqual({ exitCode: 0, stdout: "redacted capsule", stderr: "" });
-    expect(resume).toEqual({ exitCode: 0, stdout: "", stderr: "" });
+    await expect(defaultLaunchRunner(step, "x".repeat(1024 * 1024))).rejects.toThrow();
   });
 
   it("keeps the exact canonical Capsule separate for audit", () => {

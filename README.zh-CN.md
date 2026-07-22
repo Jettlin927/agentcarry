@@ -93,6 +93,9 @@ node dist/cli-main.js continue --to claude
 Code 原生交互界面。交互回合仍使用用户自己的模型、provider、权限、Skill、MCP 与认证。
 seed 失败时不会执行 resume；AgentCarry 不安装 Claude Code，也不会发起登录。
 
+脱敏的 [真实 Claude 交互启动记录](docs/demos/codex-to-claude-interactive.md) 同时说明了
+Windows provider 冒烟与三平台进程边界各自证明了什么。
+
 ## 安装仓库 Skill
 
 首先直接告诉当前 Coding Agent：

@@ -118,6 +118,9 @@ interactive UI with target-owned model, provider, permissions, skills, MCP, and
 authentication. A failed seed never reaches the resume step. AgentCarry does
 not install Claude Code or start a login flow.
 
+See the sanitized [real-target interactive smoke](docs/demos/codex-to-claude-interactive.md)
+and its separate three-platform process boundary.
+
 ## Install the repository Skill
 
 First ask the coding agent that will use the Skill:

@@ -61,8 +61,10 @@ The Claude Launcher creates one fresh session in two fail-closed steps:
 
 1. send the redacted continuation brief through stdin to a non-interactive,
    tool-free seed turn;
-2. only after a zero seed exit, resume the same session in Claude Code's native
-   interactive mode with a short fixed start prompt.
+2. require a zero exit plus valid Claude success JSON for the same session ID
+   and the exact fixed context acknowledgment;
+3. only then resume that session in Claude Code's native interactive mode with
+   a short fixed start prompt.
 
 The continuation brief is never a command-line argument. The resume step does
 not select a model, provider, permission mode, skills, MCP configuration, or

@@ -113,7 +113,19 @@ describe("AgentCarry production handlers", () => {
   });
 
   it("launches the already prepared handoff and returns a human completion result", async () => {
-    const runLaunch = vi.fn<LaunchRunner>(async () => ({ exitCode: 0, stdout: "", stderr: "" }));
+    const runLaunch = vi.fn<LaunchRunner>(async (step) => ({
+      exitCode: 0,
+      stdout: step.purpose === "seed-session"
+        ? JSON.stringify({
+            type: "result",
+            subtype: "success",
+            is_error: false,
+            session_id: "11111111-1111-4111-8111-111111111111",
+            result: "AgentCarry context received."
+          })
+        : "",
+      stderr: ""
+    }));
     const launcher = new ClaudeTargetLauncher({
       cwd: workspace.workspace.primaryRoot,
       createSessionId: () => "11111111-1111-4111-8111-111111111111",

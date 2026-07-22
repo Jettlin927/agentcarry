@@ -62,6 +62,9 @@ exit code 0. No real transcript content or session identifier is stored here.
   provider request.
 
 The interactive process seam is exercised on Node.js 22 and 24 across Windows,
-macOS, and Ubuntu in CI with a fake target process. A real Claude Code 2.1.158
-launch remains a release gate and is recorded separately from fixture evidence.
+macOS, and Ubuntu in CI with a controlled target process. The exact public
+command also completed a sanitized real Claude Code 2.1.158 seed and resume on
+Windows with exit code 0 and an unchanged source SHA-256. See the
+[interactive launch record](demos/codex-to-claude-interactive.md); it does not
+misrepresent provider-less macOS or Ubuntu CI as a live-provider test.
 

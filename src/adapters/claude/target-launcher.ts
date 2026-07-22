@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
+import { finished } from "node:stream/promises";
 import type {
   CapsuleBuildResult,
   CapsuleFact,
@@ -47,6 +48,8 @@ export const claudeLauncherMetadata = {
   managesAuthentication: false
 } as const;
 
+const seedAcknowledgement = "AgentCarry context received.";
+
 export const defaultCommandRunner: CommandRunner = async (command, args) =>
   await new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -66,29 +69,34 @@ export const defaultCommandRunner: CommandRunner = async (command, args) =>
     }));
   });
 
-export const defaultLaunchRunner: LaunchRunner = async (step, stdin) =>
-  await new Promise((resolve, reject) => {
-    const captured = step.stdin === "capsule-prompt";
-    const child = spawn(step.command, [...step.args], {
-      cwd: step.cwd,
-      env: process.env,
-      shell: false,
-      stdio: captured ? ["pipe", "pipe", "pipe"] : "inherit"
-    });
-    const stdout: Buffer[] = [];
-    const stderr: Buffer[] = [];
-    child.stdout?.on("data", (chunk: Buffer) => stdout.push(chunk));
-    child.stderr?.on("data", (chunk: Buffer) => stderr.push(chunk));
+export const defaultLaunchRunner: LaunchRunner = async (step, stdin) => {
+  const captured = step.stdin === "capsule-prompt";
+  const child = spawn(step.command, [...step.args], {
+    cwd: step.cwd,
+    env: process.env,
+    shell: false,
+    stdio: captured ? ["pipe", "pipe", "pipe"] : "inherit"
+  });
+  const stdout: Buffer[] = [];
+  const stderr: Buffer[] = [];
+  child.stdout?.on("data", (chunk: Buffer) => stdout.push(chunk));
+  child.stderr?.on("data", (chunk: Buffer) => stderr.push(chunk));
+  const completed = new Promise<CommandResult>((resolve, reject) => {
     child.on("error", reject);
     child.on("close", (exitCode) => resolve({
       exitCode: exitCode ?? 1,
       stdout: Buffer.concat(stdout).toString("utf8"),
       stderr: Buffer.concat(stderr).toString("utf8")
     }));
-    if (captured) {
-      child.stdin?.end(stdin ?? "", "utf8");
-    }
   });
+  if (!captured) return await completed;
+  if (child.stdin === null) throw new Error("seed stdin pipe is unavailable");
+
+  const stdinFinished = finished(child.stdin, { cleanup: true });
+  child.stdin.end(stdin ?? "", "utf8");
+  const [result] = await Promise.all([completed, stdinFinished]);
+  return result;
+};
 
 export class TargetLaunchError extends Error {
   constructor(
@@ -267,7 +275,7 @@ export function buildContinuationPrompt(capsule: WorkCapsule): string {
   return `This is a context-seeding turn for a coding task transferred from another agent.
 
 Do not use tools, edit files, run commands, or begin the task in this seeding turn.
-Reply only: AgentCarry context received.
+Reply only: ${seedAcknowledgement}
 The next interactive user turn will tell you to begin.
 
 When that next turn arrives:
@@ -300,6 +308,20 @@ function seedStep(cwd: string, sessionId: string): LaunchStep {
     stdin: "capsule-prompt",
     displayCommand: `claude --session-id ${sessionId} --print --output-format json --tools "" < capsule-prompt`
   };
+}
+
+function hasValidSeedAcknowledgement(stdout: string, targetSessionId: string): boolean {
+  try {
+    const value = JSON.parse(stdout) as Record<string, unknown>;
+    return value.type === "result"
+      && value.subtype === "success"
+      && value.is_error === false
+      && value.session_id === targetSessionId
+      && typeof value.result === "string"
+      && value.result.trim() === seedAcknowledgement;
+  } catch {
+    return false;
+  }
 }
 
 function resumeStep(cwd: string, sessionId: string): LaunchStep {
@@ -355,17 +377,20 @@ export class ClaudeTargetLauncher implements TargetLauncher {
     try {
       seeded = await this.#runLaunch(seed, prepared.prompt);
     } catch {
-      throw new TargetLaunchError("TARGET_LAUNCH_FAILED", "seed-session");
+      throw new TargetLaunchError("TARGET_SEED_FAILED", "seed-session");
     }
     if (seeded.exitCode !== 0) {
       throw new TargetLaunchError("TARGET_SEED_FAILED", "seed-session", seeded.exitCode);
+    }
+    if (!hasValidSeedAcknowledgement(seeded.stdout, prepared.targetSessionId)) {
+      throw new TargetLaunchError("TARGET_SEED_INVALID", "seed-session");
     }
 
     let resumed: CommandResult;
     try {
       resumed = await this.#runLaunch(resume, undefined);
     } catch {
-      throw new TargetLaunchError("TARGET_LAUNCH_FAILED", "resume-interactive");
+      throw new TargetLaunchError("TARGET_INTERACTIVE_FAILED", "resume-interactive");
     }
     if (resumed.exitCode !== 0) {
       throw new TargetLaunchError(
