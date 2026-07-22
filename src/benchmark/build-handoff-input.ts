@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { deriveNextAction, type DerivedActionFact } from "../capsule/derive-next-action.js";
 
 export type HandoffMode =
   | "visible-transcript"
@@ -94,6 +95,10 @@ function fact(event: BenchmarkEvent): CapsuleFact {
   return { text: event.text, evidenceRefs: [event.id], inferred: false };
 }
 
+function actionFact(value: DerivedActionFact): CapsuleFact {
+  return { text: value.text, evidenceRefs: value.sourceEventIds, inferred: value.inferred };
+}
+
 function measurements(content: string): HandoffInputArtifact["measurements"] {
   return {
     utf8Bytes: Buffer.byteLength(content, "utf8"),
@@ -151,8 +156,9 @@ export function buildDeterministicCapsule(
   }
 
   const capsuleId = `capsule-${sourceFingerprint(fixture).slice(0, 24)}`;
+  const nextAction = deriveNextAction(fixture.source.events);
   const capsule = {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     source: {
       agent: fixture.source.agent,
       agentVersion: fixture.source.agentVersion,
@@ -185,6 +191,11 @@ export function buildDeterministicCapsule(
       })),
     completed: assistantEvents.map(fact),
     pending: [fact(currentUserMessage)],
+    nextAction: {
+      first: actionFact(nextAction.first),
+      then: nextAction.then.map(actionFact),
+      forbiddenBefore: nextAction.forbiddenBefore.map(actionFact)
+    },
     files: fixture.workspace.files.map((file) => ({
       path: file.path,
       kind: file.state === "unchanged" ? "referenced" : file.state,
@@ -211,7 +222,7 @@ export function buildDeterministicCapsule(
         code: "DETERMINISTIC_SEMANTIC_HEURISTIC",
         severity: "warning",
         description: "Semantic categories were populated by deterministic event-role and text heuristics.",
-        affectedFields: ["constraints", "decisions", "failedAttempts", "completed", "pending"]
+        affectedFields: ["constraints", "decisions", "failedAttempts", "completed", "pending", "nextAction"]
       },
       {
         code: "HIDDEN_AGENT_STATE_UNAVAILABLE",
@@ -253,6 +264,9 @@ Rules:
 - Preserve the latest user message verbatim in currentUserMessage.text.
 - Every task-specific fact must cite supplied event IDs, or set inferred to true.
 - Distinguish completed work, pending work, decisions, and failed attempts.
+- Set nextAction.first to the single action the target must do first, with source evidence.
+- Put only actions that follow it in nextAction.then. Do not promote nextAction.then before nextAction.first is complete.
+- Record explicitly blocked early actions in nextAction.forbiddenBefore; leave the array empty when the source establishes none.
 - Current workspace facts override older transcript claims.
 - Do not invent commands, validations, files, session state, or test results.
 - Report hidden reasoning, prompt caches, tool state, and unavailable attachments as losses.

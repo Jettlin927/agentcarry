@@ -107,6 +107,15 @@ describe("buildWorkCapsule", () => {
 
     expect(validateWorkCapsule(result.capsule)).toEqual([]);
     expect(result.capsule.currentUserMessage.text).toBe("Write the focused regression next.");
+    expect(result.capsule.nextAction).toEqual({
+      first: {
+        text: "Write the focused regression.",
+        evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
+        inferred: true
+      },
+      then: [],
+      forbiddenBefore: []
+    });
     expect(result.capsule.workspace).toEqual(workspace.workspace);
     expect(result.capsule.commands).toContainEqual(expect.objectContaining({ command: "npm test" }));
     expect(result.capsule.validations).toContainEqual(
@@ -201,5 +210,193 @@ describe("buildWorkCapsule", () => {
     expect(result.capsule.commands).toContainEqual(expect.objectContaining({
       command: `pwsh -NoProfile -Command \"${powershell}\"`
     }));
+  });
+
+  it("turns a later unresolved tool result into an executable action", () => {
+    const events = sourceEvents()
+      .filter((event) => event.id !== "event-user-2" && event.kind !== "attachment");
+    events.push({
+      id: "event-tool-output-2",
+      kind: "tool-result",
+      timestamp: "2026-07-21T00:00:06Z",
+      locator: "session:6",
+      callId: "call-2",
+      text: "The focused parser regression still fails on negative adjustments."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first).toMatchObject({
+      text: expect.stringMatching(/investigate.*latest source result.*negative adjustments/i),
+      inferred: true
+    });
+    expect(result.capsule.nextAction.first.evidenceRefs).toEqual([
+      expect.stringMatching(/^event:/)
+    ]);
+  });
+
+  it("uses an explicit active checkpoint as the first action when it is newest", () => {
+    const events = sourceEvents();
+    events.push({
+      id: "checkpoint-1",
+      kind: "agent-checkpoint",
+      timestamp: "2026-07-21T00:00:07Z",
+      locator: "checkpoint:stdin:1",
+      text: "The parser fix is complete. Run the three-platform regression suite next."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first).toMatchObject({
+      text: "Run the three-platform regression suite.",
+      inferred: true
+    });
+  });
+
+  it("keeps explicitly blocked work behind the first action", () => {
+    const events = sourceEvents();
+    const currentIndex = events.findIndex((event) => event.id === "event-user-2");
+    events[currentIndex] = {
+      ...events[currentIndex]!,
+      text: "Add the parser regression before changing retry policy."
+    };
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction).toEqual({
+      first: {
+        text: "Add the parser regression.",
+        evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
+        inferred: true
+      },
+      then: [],
+      forbiddenBefore: [{
+        text: "Changing retry policy.",
+        evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
+        inferred: true
+      }]
+    });
+  });
+
+  it.each([
+    ["Run the regression first, then implement the fix.", /^Run the regression\.$/, /^Implement the fix\.$/],
+    ["Implement the fix after running the regression.", /^Run the regression\.$/, /^Implement the fix\.$/],
+    ["先运行回归测试，再实现修复。", /^运行回归测试。$/, /^实现修复。$/],
+    ["Do not change the API. Run the regression first, then implement the fix.", /^Run the regression\.$/, /^Implement the fix\.$/],
+    ["不要修改接口。先运行回归测试，再实现修复。", /^运行回归测试。$/, /^实现修复。$/]
+  ])("preserves explicit action order in %s", (message, first, then) => {
+    const events = sourceEvents();
+    const currentIndex = events.findIndex((event) => event.id === "event-user-2");
+    events[currentIndex] = { ...events[currentIndex]!, text: message };
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toMatch(first);
+    expect(result.capsule.nextAction.then[0]?.text).toMatch(then);
+  });
+
+  it("uses a later failed result instead of repeating an earlier ordered instruction", () => {
+    const events = sourceEvents();
+    const currentIndex = events.findIndex((event) => event.id === "event-user-2");
+    events[currentIndex] = {
+      ...events[currentIndex]!,
+      text: "Run the regression first, then implement the fix."
+    };
+    events.push({
+      id: "event-assistant-2",
+      kind: "assistant-message",
+      timestamp: "2026-07-21T00:00:06Z",
+      locator: "session:6",
+      text: "The ordered work is complete."
+    });
+    events.push({
+      id: "event-tool-output-2",
+      kind: "tool-result",
+      timestamp: "2026-07-21T00:00:07Z",
+      locator: "session:7",
+      text: "The regression still fails on negative adjustments."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toMatch(/negative adjustments/i);
+    expect(result.capsule.nextAction.first.text).not.toBe("Run the regression.");
+  });
+
+  it("lets a newer explicit next instruction override an older failure", () => {
+    const events = sourceEvents();
+    const currentIndex = events.findIndex((event) => event.id === "event-user-2");
+    events[currentIndex] = {
+      ...events[currentIndex]!,
+      text: "Redact the password in README next."
+    };
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toBe("Redact the password in README.");
+  });
+
+  it("does not turn a successful tool result into unresolved work", () => {
+    const events = sourceEvents();
+    events.push({
+      id: "event-assistant-2",
+      kind: "assistant-message",
+      timestamp: "2026-07-21T00:00:06Z",
+      locator: "session:6",
+      text: "The requested regression is implemented."
+    });
+    events.push({
+      id: "event-tool-output-2",
+      kind: "tool-result",
+      timestamp: "2026-07-21T00:00:07Z",
+      locator: "session:7",
+      text: "Tests: 116 passed, 0 failed."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toBe(
+      "No unresolved action is evidenced; wait for the next user instruction."
+    );
+    expect(result.capsule.nextAction.first.text).not.toMatch(/investigate|resolve the latest/i);
+  });
+
+  it("does not repeat work completed by a later assistant message", () => {
+    const events = sourceEvents();
+    events.push({
+      id: "event-assistant-2",
+      kind: "assistant-message",
+      timestamp: "2026-07-21T00:00:06Z",
+      locator: "session:6",
+      text: "The parser fix is complete and all tests pass."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toBe(
+      "No unresolved action is evidenced; wait for the next user instruction."
+    );
+  });
+
+  it("treats a nonzero failed count as unresolved work", () => {
+    const events = sourceEvents();
+    events.push({
+      id: "event-assistant-2",
+      kind: "assistant-message",
+      timestamp: "2026-07-21T00:00:06Z",
+      locator: "session:6",
+      text: "The requested regression is implemented."
+    });
+    events.push({
+      id: "event-tool-output-2",
+      kind: "tool-result",
+      timestamp: "2026-07-21T00:00:07Z",
+      locator: "session:7",
+      text: "Tests: 115 passed, 1 failed."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toMatch(/investigate and resolve/i);
   });
 });

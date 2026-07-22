@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jettlin927/agentcarry/blob/main/schema/work-capsule.v2.schema.json",
+  "title": "AgentCarry Work Capsule v2",
+  "description": "Evidence-backed state required to continue a coding task in another agent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "source",
+    "workspace",
+    "currentUserMessage",
+    "objective",
+    "constraints",
+    "decisions",
+    "failedAttempts",
+    "completed",
+    "pending",
+    "nextAction",
+    "files",
+    "commands",
+    "validations",
+    "openQuestions",
+    "evidenceRefs",
+    "losses",
+    "lineage"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "2.0.0" },
+    "source": { "$ref": "#/$defs/source" },
+    "workspace": { "$ref": "#/$defs/workspace" },
+    "currentUserMessage": { "$ref": "#/$defs/fact" },
+    "objective": { "$ref": "#/$defs/fact" },
+    "constraints": { "$ref": "#/$defs/facts" },
+    "decisions": { "$ref": "#/$defs/facts" },
+    "failedAttempts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/failedAttempt" }
+    },
+    "completed": { "$ref": "#/$defs/facts" },
+    "pending": { "$ref": "#/$defs/facts" },
+    "nextAction": { "$ref": "#/$defs/nextAction" },
+    "files": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/file" }
+    },
+    "commands": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/command" }
+    },
+    "validations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/validation" }
+    },
+    "openQuestions": { "$ref": "#/$defs/facts" },
+    "evidenceRefs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidence" }
+    },
+    "losses": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/loss" }
+    },
+    "lineage": { "$ref": "#/$defs/lineage" }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidenceIds": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonEmptyString" },
+      "uniqueItems": true
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "evidenceRefs", "inferred"],
+      "properties": {
+        "text": { "$ref": "#/$defs/nonEmptyString" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" },
+        "inferred": { "type": "boolean" }
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/fact" }
+    },
+    "nextActionFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "evidenceRefs", "inferred"],
+      "properties": {
+        "text": { "$ref": "#/$defs/nonEmptyString" },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonEmptyString" },
+          "uniqueItems": true
+        },
+        "inferred": { "type": "boolean" }
+      }
+    },
+    "nextActionFacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nextActionFact" }
+    },
+    "nextAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["first", "then", "forbiddenBefore"],
+      "properties": {
+        "first": { "$ref": "#/$defs/nextActionFact" },
+        "then": { "$ref": "#/$defs/nextActionFacts" },
+        "forbiddenBefore": { "$ref": "#/$defs/nextActionFacts" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent", "sessionId", "capturedAt"],
+      "properties": {
+        "agent": { "$ref": "#/$defs/nonEmptyString" },
+        "agentVersion": { "type": "string" },
+        "sessionId": { "$ref": "#/$defs/nonEmptyString" },
+        "sessionLocator": { "type": "string" },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "snapshot": { "$ref": "#/$defs/sourceSnapshot" }
+      }
+    },
+    "sourceSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capturedAt", "byteLength", "sha256", "changedDuringCapture", "trailingFragmentIgnored"],
+      "properties": {
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "byteLength": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+        "changedDuringCapture": { "type": "boolean" },
+        "trailingFragmentIgnored": { "type": "boolean" }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primaryRoot", "additionalRoots", "capturedAt"],
+      "properties": {
+        "primaryRoot": { "$ref": "#/$defs/nonEmptyString" },
+        "additionalRoots": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/nonEmptyString" },
+          "uniqueItems": true
+        },
+        "capturedAt": { "type": "string", "format": "date-time" },
+        "git": { "$ref": "#/$defs/git" },
+        "instructionFiles": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/instructionFile" }
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repoRoot", "dirty"],
+      "properties": {
+        "repoRoot": { "$ref": "#/$defs/nonEmptyString" },
+        "branch": { "type": "string" },
+        "head": { "type": "string" },
+        "base": { "type": "string" },
+        "dirty": { "type": "boolean" }
+      }
+    },
+    "instructionFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "scope"],
+      "properties": {
+        "path": { "$ref": "#/$defs/nonEmptyString" },
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+        "scope": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "failedAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempt", "outcome", "evidenceRefs", "inferred"],
+      "properties": {
+        "attempt": { "$ref": "#/$defs/nonEmptyString" },
+        "outcome": { "$ref": "#/$defs/nonEmptyString" },
+        "reason": { "type": "string" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" },
+        "inferred": { "type": "boolean" }
+      }
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "evidenceRefs"],
+      "properties": {
+        "path": { "$ref": "#/$defs/nonEmptyString" },
+        "kind": {
+          "enum": ["modified", "created", "deleted", "referenced", "attachment"]
+        },
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+        "availableToTarget": { "type": "boolean" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" }
+      }
+    },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "cwd", "evidenceRefs"],
+      "properties": {
+        "command": { "$ref": "#/$defs/nonEmptyString" },
+        "cwd": { "$ref": "#/$defs/nonEmptyString" },
+        "exitCode": { "type": "integer" },
+        "executedAt": { "type": "string", "format": "date-time" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status", "summary", "evidenceRefs"],
+      "properties": {
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "status": { "enum": ["passed", "failed", "partial", "unknown"] },
+        "summary": { "$ref": "#/$defs/nonEmptyString" },
+        "executedAt": { "type": "string", "format": "date-time" },
+        "gitHead": { "type": "string" },
+        "evidenceRefs": { "$ref": "#/$defs/evidenceIds" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "locator"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmptyString" },
+        "kind": {
+          "enum": ["session-event", "session-snapshot", "checkpoint", "workspace", "git", "instruction", "lineage"]
+        },
+        "locator": { "$ref": "#/$defs/nonEmptyString" },
+        "sha256": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" }
+      }
+    },
+    "loss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "description", "affectedFields"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+        "severity": { "enum": ["critical", "warning", "info"] },
+        "description": { "$ref": "#/$defs/nonEmptyString" },
+        "affectedFields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/nonEmptyString" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capsuleId", "rootCapsuleId", "hops"],
+      "properties": {
+        "capsuleId": { "$ref": "#/$defs/nonEmptyString" },
+        "rootCapsuleId": { "$ref": "#/$defs/nonEmptyString" },
+        "parentCapsuleId": { "type": "string" },
+        "hops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["sourceAgent", "sourceSessionId", "createdAt"],
+            "properties": {
+              "sourceAgent": { "$ref": "#/$defs/nonEmptyString" },
+              "sourceSessionId": { "$ref": "#/$defs/nonEmptyString" },
+              "targetAgent": { "type": "string" },
+              "targetSessionId": { "type": "string" },
+              "createdAt": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

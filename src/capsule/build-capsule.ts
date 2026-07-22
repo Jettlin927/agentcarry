@@ -6,6 +6,7 @@ import type {
 } from "../adapters/source-reader.js";
 import { redactSensitive } from "../security/redact.js";
 import type { CollectedWorkspaceEvidence } from "../workspace/collect-workspace.js";
+import { deriveNextAction, type DerivedActionFact } from "./derive-next-action.js";
 import { validateWorkCapsule } from "./validate-capsule.js";
 
 export type LossSeverity = "critical" | "warning" | "info";
@@ -31,7 +32,7 @@ export interface CapsuleLineage {
 }
 
 export interface WorkCapsule {
-  readonly schemaVersion: "1.0.0";
+  readonly schemaVersion: "2.0.0";
   readonly source: Record<string, unknown>;
   readonly workspace: Record<string, unknown>;
   readonly currentUserMessage: CapsuleFact;
@@ -41,6 +42,7 @@ export interface WorkCapsule {
   readonly failedAttempts: readonly Record<string, unknown>[];
   readonly completed: readonly CapsuleFact[];
   readonly pending: readonly CapsuleFact[];
+  readonly nextAction: CapsuleNextAction;
   readonly files: readonly object[];
   readonly commands: readonly object[];
   readonly validations: readonly object[];
@@ -54,6 +56,12 @@ export interface CapsuleFact {
   readonly text: string;
   readonly evidenceRefs: readonly string[];
   readonly inferred: boolean;
+}
+
+export interface CapsuleNextAction {
+  readonly first: CapsuleFact;
+  readonly then: readonly CapsuleFact[];
+  readonly forbiddenBefore: readonly CapsuleFact[];
 }
 
 export interface BuildCapsuleOptions {
@@ -213,7 +221,7 @@ export function buildWorkCapsule(
       code: "DETERMINISTIC_SEMANTIC_HEURISTIC",
       severity: "warning",
       description: "Semantic categories use event roles and conservative text heuristics.",
-      affectedFields: ["constraints", "decisions", "failedAttempts", "completed", "pending"]
+      affectedFields: ["constraints", "decisions", "failedAttempts", "completed", "pending", "nextAction"]
     },
     {
       code: "HIDDEN_AGENT_STATE_UNAVAILABLE",
@@ -316,9 +324,15 @@ export function buildWorkCapsule(
     all.findIndex((candidate) => candidate.id === evidence.id) === index
   );
   const evidenceFingerprint = sha256(JSON.stringify(evidenceRefs));
+  const nextAction = deriveNextAction(events);
+  const actionFact = (value: DerivedActionFact): CapsuleFact => ({
+    text: value.text,
+    evidenceRefs: value.sourceEventIds.map((id) => eventEvidenceIds.get(id)!),
+    inferred: value.inferred
+  });
 
   const rawCapsule: WorkCapsule = {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     source: {
       agent: session.agent,
       ...(session.agentVersion === null ? {} : { agentVersion: session.agentVersion }),
@@ -345,6 +359,11 @@ export function buildWorkCapsule(
       fact(currentUserMessage, eventEvidenceId(currentUserMessage)),
       ...checkpointMessages.map((event) => fact(event, eventEvidenceId(event)))
     ],
+    nextAction: {
+      first: actionFact(nextAction.first),
+      then: nextAction.then.map(actionFact),
+      forbiddenBefore: nextAction.forbiddenBefore.map(actionFact)
+    },
     files: [
       ...workspaceEvidence.files.map((file) => ({
         ...file,

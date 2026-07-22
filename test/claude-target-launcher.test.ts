@@ -9,7 +9,7 @@ import {
 } from "../src/adapters/claude/target-launcher.js";
 
 const capsule = {
-  schemaVersion: "1.0.0",
+  schemaVersion: "2.0.0",
   source: { agent: "codex", sessionId: "source-1", capturedAt: "2026-07-21T00:00:00Z" },
   workspace: {
     primaryRoot: "C:\\Users\\dev\\中文 项目",
@@ -27,6 +27,11 @@ const capsule = {
   pending: [
     { text: "Write the focused test.", evidenceRefs: ["event:1"], inferred: false }
   ],
+  nextAction: {
+    first: { text: "Write the focused test.", evidenceRefs: ["event:1"], inferred: false },
+    then: [],
+    forbiddenBefore: []
+  },
   files: [],
   commands: [],
   validations: [],

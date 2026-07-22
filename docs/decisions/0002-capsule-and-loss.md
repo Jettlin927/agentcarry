@@ -17,10 +17,19 @@ references or an `inferred` marker. Unsupported state appears in a loss receipt.
 The current user message and critical constraints are never silently truncated.
 Missing critical state fails closed; `--force` is an explicit one-shot override.
 
+Capsule v2 makes the continuation order explicit through `nextAction.first`,
+`nextAction.then`, and `nextAction.forbiddenBefore`. Deterministic builders cite
+the source event used for the first action and mark failure-derived actions as
+inferred; source-assisted builders may split later or blocked actions only when
+the supplied evidence supports that ordering. Deterministic builders split only
+explicit temporal language; they do not invent test-first order from status
+prose. Semantic inference belongs to the source-assisted mode and remains a
+measured benchmark claim. Capsule v1 remains immutable for
+reproducing Phase 0 artifacts.
+
 ## Consequences
 
 - The schema is public JSON Schema and independently versioned.
 - JSON is canonical; Markdown is a rendering.
 - Multi-hop transfers preserve original evidence and lineage.
 - Capsule output is ephemeral unless explicitly kept.
-

@@ -111,17 +111,18 @@ installer command.
 
 ## Work Capsule
 
-The schema is versioned independently from the CLI. Capsule v1 includes:
+The schema is versioned independently from the CLI. Capsule v2 includes:
 
 ```text
 source, workspace, currentUserMessage, objective, constraints, decisions,
-failedAttempts, completed, pending, files, commands, validations,
+failedAttempts, completed, pending, nextAction, files, commands, validations,
 openQuestions, evidenceRefs, losses, lineage
 ```
 
 Critical facts are never silently truncated. Current workspace and Git facts
 win over stale transcript claims and are timestamped. See
-[`work-capsule.v1.schema.json`](schema/work-capsule.v1.schema.json).
+[`work-capsule.v2.schema.json`](schema/work-capsule.v2.schema.json). Capsule v1
+remains published for historical Phase 0 artifacts.
 An active source agent submits one explicit completed checkpoint through stdin
 using [`active-checkpoint.v1.schema.json`](schema/active-checkpoint.v1.schema.json).
 AgentCarry first verifies a stable native-session prefix and requires the
