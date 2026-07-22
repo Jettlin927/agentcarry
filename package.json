@@ -1,6 +1,6 @@
 {
   "name": "agentcarry",
-  "version": "0.0.0-development",
+  "version": "0.1.0-acceptance.1",
   "description": "Continue coding tasks across agents with evidence and explicit loss",
   "type": "module",
   "private": true,
@@ -26,7 +26,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "check": "npm run typecheck && npm test && npm run build",
-    "test": "vitest run",
+    "test": "vitest run --dir test",
     "benchmark:validate": "tsx scripts/validate-benchmark.ts benchmark/fixtures",
     "benchmark:score": "tsx scripts/score-benchmark.ts",
     "benchmark:input": "tsx scripts/build-benchmark-input.ts",
@@ -35,11 +35,13 @@
     "benchmark:review": "tsx scripts/review-benchmark.ts",
     "acceptance:validate": "tsx scripts/external-acceptance.ts validate acceptance/runs",
     "acceptance:report": "tsx scripts/external-acceptance.ts report acceptance/runs",
+    "acceptance:check-report": "tsx scripts/external-acceptance.ts report acceptance/runs --check acceptance/REPORT.md",
     "demo:tracer": "npm run build && tsx scripts/demo-tracer.ts",
     "compatibility:check": "tsx scripts/check-compatibility.ts"
   },
   "dependencies": {
-    "ajv": "^8.20.0"
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

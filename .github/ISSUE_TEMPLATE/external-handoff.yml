@@ -50,9 +50,9 @@ body:
     id: versions
     attributes:
       label: Version facts / 版本信息
-      description: AgentCarry commit, Node.js, Codex, and Claude Code versions only. / 只填写 AgentCarry commit、Node.js、Codex 和 Claude Code 版本。
+      description: Copy version command output only. The maintainer resolves the pinned tag to its commit. / 只复制版本命令输出；维护者会把固定 tag 解析为 commit。
       placeholder: |
-        AgentCarry commit: <40-character SHA>
+        AgentCarry: 0.1.0-acceptance.1
         Node.js: v22.x.x
         Codex: <version>
         Claude Code: <version>
@@ -86,6 +86,41 @@ body:
         - blocked / 未能开始第一动作
     validations:
       required: true
+  - type: dropdown
+    id: target_session_created
+    attributes:
+      label: Target session created? / 是否创建目标 session？
+      options:
+        - "yes / 是"
+        - "no / 否"
+    validations:
+      required: true
+  - type: dropdown
+    id: first_action_started
+    attributes:
+      label: Recorded first action started? / 是否开始记录中的第一动作？
+      description: This must be yes for continued and no for blocked. / continued 必须选是，blocked 必须选否。
+      options:
+        - "yes / 是"
+        - "no / 否"
+    validations:
+      required: true
+  - type: input
+    id: command_started_at
+    attributes:
+      label: Command start time in UTC / 命令开始时间（UTC）
+      description: RFC 3339 to whole seconds; do not include your time zone name. / 使用精确到秒的 RFC 3339，不填写时区名称。
+      placeholder: 2026-07-23T07:58:00Z
+    validations:
+      required: true
+  - type: input
+    id: outcome_recorded_at
+    attributes:
+      label: Outcome time in UTC / 结果时间（UTC）
+      description: The time the first action started or the attempt became blocked. / 第一动作开始或确定阻塞的时刻。
+      placeholder: 2026-07-23T08:00:00Z
+    validations:
+      required: true
   - type: input
     id: seconds
     attributes:
@@ -94,28 +129,84 @@ body:
       placeholder: "95"
     validations:
       required: true
-  - type: textarea
+  - type: dropdown
     id: losses
     attributes:
       label: Loss codes shown by AgentCarry / AgentCarry 显示的损失代码
-      description: Codes only, one per line; write NONE if empty. / 只写代码，每行一个；没有则写 NONE。
-      placeholder: HIDDEN_AGENT_STATE_UNAVAILABLE
+      description: Select every displayed code, or NONE. / 选择全部显示的代码；没有则选 NONE。
+      multiple: true
+      options:
+        - NONE
+        - APPEND_DURING_SOURCE_CAPTURE
+        - ASSISTANT_STATE_MISSING
+        - ATTACHMENTS_NOT_TRANSFERRED
+        - CURRENT_USER_MESSAGE_MISSING
+        - DETERMINISTIC_SEMANTIC_HEURISTIC
+        - HIDDEN_AGENT_STATE_UNAVAILABLE
+        - NATIVE_PARTIAL_ASSISTANT_OUTPUT_EXCLUDED
+        - SENSITIVE_VALUES_ALLOWED
+        - SENSITIVE_VALUES_REDACTED
+        - SOURCE_AGENT_CHECKPOINT
+        - TRAILING_SOURCE_FRAGMENT_IGNORED
     validations:
       required: true
-  - type: textarea
+  - type: dropdown
     id: supplement
     attributes:
-      label: Manual supplement / 手工补充
-      description: Write NONE, or list only categories and a sanitized one-sentence summary. Never paste the missing private content. / 没有则写 NONE；否则只写类别和一句脱敏摘要，禁止粘贴私密内容。
-      placeholder: "next-action — clarified which focused test should run first"
+      label: Manual supplement categories / 手工补充类别
+      description: Select categories only; never submit the missing content. / 只选类别，绝不提交缺失内容本身。
+      multiple: true
+      options:
+        - NONE
+        - objective
+        - constraint
+        - decision
+        - failed-attempt
+        - workspace
+        - validation
+        - next-action
+        - other
     validations:
       required: true
-  - type: textarea
+  - type: dropdown
     id: blockers
     attributes:
-      label: Blocker / 阻塞点
-      description: Required for blocked attempts; use a short stable code plus sanitized summary. Write NONE after continuation. / 失败时填写短代码与脱敏摘要；成功则写 NONE。
-      placeholder: TARGET_PROVIDER_UNAVAILABLE — configured provider was temporarily unavailable
+      label: Blocker code / 阻塞代码
+      description: Select one stable code after a blocked attempt, or NONE after continuation. Do not submit provider output. / blocked 时选择稳定代码；成功则选 NONE。不要提交 provider 输出。
+      options:
+        - NONE
+        - NO_SESSION_IN_WORKSPACE
+        - AMBIGUOUS_SESSION
+        - SESSION_NOT_FOUND
+        - ACTIVE_SESSION
+        - SESSION_ACTIVITY_MISMATCH
+        - UNSTABLE_SOURCE_SNAPSHOT
+        - CHECKPOINT_INVALID
+        - CHECKPOINT_MESSAGE_MISMATCH
+        - CHECKPOINT_SESSION_NOT_ACTIVE
+        - CRITICAL_TRANSFER_LOSS
+        - TARGET_LAUNCH_FAILED
+        - TARGET_LAUNCH_PLAN_INVALID
+        - TARGET_SEED_FAILED
+        - TARGET_SEED_INVALID
+        - TARGET_INTERACTIVE_FAILED
+        - TARGET_PROVIDER_UNAVAILABLE
+        - OTHER
+    validations:
+      required: true
+  - type: dropdown
+    id: blocker_phase
+    attributes:
+      label: Blocker phase / 阻塞阶段
+      description: Select not applicable after continuation. / 成功续作后选择不适用。
+      options:
+        - not applicable / 不适用
+        - source-selection
+        - capsule-build
+        - confirmation
+        - target-seed
+        - target-resume
+        - continuation
     validations:
       required: true
   - type: checkboxes

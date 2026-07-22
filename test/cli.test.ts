@@ -42,6 +42,13 @@ function successfulHandlers(): CliHandlers {
 }
 
 describe("AgentCarry CLI contract", () => {
+  it("prints the pinned acceptance build version", async () => {
+    const output = harness();
+
+    expect(await runCli(["--version"], output.io)).toBe(ExitCode.success);
+    expect(output.stdout.join("")).toBe("0.1.0-acceptance.1\n");
+  });
+
   it("prints a small public command surface", async () => {
     const output = harness();
 

@@ -13,6 +13,7 @@
     "osVersion": "Windows 11",
     "architecture": "x64",
     "nodeVersion": "v22.18.0",
+    "agentCarryVersion": "0.1.0-acceptance.1",
     "agentCarryCommit": "0000000000000000000000000000000000000000",
     "codexVersion": "0.145.0-alpha.27",
     "claudeCodeVersion": "2.1.158"
@@ -37,6 +38,13 @@
     "outcomeRecordedAt": "2026-07-23T08:00:00Z",
     "secondsToOutcome": 120,
     "secondsToContinuation": 120
+  },
+  "review": {
+    "reviewedBy": "Jettlin927",
+    "reviewedAt": "2026-07-23T09:00:00Z",
+    "evidenceAuthorMatchesParticipant": true,
+    "nonAuthorHistoryChecked": true,
+    "privacyReviewPassed": true
   },
   "privacy": {
     "noSecrets": true,

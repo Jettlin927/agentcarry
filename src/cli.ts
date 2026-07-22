@@ -57,7 +57,7 @@ export interface CliIo {
   };
 }
 
-export const agentCarryVersion = "0.0.0-development";
+export const agentCarryVersion = "0.1.0-acceptance.1";
 
 const help = `AgentCarry ${agentCarryVersion}
 

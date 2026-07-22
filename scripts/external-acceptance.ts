@@ -16,7 +16,7 @@ async function jsonFiles(path: string): Promise<string[]> {
   ))).flat().sort();
 }
 
-async function readRecords(path: string): Promise<ExternalHandoffRecord[]> {
+async function readRecords(path: string, verbose: boolean): Promise<ExternalHandoffRecord[]> {
   const records: ExternalHandoffRecord[] = [];
   let invalid = false;
   for (const file of await jsonFiles(resolve(path))) {
@@ -37,7 +37,7 @@ async function readRecords(path: string): Promise<ExternalHandoffRecord[]> {
       }
       continue;
     }
-    console.log(`PASS ${file}`);
+    if (verbose) console.log(`PASS ${file}`);
     records.push(value as ExternalHandoffRecord);
   }
   if (invalid) throw new Error("one or more external acceptance records are invalid");
@@ -46,18 +46,27 @@ async function readRecords(path: string): Promise<ExternalHandoffRecord[]> {
 
 function option(name: string): string | undefined {
   const index = process.argv.indexOf(name);
-  return index < 0 ? undefined : process.argv[index + 1];
+  if (index < 0) return undefined;
+  const value = process.argv[index + 1];
+  if (value === undefined || value.startsWith("--")) {
+    throw new Error(`${name} requires a path`);
+  }
+  return value;
+}
+
+function normalizedNewlines(value: string): string {
+  return value.replace(/\r\n?/g, "\n");
 }
 
 async function main(): Promise<void> {
   const command = process.argv[2];
   const path = process.argv[3] ?? "acceptance/runs";
   if (command !== "validate" && command !== "report") {
-    console.error("Usage: external-acceptance <validate|report> [records-path] [--require-complete] [--output <path>]");
+    console.error("Usage: external-acceptance <validate|report> [records-path] [--require-complete] [--output <path> | --check <path>]");
     process.exitCode = 2;
     return;
   }
-  const records = await readRecords(path);
+  const records = await readRecords(path, command === "validate");
   const report = aggregateExternalAcceptance(records);
   if (command === "validate") {
     console.log(`PASS ${records.length} valid external handoff record(s); cohort ${report.cohortReady ? "ready" : "collecting"}`);
@@ -66,7 +75,21 @@ async function main(): Promise<void> {
 
   const markdown = renderExternalAcceptanceMarkdown(report);
   const output = option("--output");
-  if (output === undefined) {
+  const check = option("--check");
+  if (output !== undefined && check !== undefined) {
+    console.error("Use either --output or --check, not both.");
+    process.exitCode = 2;
+    return;
+  }
+  if (check !== undefined) {
+    const reportPath = resolve(check);
+    if (normalizedNewlines(await readFile(reportPath, "utf8")) !== normalizedNewlines(markdown)) {
+      console.error(`STALE ${reportPath}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`PASS ${reportPath} matches acceptance records`);
+  } else if (output === undefined) {
     process.stdout.write(markdown);
   } else {
     await writeFile(resolve(output), markdown, "utf8");

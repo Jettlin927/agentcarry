@@ -47,32 +47,42 @@ agentcarry continue --to claude --session <id>
 只记录：
 
 - Windows 或 macOS 版本与架构；
-- Node.js、AgentCarry commit、Codex、Claude Code 版本；
+- `agentcarry --version` 结果，以及 Node.js、Codex、Claude Code 版本；
 - 来源是 idle/active，选择是 automatic/explicit；
-- 结果是 continued 或 blocked；
+- 是否创建目标 session、是否开始记录中的第一动作，以及 continued/blocked 结果；
+- 精确到秒的 UTC 命令开始时间与结果时间；
 - 从输入命令到结果的秒数；成功时还要记录 Time to Continuation；
 - loss code；
 - 是否需要 Manual Supplement，以及补充信息所属类别；
-- 失败时的稳定 blocker code 和一句脱敏摘要。
+- 失败时的稳定 blocker code 和阶段。
 
 禁止提交密钥、provider 原始输出、邮箱、截图、完整消息、聊天摘录、session 文件或本地
-路径。Manual Supplement 只记录“缺了哪一类信息”，不能复述私密内容。
+路径。Manual Supplement 只记录“缺了哪一类信息”，不能复述私密内容。Issue 表单只提供
+枚举的 category/code，不收集 supplement 或 blocker 的自由文本描述。
 
 ## 提交记录
 
 请使用同一个 GitHub 账号打开仓库的 **External handoff acceptance / 外部用户真实交接验收**
-Issue 表单。维护者复核参与资格，再把记录按
+Issue 表单。维护者必须确认 Issue 作者与参与者账号一致、检查其在尝试发生时没有 AgentCarry
+仓库作者历史，并完成隐私复核；随后把审核人、审核时间和三项检查结果写入 `review`，把固定
+验收 tag 解析为 40 位 commit，再按
 [`external-handoff-record.v1.schema.json`](../schema/external-handoff-record.v1.schema.json)
-整理到 `acceptance/runs/`；该 Issue URL 就是公开审计证据。
+整理到 `acceptance/runs/`；该 Issue URL 就是公开审计证据。blocked 记录还必须链接一个独立的
+后续失败 Issue，不能只把 blocker code 留在验收表单中。这些检查都是 record 必填字段，
+未经复核的提交不能通过 cohort gate。validator 刻意不让 CI 依赖 GitHub API；审计者可以
+逐条打开证据链接复核。
+本次 v0.1 cohort 的 schema 只接受仓库 owner `Jettlin927` 作为 `reviewedBy`。完成命令验证
+这份维护者声明与公开链接，但不声称对底层事实提供密码学证明或 GitHub 实时 API 证明。
 
 维护者执行：
 
 ```text
 npm run acceptance:validate
 npm run acceptance:report -- --output acceptance/REPORT.md
+npm run acceptance:check-report
 npm run acceptance:report -- --require-complete
 ```
 
-在至少 10 位不同参与者且覆盖两个平台之前，最后一条命令必定失败。最终报告公开真实
-续作率、Time to Continuation、Manual Supplement 频率、常见 loss code 和 blocker
-统计。重复失败模式必须转成后续 Issue，不能从 cohort 中删除。
+提交的 REPORT 与已复核 records 不一致时，报告检查会失败。在至少 10 位不同、已复核
+参与者且覆盖两个平台之前，最后一条命令必定失败。最终报告公开真实续作率、Time to
+Continuation、Manual Supplement 频率、常见 loss code 和 blocker 统计。
