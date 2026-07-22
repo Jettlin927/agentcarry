@@ -23,6 +23,11 @@ function readFixture(): BenchmarkSourceFixture {
   return JSON.parse(readFileSync(path, "utf8")) as BenchmarkSourceFixture;
 }
 
+function readFixtureById(id: string): BenchmarkSourceFixture {
+  const path = fileURLToPath(new URL(`../benchmark/fixtures/${id}.json`, import.meta.url));
+  return JSON.parse(readFileSync(path, "utf8")) as BenchmarkSourceFixture;
+}
+
 describe("benchmark handoff inputs", () => {
   const fixture = readFixture();
 
@@ -48,7 +53,7 @@ describe("benchmark handoff inputs", () => {
     expect(first.sourceFingerprint).toBe(buildVisibleTranscript(fixture).sourceFingerprint);
 
     const schemaPath = fileURLToPath(
-      new URL("../schema/work-capsule.v1.schema.json", import.meta.url)
+      new URL("../schema/work-capsule.v2.schema.json", import.meta.url)
     );
     const schema = JSON.parse(readFileSync(schemaPath, "utf8")) as object;
     const ajv = new Ajv2020({ allErrors: true, strict: true });
@@ -60,12 +65,50 @@ describe("benchmark handoff inputs", () => {
     expect(validate(capsule), JSON.stringify(validate.errors)).toBe(true);
   });
 
+  it.each([
+    ["architecture-01-streaming-log", "a01-tool-2", true],
+    ["architecture-02-session-index", "a02-tool-2", true],
+    ["architecture-03-job-scheduler", "a03-tool-2", true],
+    ["debugging-01-invoice-total", "d01-user-2", false],
+    ["debugging-02-unicode-watcher", "d02-user-2", false],
+    ["debugging-03-duplicate-jobs", "d03-user-2", false],
+    ["feature-01-pagination", "f01-user-2", false],
+    ["feature-02-deploy-dry-run", "f02-user-2", false],
+    ["feature-03-config-errors", "f03-user-2", false],
+    ["refactor-01-http-transport", "r01-user-2", false],
+    ["refactor-02-cli-renderers", "r02-user-2", false],
+    ["refactor-03-file-indexer", "r03-user-2", false]
+  ])("preserves ordered next-action evidence for %s", (fixtureId, evidenceId, inferred) => {
+    const fixtureUnderTest = readFixtureById(fixtureId);
+    const sourceEvent = fixtureUnderTest.source.events.find((event) => event.id === evidenceId)!;
+    const capsule = JSON.parse(buildDeterministicCapsule(fixtureUnderTest).content) as {
+      nextAction: {
+        first: { text: string; evidenceRefs: string[]; inferred: boolean };
+        then: unknown[];
+        forbiddenBefore: unknown[];
+      };
+    };
+
+    expect(capsule.nextAction).toEqual({
+      first: {
+        text: sourceEvent.text,
+        evidenceRefs: [evidenceId],
+        inferred
+      },
+      then: [],
+      forbiddenBefore: []
+    });
+  });
+
   it("never includes benchmark ground truth in the source-assisted prompt", () => {
     const prompt = buildSourceAssistedPrompt(fixture);
 
     expect(prompt).not.toContain("groundTruth");
     expect(prompt).not.toContain("d01-constraint-api");
     expect(prompt).toContain("d01-tool-1");
+    expect(prompt).toContain("Set nextAction.first to the single action the target must do first");
+    expect(prompt).toContain("Do not promote nextAction.then before nextAction.first is complete");
+    expect(prompt).toContain("Record explicitly blocked early actions in nextAction.forbiddenBefore");
   });
 
   it("creates a fresh no-tools, no-persistence Claude invocation", async () => {
@@ -81,6 +124,11 @@ describe("benchmark handoff inputs", () => {
     );
     expect(invocation.persistence).toBe("disabled");
     expect(invocation.args[invocation.args.indexOf("--setting-sources") + 1]).toBe("");
+    const capsuleSchema = JSON.parse(
+      invocation.args[invocation.args.indexOf("--json-schema") + 1]!
+    ) as { properties: { schemaVersion: { const: string } }; required: string[] };
+    expect(capsuleSchema.properties.schemaVersion.const).toBe("2.0.0");
+    expect(capsuleSchema.required).toContain("nextAction");
   });
 
   it("can explicitly load trusted user settings without enabling tools or persistence", async () => {

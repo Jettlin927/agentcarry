@@ -31,7 +31,7 @@ export interface CapsuleLineage {
 }
 
 export interface WorkCapsule {
-  readonly schemaVersion: "1.0.0";
+  readonly schemaVersion: "2.0.0";
   readonly source: Record<string, unknown>;
   readonly workspace: Record<string, unknown>;
   readonly currentUserMessage: CapsuleFact;
@@ -41,6 +41,7 @@ export interface WorkCapsule {
   readonly failedAttempts: readonly Record<string, unknown>[];
   readonly completed: readonly CapsuleFact[];
   readonly pending: readonly CapsuleFact[];
+  readonly nextAction: CapsuleNextAction;
   readonly files: readonly object[];
   readonly commands: readonly object[];
   readonly validations: readonly object[];
@@ -54,6 +55,12 @@ export interface CapsuleFact {
   readonly text: string;
   readonly evidenceRefs: readonly string[];
   readonly inferred: boolean;
+}
+
+export interface CapsuleNextAction {
+  readonly first: CapsuleFact;
+  readonly then: readonly CapsuleFact[];
+  readonly forbiddenBefore: readonly CapsuleFact[];
 }
 
 export interface BuildCapsuleOptions {
@@ -131,6 +138,37 @@ function uniqueEventIds(events: readonly CanonicalSourceEvent[]): void {
     }
     ids.add(event.id);
   }
+}
+
+function nextActionSource(
+  events: readonly CanonicalSourceEvent[],
+  currentUserMessage: CanonicalSourceEvent
+): { readonly event: CanonicalSourceEvent; readonly inferred: boolean } {
+  let latestUserIndex = -1;
+  let latestAssistantIndex = -1;
+  let latestAssistantEvent: CanonicalSourceEvent | undefined;
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index]!;
+    if (event.kind === "user-message") {
+      latestUserIndex = index;
+    }
+    if (event.kind === "assistant-message" || event.kind === "agent-checkpoint") {
+      latestAssistantIndex = index;
+      latestAssistantEvent = event;
+    }
+  }
+  if (latestAssistantIndex > latestUserIndex) {
+    for (let index = events.length - 1; index > latestAssistantIndex; index -= 1) {
+      const event = events[index]!;
+      if (event.kind === "tool-result" && event.text !== undefined) {
+        return { event, inferred: true };
+      }
+    }
+    if (latestAssistantEvent?.kind === "agent-checkpoint") {
+      return { event: latestAssistantEvent, inferred: true };
+    }
+  }
+  return { event: currentUserMessage, inferred: false };
 }
 
 function inheritedEvidence(parent: WorkCapsule | undefined): Record<string, unknown>[] {
@@ -213,7 +251,7 @@ export function buildWorkCapsule(
       code: "DETERMINISTIC_SEMANTIC_HEURISTIC",
       severity: "warning",
       description: "Semantic categories use event roles and conservative text heuristics.",
-      affectedFields: ["constraints", "decisions", "failedAttempts", "completed", "pending"]
+      affectedFields: ["constraints", "decisions", "failedAttempts", "completed", "pending", "nextAction"]
     },
     {
       code: "HIDDEN_AGENT_STATE_UNAVAILABLE",
@@ -316,9 +354,10 @@ export function buildWorkCapsule(
     all.findIndex((candidate) => candidate.id === evidence.id) === index
   );
   const evidenceFingerprint = sha256(JSON.stringify(evidenceRefs));
+  const nextAction = nextActionSource(events, currentUserMessage);
 
   const rawCapsule: WorkCapsule = {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     source: {
       agent: session.agent,
       ...(session.agentVersion === null ? {} : { agentVersion: session.agentVersion }),
@@ -345,6 +384,11 @@ export function buildWorkCapsule(
       fact(currentUserMessage, eventEvidenceId(currentUserMessage)),
       ...checkpointMessages.map((event) => fact(event, eventEvidenceId(event)))
     ],
+    nextAction: {
+      first: fact(nextAction.event, eventEvidenceId(nextAction.event), nextAction.inferred),
+      then: [],
+      forbiddenBefore: []
+    },
     files: [
       ...workspaceEvidence.files.map((file) => ({
         ...file,

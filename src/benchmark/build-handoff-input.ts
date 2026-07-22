@@ -94,6 +94,37 @@ function fact(event: BenchmarkEvent): CapsuleFact {
   return { text: event.text, evidenceRefs: [event.id], inferred: false };
 }
 
+function nextActionFact(events: readonly BenchmarkEvent[]): CapsuleFact {
+  let latestUserIndex = -1;
+  let latestAssistantIndex = -1;
+  for (let index = 0; index < events.length; index += 1) {
+    if (events[index]!.kind === "user-message") {
+      latestUserIndex = index;
+    }
+    if (events[index]!.kind === "assistant-message") {
+      latestAssistantIndex = index;
+    }
+  }
+  let unresolvedEvent: BenchmarkEvent | undefined;
+  if (latestAssistantIndex > latestUserIndex) {
+    for (let index = events.length - 1; index > latestAssistantIndex; index -= 1) {
+      if (events[index]!.kind === "tool-result") {
+        unresolvedEvent = events[index];
+        break;
+      }
+    }
+  }
+  const event = unresolvedEvent ?? events[latestUserIndex];
+  if (event === undefined) {
+    throw new Error("a deterministic capsule needs evidence for the next action");
+  }
+  return {
+    text: event.text,
+    evidenceRefs: [event.id],
+    inferred: unresolvedEvent !== undefined
+  };
+}
+
 function measurements(content: string): HandoffInputArtifact["measurements"] {
   return {
     utf8Bytes: Buffer.byteLength(content, "utf8"),
@@ -152,7 +183,7 @@ export function buildDeterministicCapsule(
 
   const capsuleId = `capsule-${sourceFingerprint(fixture).slice(0, 24)}`;
   const capsule = {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     source: {
       agent: fixture.source.agent,
       agentVersion: fixture.source.agentVersion,
@@ -185,6 +216,11 @@ export function buildDeterministicCapsule(
       })),
     completed: assistantEvents.map(fact),
     pending: [fact(currentUserMessage)],
+    nextAction: {
+      first: nextActionFact(fixture.source.events),
+      then: [],
+      forbiddenBefore: []
+    },
     files: fixture.workspace.files.map((file) => ({
       path: file.path,
       kind: file.state === "unchanged" ? "referenced" : file.state,
@@ -211,7 +247,7 @@ export function buildDeterministicCapsule(
         code: "DETERMINISTIC_SEMANTIC_HEURISTIC",
         severity: "warning",
         description: "Semantic categories were populated by deterministic event-role and text heuristics.",
-        affectedFields: ["constraints", "decisions", "failedAttempts", "completed", "pending"]
+        affectedFields: ["constraints", "decisions", "failedAttempts", "completed", "pending", "nextAction"]
       },
       {
         code: "HIDDEN_AGENT_STATE_UNAVAILABLE",
@@ -253,6 +289,9 @@ Rules:
 - Preserve the latest user message verbatim in currentUserMessage.text.
 - Every task-specific fact must cite supplied event IDs, or set inferred to true.
 - Distinguish completed work, pending work, decisions, and failed attempts.
+- Set nextAction.first to the single action the target must do first, with source evidence.
+- Put only actions that follow it in nextAction.then. Do not promote nextAction.then before nextAction.first is complete.
+- Record explicitly blocked early actions in nextAction.forbiddenBefore; leave the array empty when the source establishes none.
 - Current workspace facts override older transcript claims.
 - Do not invent commands, validations, files, session state, or test results.
 - Report hidden reasoning, prompt caches, tool state, and unavailable attachments as losses.

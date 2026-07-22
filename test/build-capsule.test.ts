@@ -107,6 +107,15 @@ describe("buildWorkCapsule", () => {
 
     expect(validateWorkCapsule(result.capsule)).toEqual([]);
     expect(result.capsule.currentUserMessage.text).toBe("Write the focused regression next.");
+    expect(result.capsule.nextAction).toEqual({
+      first: {
+        text: "Write the focused regression next.",
+        evidenceRefs: [result.capsule.currentUserMessage.evidenceRefs[0]],
+        inferred: false
+      },
+      then: [],
+      forbiddenBefore: []
+    });
     expect(result.capsule.workspace).toEqual(workspace.workspace);
     expect(result.capsule.commands).toContainEqual(expect.objectContaining({ command: "npm test" }));
     expect(result.capsule.validations).toContainEqual(
@@ -201,5 +210,46 @@ describe("buildWorkCapsule", () => {
     expect(result.capsule.commands).toContainEqual(expect.objectContaining({
       command: `pwsh -NoProfile -Command \"${powershell}\"`
     }));
+  });
+
+  it("makes a later unresolved tool result the first action instead of repeating completed work", () => {
+    const events = sourceEvents()
+      .filter((event) => event.id !== "event-user-2" && event.kind !== "attachment");
+    events.push({
+      id: "event-tool-output-2",
+      kind: "tool-result",
+      timestamp: "2026-07-21T00:00:06Z",
+      locator: "session:6",
+      callId: "call-2",
+      text: "The focused parser regression still fails on negative adjustments."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first).toMatchObject({
+      text: "The focused parser regression still fails on negative adjustments.",
+      inferred: true
+    });
+    expect(result.capsule.nextAction.first.evidenceRefs).toEqual([
+      expect.stringMatching(/^event:/)
+    ]);
+  });
+
+  it("uses an explicit active checkpoint as the first action when it is newest", () => {
+    const events = sourceEvents();
+    events.push({
+      id: "checkpoint-1",
+      kind: "agent-checkpoint",
+      timestamp: "2026-07-21T00:00:07Z",
+      locator: "checkpoint:stdin:1",
+      text: "The parser fix is complete. Run the three-platform regression suite next."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first).toMatchObject({
+      text: "The parser fix is complete. Run the three-platform regression suite next.",
+      inferred: true
+    });
   });
 });

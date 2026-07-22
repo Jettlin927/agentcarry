@@ -66,7 +66,7 @@ export async function createSourceAssistedInvocation(
   options: { readonly settingSources?: TargetSettingSources } = {}
 ): Promise<SourceAssistedInvocation> {
   const schemaPath = fileURLToPath(
-    new URL("../../schema/work-capsule.v1.schema.json", import.meta.url)
+    new URL("../../schema/work-capsule.v2.schema.json", import.meta.url)
   );
   const schema = JSON.parse(await readFile(schemaPath, "utf8")) as object;
   const settingSources = options.settingSources ?? "none";

@@ -89,9 +89,9 @@ AgentCarry CLI 本身不提供 Skill 安装命令。
 
 ## Work Capsule
 
-Work Capsule 不是另一种完整 transcript 格式。它只携带续作必需的状态：当前用户消息、目标、约束、决策、失败路径、已完成、待办、文件与 Git 状态、执行过的命令、验证结果、开放问题、证据引用、损失和 lineage。
+Work Capsule 不是另一种完整 transcript 格式。它只携带续作必需的状态：当前用户消息、目标、约束、决策、失败路径、已完成、待办、有序下一步、文件与 Git 状态、执行过的命令、验证结果、开放问题、证据引用、损失和 lineage。
 
-关键事实不会被静默截断。工作区当前事实优先于 transcript 中的旧描述，并带采集时间。Schema 见 [`work-capsule.v1.schema.json`](schema/work-capsule.v1.schema.json)。
+关键事实不会被静默截断。工作区当前事实优先于 transcript 中的旧描述，并带采集时间。当前 Schema 见 [`work-capsule.v2.schema.json`](schema/work-capsule.v2.schema.json)；v1 继续保留，用于复现 Phase 0 历史产物。
 对于当前仍在运行的任务，源 Agent 通过 stdin 按
 [`active-checkpoint.v1.schema.json`](schema/active-checkpoint.v1.schema.json) 提交一次明确完成的
 checkpoint。AgentCarry 会先验证 native session 的稳定字节前缀；checkpoint 绑定只规范化终止换行，
