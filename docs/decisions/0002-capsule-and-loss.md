@@ -21,7 +21,10 @@ Capsule v2 makes the continuation order explicit through `nextAction.first`,
 `nextAction.then`, and `nextAction.forbiddenBefore`. Deterministic builders cite
 the source event used for the first action and mark failure-derived actions as
 inferred; source-assisted builders may split later or blocked actions only when
-the supplied evidence supports that ordering. Capsule v1 remains immutable for
+the supplied evidence supports that ordering. Deterministic builders split only
+explicit temporal language; they do not invent test-first order from status
+prose. Semantic inference belongs to the source-assisted mode and remains a
+measured benchmark claim. Capsule v1 remains immutable for
 reproducing Phase 0 artifacts.
 
 ## Consequences

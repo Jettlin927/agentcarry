@@ -281,7 +281,9 @@ describe("buildWorkCapsule", () => {
   it.each([
     ["Run the regression first, then implement the fix.", /^Run the regression\.$/, /^Implement the fix\.$/],
     ["Implement the fix after running the regression.", /^Run the regression\.$/, /^Implement the fix\.$/],
-    ["先运行回归测试，再实现修复。", /^运行回归测试。$/, /^实现修复。$/]
+    ["先运行回归测试，再实现修复。", /^运行回归测试。$/, /^实现修复。$/],
+    ["Do not change the API. Run the regression first, then implement the fix.", /^Run the regression\.$/, /^Implement the fix\.$/],
+    ["不要修改接口。先运行回归测试，再实现修复。", /^运行回归测试。$/, /^实现修复。$/]
   ])("preserves explicit action order in %s", (message, first, then) => {
     const events = sourceEvents();
     const currentIndex = events.findIndex((event) => event.id === "event-user-2");
@@ -348,7 +350,7 @@ describe("buildWorkCapsule", () => {
       kind: "tool-result",
       timestamp: "2026-07-21T00:00:07Z",
       locator: "session:7",
-      text: "All tests passed."
+      text: "Tests: 116 passed, 0 failed."
     });
 
     const result = buildWorkCapsule(session, events, workspace);
@@ -357,5 +359,44 @@ describe("buildWorkCapsule", () => {
       "No unresolved action is evidenced; wait for the next user instruction."
     );
     expect(result.capsule.nextAction.first.text).not.toMatch(/investigate|resolve the latest/i);
+  });
+
+  it("does not repeat work completed by a later assistant message", () => {
+    const events = sourceEvents();
+    events.push({
+      id: "event-assistant-2",
+      kind: "assistant-message",
+      timestamp: "2026-07-21T00:00:06Z",
+      locator: "session:6",
+      text: "The parser fix is complete and all tests pass."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toBe(
+      "No unresolved action is evidenced; wait for the next user instruction."
+    );
+  });
+
+  it("treats a nonzero failed count as unresolved work", () => {
+    const events = sourceEvents();
+    events.push({
+      id: "event-assistant-2",
+      kind: "assistant-message",
+      timestamp: "2026-07-21T00:00:06Z",
+      locator: "session:6",
+      text: "The requested regression is implemented."
+    });
+    events.push({
+      id: "event-tool-output-2",
+      kind: "tool-result",
+      timestamp: "2026-07-21T00:00:07Z",
+      locator: "session:7",
+      text: "Tests: 115 passed, 1 failed."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toMatch(/investigate and resolve/i);
   });
 });

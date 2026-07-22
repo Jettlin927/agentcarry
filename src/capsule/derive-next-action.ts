@@ -57,48 +57,45 @@ function result(
 
 function clauses(event: NextActionInputEvent): string[] {
   return event.text
-    ?.split(/(?<=[.!?;。！？；])\s+/)
+    ?.split(/(?<=[.!?;])\s+|(?<=[。！？；])\s*/)
     .map((part) => part.trim())
     .filter((part) => part.length > 0 && !/^(?:do not\b|不要)/i.test(part)) ?? [];
 }
 
 function explicitOrder(event: NextActionInputEvent): DerivedNextAction | undefined {
-  const text = event.text?.trim().replace(/[.!?。！？]+$/, "");
-  if (text === undefined) {
-    return undefined;
-  }
+  for (const clause of clauses(event)) {
+    const text = clause.replace(/[.!?。！？]+$/, "");
+    const chinese = text.match(/^先(.+?)[，,]\s*再(.+)$/);
+    if (chinese !== null) {
+      return result(fact(chinese[1]!, event), [fact(chinese[2]!, event)]);
+    }
 
-  const chinese = text.match(/^先(.+?)[，,]\s*再(.+)$/);
-  if (chinese !== null) {
-    return result(fact(chinese[1]!, event), [fact(chinese[2]!, event)]);
-  }
+    const firstThen = text.match(/^(.+?)\s+first,?\s*then\s+(.+)$/i)
+      ?? text.match(/^first\s+(.+?),\s*then\s+(.+)$/i)
+      ?? text.match(/^(.+?),\s*then\s+(.+)$/i);
+    if (firstThen !== null) {
+      return result(
+        fact(imperative(firstThen[1]!).replace(/[.]$/, ""), event),
+        [fact(imperative(firstThen[2]!).replace(/[.]$/, ""), event)]
+      );
+    }
 
-  const firstThen = text.match(/^(.+?)\s+first,?\s*then\s+(.+)$/i)
-    ?? text.match(/^first\s+(.+?),\s*then\s+(.+)$/i)
-    ?? text.match(/^(.+?),\s*then\s+(.+)$/i);
-  if (firstThen !== null) {
-    return result(
-      fact(imperative(firstThen[1]!).replace(/[.]$/, ""), event),
-      [fact(imperative(firstThen[2]!).replace(/[.]$/, ""), event)]
-    );
-  }
+    const after = text.match(/^(.+?)\s+after\s+(.+)$/i);
+    if (after !== null) {
+      return result(
+        fact(imperative(after[2]!).replace(/[.]$/, ""), event),
+        [fact(imperative(after[1]!).replace(/[.]$/, ""), event)]
+      );
+    }
 
-  const after = text.match(/^(.+?)\s+after\s+(.+)$/i);
-  if (after !== null) {
-    return result(
-      fact(imperative(after[2]!).replace(/[.]$/, ""), event),
-      [fact(imperative(after[1]!).replace(/[.]$/, ""), event)]
-    );
-  }
-
-  const ordered = clauses(event).find((part) => /\bbefore\b/i.test(part));
-  const before = ordered?.match(/^(.+?)\s+before\s+(.+?)[.!?]?$/i);
-  if (before !== null && before !== undefined) {
-    return result(
-      fact(before[1]!, event),
-      [],
-      [fact(imperative(before[2]!).replace(/[.]$/, ""), event)]
-    );
+    const before = text.match(/^(.+?)\s+before\s+(.+?)$/i);
+    if (before !== null) {
+      return result(
+        fact(before[1]!, event),
+        [],
+        [fact(imperative(before[2]!).replace(/[.]$/, ""), event)]
+      );
+    }
   }
   return undefined;
 }
@@ -137,18 +134,31 @@ function latestEffectiveEvent(events: readonly NextActionInputEvent[]): NextActi
     }
   }
 
-  const state = events[latestStateIndex];
-  return state?.kind === "agent-checkpoint" ? state : events[latestUserIndex];
+  return events[latestStateIndex];
 }
 
 const failedResultPattern = /\b(?:fail(?:ed|s)?|rejected|reverted|does not|did not|still|hangs?|error|not implemented)\b|失败|未通过|无效|排除|放弃|回滚|仍然|报错|错误/i;
 const successfulResultPattern = /\b(?:all .+ pass(?:ed)?|pass(?:ed|es)|success|exit code 0)\b|通过|成功/i;
 
+function resultOutcome(text: string): "failed" | "successful" | "unknown" {
+  if (/\b[1-9]\d* failed\b/i.test(text)) {
+    return "failed";
+  }
+  if (/\b0 failed\b/i.test(text) && successfulResultPattern.test(text)) {
+    return "successful";
+  }
+  if (failedResultPattern.test(text)) {
+    return "failed";
+  }
+  return successfulResultPattern.test(text) ? "successful" : "unknown";
+}
+
 function actionFromToolResult(event: NextActionInputEvent): DerivedNextAction {
-  if (failedResultPattern.test(event.text!)) {
+  const outcome = resultOutcome(event.text!);
+  if (outcome === "failed") {
     return result(fact(`Investigate and resolve the latest source result: ${event.text!}`, event));
   }
-  if (successfulResultPattern.test(event.text!)) {
+  if (outcome === "successful") {
     return result(fact("No unresolved action is evidenced; wait for the next user instruction", event));
   }
   return result(fact(`Review the latest source result before continuing: ${event.text!}`, event));
@@ -170,6 +180,17 @@ export function deriveNextAction(events: readonly NextActionInputEvent[]): Deriv
   const next = explicitNext(selected);
   if (next !== undefined) {
     return next;
+  }
+  if (selected.kind === "assistant-message") {
+    const outcome = resultOutcome(selected.text);
+    if (outcome === "failed") {
+      return result(fact(`Investigate and resolve the latest agent state: ${selected.text}`, selected));
+    }
+    const completed = outcome === "successful"
+      || /\bcomplete(?:d)?\b|已完成|完成了/.test(selected.text);
+    return completed
+      ? result(fact("No unresolved action is evidenced; wait for the next user instruction", selected))
+      : result(fact(`Review the latest agent state before continuing: ${selected.text}`, selected));
   }
   return result({ text: selected.text, sourceEventIds: [selected.id], inferred: false });
 }
