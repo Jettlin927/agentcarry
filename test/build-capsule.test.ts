@@ -333,4 +333,29 @@ describe("buildWorkCapsule", () => {
 
     expect(result.capsule.nextAction.first.text).toBe("Redact the password in README.");
   });
+
+  it("does not turn a successful tool result into unresolved work", () => {
+    const events = sourceEvents();
+    events.push({
+      id: "event-assistant-2",
+      kind: "assistant-message",
+      timestamp: "2026-07-21T00:00:06Z",
+      locator: "session:6",
+      text: "The requested regression is implemented."
+    });
+    events.push({
+      id: "event-tool-output-2",
+      kind: "tool-result",
+      timestamp: "2026-07-21T00:00:07Z",
+      locator: "session:7",
+      text: "All tests passed."
+    });
+
+    const result = buildWorkCapsule(session, events, workspace);
+
+    expect(result.capsule.nextAction.first.text).toBe(
+      "No unresolved action is evidenced; wait for the next user instruction."
+    );
+    expect(result.capsule.nextAction.first.text).not.toMatch(/investigate|resolve the latest/i);
+  });
 });

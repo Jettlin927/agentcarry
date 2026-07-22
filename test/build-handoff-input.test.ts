@@ -66,19 +66,19 @@ describe("benchmark handoff inputs", () => {
   });
 
   it.each([
-    ["architecture-01-streaming-log", "a01-tool-2"],
-    ["architecture-02-session-index", "a02-tool-2"],
-    ["architecture-03-job-scheduler", "a03-tool-2"],
-    ["debugging-01-invoice-total", "d01-user-2"],
-    ["debugging-02-unicode-watcher", "d02-user-2"],
-    ["debugging-03-duplicate-jobs", "d03-user-2"],
-    ["feature-01-pagination", "f01-user-2"],
-    ["feature-02-deploy-dry-run", "f02-user-2"],
-    ["feature-03-config-errors", "f03-user-2"],
-    ["refactor-01-http-transport", "r01-user-2"],
-    ["refactor-02-cli-renderers", "r02-user-2"],
-    ["refactor-03-file-indexer", "r03-user-2"]
-  ])("builds an evidenced first action for %s", (fixtureId, evidenceId) => {
+    ["architecture-01-streaming-log", "a01-tool-2", "Investigate and resolve the latest source result: Throughput meets the target, but the slow-consumer backpressure test hangs."],
+    ["architecture-02-session-index", "a02-tool-2", "Investigate and resolve the latest source result: Update churn grows the file indefinitely; compaction and crash-safe replacement are not implemented."],
+    ["architecture-03-job-scheduler", "a03-tool-2", "Investigate and resolve the latest source result: Cancelling the second queued job still starts it after the first running job releases a slot."],
+    ["debugging-01-invoice-total", "d01-user-2", "Prove the parser fix with a regression test."],
+    ["debugging-02-unicode-watcher", "d02-user-2", "Add the Windows integration test."],
+    ["debugging-03-duplicate-jobs", "d03-user-2", "Add the fake-clock regression."],
+    ["feature-01-pagination", "f01-user-2", "Expose an async iterator named pages(); each next() should fetch exactly one page."],
+    ["feature-02-deploy-dry-run", "f02-user-2", "Wire --dry-run into the CLI and assert the executor is never constructed."],
+    ["feature-03-config-errors", "f03-user-2", "Redact at the validation-error formatter, not in the parser, and preserve the failing field path."],
+    ["refactor-01-http-transport", "r01-user-2", "Header preservation belongs inside the transport. The streaming response method is still unconverted."],
+    ["refactor-02-cli-renderers", "r02-user-2", "Renderers own formatting. Diagnostics go to stderr; do not special-case commands."],
+    ["refactor-03-file-indexer", "r03-user-2", "The remaining work is .ignore-file support. Keep ignore parsing inside the local indexer."]
+  ])("builds the reviewed first action and evidence for %s", (fixtureId, evidenceId, firstText) => {
     const fixtureUnderTest = readFixtureById(fixtureId);
     const capsule = JSON.parse(buildDeterministicCapsule(fixtureUnderTest).content) as {
       nextAction: {
@@ -88,7 +88,7 @@ describe("benchmark handoff inputs", () => {
       };
     };
 
-    expect(capsule.nextAction.first.text.length).toBeGreaterThan(0);
+    expect(capsule.nextAction.first.text).toBe(firstText);
     expect(capsule.nextAction.first.evidenceRefs).toEqual([evidenceId]);
   });
 

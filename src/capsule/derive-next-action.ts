@@ -104,11 +104,14 @@ function explicitOrder(event: NextActionInputEvent): DerivedNextAction | undefin
 }
 
 function explicitNext(event: NextActionInputEvent): DerivedNextAction | undefined {
-  const next = clauses(event).find((part) => /\bnext\b/i.test(part));
+  const next = clauses(event).find((part) => /\snext(?:[.!?]?$|\s+and\s+)/i.test(part));
   if (next === undefined) {
     return undefined;
   }
-  return result(fact(next.replace(/\s+next\b/i, ""), event));
+  const finalAction = next.match(/\band\s+((?:add|write|run|fix|implement|finish|prove|expose|wire)\b.+?)\s+next[.!?]?$/i);
+  const action = finalAction?.[1]
+    ?? next.replace(/\s+next(?=[.!?]?$|\s+and\s+)/i, "");
+  return result(fact(action, event));
 }
 
 function latestEffectiveEvent(events: readonly NextActionInputEvent[]): NextActionInputEvent | undefined {
@@ -138,8 +141,17 @@ function latestEffectiveEvent(events: readonly NextActionInputEvent[]): NextActi
   return state?.kind === "agent-checkpoint" ? state : events[latestUserIndex];
 }
 
-function unresolvedAction(event: NextActionInputEvent): DerivedNextAction {
-  return result(fact(`Investigate and resolve the latest source result: ${event.text!}`, event));
+const failedResultPattern = /\b(?:fail(?:ed|s)?|rejected|reverted|does not|did not|still|hangs?|error|not implemented)\b|失败|未通过|无效|排除|放弃|回滚|仍然|报错|错误/i;
+const successfulResultPattern = /\b(?:all .+ pass(?:ed)?|pass(?:ed|es)|success|exit code 0)\b|通过|成功/i;
+
+function actionFromToolResult(event: NextActionInputEvent): DerivedNextAction {
+  if (failedResultPattern.test(event.text!)) {
+    return result(fact(`Investigate and resolve the latest source result: ${event.text!}`, event));
+  }
+  if (successfulResultPattern.test(event.text!)) {
+    return result(fact("No unresolved action is evidenced; wait for the next user instruction", event));
+  }
+  return result(fact(`Review the latest source result before continuing: ${event.text!}`, event));
 }
 
 export function deriveNextAction(events: readonly NextActionInputEvent[]): DerivedNextAction {
@@ -148,7 +160,7 @@ export function deriveNextAction(events: readonly NextActionInputEvent[]): Deriv
     throw new Error("a Work Capsule needs evidence for the next action");
   }
   if (selected.kind === "tool-result") {
-    return unresolvedAction(selected);
+    return actionFromToolResult(selected);
   }
 
   const ordered = explicitOrder(selected);
