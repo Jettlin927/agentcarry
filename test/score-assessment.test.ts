@@ -41,6 +41,7 @@ describe("scoreAssessment", () => {
       criticalConstraints100Percent: true,
       correctNextAction: true,
       noRepeatedFailedPath: true,
+      humanOutcomePassed: true,
       canonicalCompressionAtMost40Percent: true
     });
   });
@@ -105,6 +106,15 @@ describe("scoreAssessment", () => {
         method: undefined
       }
     } as unknown as ContinuationAssessment)).toThrow("requires target-calibration-delta-v1");
+  });
+
+  it("rejects an assessment without an explicit human outcome", () => {
+    expect(() => scoreAssessment(fixture, {
+      ...perfect,
+      review: { ...perfect.review, outcome: undefined }
+    } as unknown as ContinuationAssessment)).toThrow(
+      "requires an explicit human pass or fail outcome"
+    );
   });
 
   it("requires every Benchmark v2 token field in the assessment schema", () => {
@@ -213,6 +223,7 @@ describe("scoreAssessment", () => {
 
     expect(markdown).toContain("- Fidelity: 100.00 / 100.00");
     expect(markdown).toContain("- Provider route: example-provider");
+    expect(markdown).toContain("- Human outcome: PASS");
     expect(markdown).toContain("| criticalConstraints | 30.00 | 30.00 |");
     expect(markdown).toContain("- Fixed target overhead tokens: 1000");
     expect(markdown).toContain("- PASS canonical Work Capsule compression at most 40%");

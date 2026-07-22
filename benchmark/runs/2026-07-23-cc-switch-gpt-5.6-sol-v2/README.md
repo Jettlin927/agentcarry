@@ -56,8 +56,11 @@ that resume.
 `advisory-verdicts.json` is an AI-only first pass and cannot finalize the
 benchmark. `REVIEW.html` is the self-contained Chinese review workbench: it
 shows the exact target payload and response side by side, supports pass/fail and
-fact-level corrections, stores progress locally in the browser, and exports the
-required human-review JSON. `REVIEW_PACKET.md` is the non-interactive archive.
+fact-level corrections, lets the reviewer replace AI suggestions for repeated
+failed paths and unsupported claims, stores progress locally in the browser,
+and exports the required v2 human-review JSON. Final scoring enforces the human
+outcome and those risk-list corrections. `REVIEW_PACKET.md` is the
+non-interactive archive.
 
 After all 36 rows are personally reviewed, finalize with an auditable Issue
 comment URL:

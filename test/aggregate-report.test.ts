@@ -28,6 +28,8 @@ function score(
     },
     reviewer: "human-reviewer",
     reviewedAt: "2026-07-21T00:00:00Z",
+    humanOutcome: "pass",
+    humanNote: "Reviewed the exact input and output.",
     fidelityScore,
     categoryScores: [],
     criticalConstraintMisses: [],
@@ -47,6 +49,7 @@ function score(
       criticalConstraints100Percent: true,
       correctNextAction: true,
       noRepeatedFailedPath: true,
+      humanOutcomePassed: true,
       canonicalCompressionAtMost40Percent: mode === "visible-transcript" ? null : ratio <= 0.4
     }
   };

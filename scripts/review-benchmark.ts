@@ -13,7 +13,15 @@ import {
   renderAggregateJson,
   renderAggregateMarkdown
 } from "../src/benchmark/aggregate-report.js";
-import { canonicalJson } from "../src/benchmark/build-handoff-input.js";
+import {
+  canonicalJson,
+  type BenchmarkSourceFixture,
+  type HandoffInputArtifact
+} from "../src/benchmark/build-handoff-input.js";
+import {
+  validateCollectedBenchmarkEvidence,
+  type BenchmarkRunPlan
+} from "../src/benchmark/collect-target-runs.js";
 import {
   finalizeBenchmarkReviewFromExport,
   renderReviewPacket,
@@ -28,6 +36,7 @@ import {
 } from "../src/benchmark/render-review-html.js";
 import type {
   CanonicalCapsuleMeasurement,
+  TargetCalibration,
   TargetRunResult
 } from "../src/benchmark/run-target-continuation.js";
 import {
@@ -40,7 +49,9 @@ async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, "utf8")) as unknown;
 }
 
-async function readFixtures(directory: string): Promise<ReviewFixture[]> {
+type BenchmarkFixture = BenchmarkSourceFixture & ReviewFixture;
+
+async function readFixtures(directory: string): Promise<BenchmarkFixture[]> {
   const names = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
   return await Promise.all(names.map(async (name) => {
     const path = join(directory, name);
@@ -49,7 +60,7 @@ async function readFixtures(directory: string): Promise<ReviewFixture[]> {
     if (!validation.valid) {
       throw new Error(`${path}: ${validation.errors.map((error) => error.message).join("; ")}`);
     }
-    return value as ReviewFixture;
+    return value as BenchmarkFixture;
   }));
 }
 
@@ -71,18 +82,23 @@ async function readCanonicalBaselines(
   ));
 }
 
-async function readInputs(
-  runDirectory: string,
-  results: readonly TargetRunResult[]
-): Promise<ReviewInputArtifact[]> {
+async function readInputs(runDirectory: string): Promise<HandoffInputArtifact[]> {
   const directory = join(runDirectory, "inputs");
   const names = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
+  return await Promise.all(names.map(async (name) =>
+    await readJson(join(directory, name)) as HandoffInputArtifact
+  ));
+}
+
+function reviewInputs(
+  inputs: readonly HandoffInputArtifact[],
+  results: readonly TargetRunResult[]
+): ReviewInputArtifact[] {
   const resultByPair = new Map(results.map((result) => [
     `${result.fixtureId}:${result.mode}`,
     result
   ]));
-  return await Promise.all(names.map(async (name) => {
-    const artifact = await readJson(join(directory, name)) as ReviewInputArtifact;
+  return inputs.map((artifact) => {
     const result = resultByPair.get(`${artifact.fixtureId}:${artifact.mode}`);
     if (result === undefined) {
       throw new Error(`missing target result for input ${artifact.fixtureId}:${artifact.mode}`);
@@ -92,7 +108,7 @@ async function readInputs(
       contentType: result.input.agentCarryPayload.contentType,
       content: result.input.agentCarryPayload.text
     };
-  }));
+  });
 }
 
 function option(args: readonly string[], name: string): string | undefined {
@@ -194,11 +210,23 @@ async function main(): Promise<void> {
   const fixtures = await readFixtures(resolve(fixtureDirectory));
   const runRoot = resolve(runDirectory);
   const results = await readResults(runRoot);
+  const inputs = await readInputs(runRoot);
+  const canonicalBaselines = await readCanonicalBaselines(runRoot);
+  const plan = await readJson(join(runRoot, "plan.json")) as BenchmarkRunPlan;
+  const calibration = await readJson(join(runRoot, "calibration.json")) as TargetCalibration;
+  validateCollectedBenchmarkEvidence(
+    fixtures,
+    plan,
+    calibration,
+    inputs,
+    results,
+    canonicalBaselines
+  );
   const advisory = await readJson(join(runRoot, "advisory-verdicts.json")) as AdvisoryVerdictSet;
   if (command === "packet" || command === "html") {
     const outputPath = resolve(output);
     const content = command === "html"
-      ? renderReviewHtml(fixtures, await readInputs(runRoot, results), results, advisory)
+      ? renderReviewHtml(fixtures, reviewInputs(inputs, results), results, advisory)
       : renderReviewPacket(fixtures, results, advisory);
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(outputPath, content, {
@@ -222,7 +250,7 @@ async function main(): Promise<void> {
   const materialized = finalizeBenchmarkReviewFromExport(
     fixtures,
     results,
-    await readCanonicalBaselines(runRoot),
+    canonicalBaselines,
     advisory,
     humanReview,
     confirmationSource

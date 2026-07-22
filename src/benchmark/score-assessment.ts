@@ -38,6 +38,8 @@ export interface ContinuationAssessment {
   readonly review: {
     readonly humanReviewer: string;
     readonly reviewedAt: string;
+    readonly outcome: "pass" | "fail";
+    readonly note: string;
     readonly llmJudge?: { readonly model: string; readonly advisoryOnly: true };
   };
   readonly categories: Readonly<Record<CategoryName, readonly FactAssessment[]>>;
@@ -76,6 +78,8 @@ export interface ContinuationScoreReport {
   readonly target: ContinuationAssessment["target"];
   readonly reviewer: string;
   readonly reviewedAt: string;
+  readonly humanOutcome: "pass" | "fail";
+  readonly humanNote: string;
   readonly fidelityScore: number;
   readonly categoryScores: readonly CategoryScore[];
   readonly criticalConstraintMisses: ReadonlyArray<{
@@ -98,6 +102,7 @@ export interface ContinuationScoreReport {
     readonly criticalConstraints100Percent: boolean;
     readonly correctNextAction: boolean;
     readonly noRepeatedFailedPath: boolean;
+    readonly humanOutcomePassed: boolean;
     readonly canonicalCompressionAtMost40Percent: boolean | null;
   };
 }
@@ -148,6 +153,12 @@ export function scoreAssessment(
   }
   if (assessment.schemaVersion !== "2.0.0" || assessment.tokens.method !== "target-calibration-delta-v1") {
     throw new Error("Benchmark v2 assessment requires target-calibration-delta-v1 metering");
+  }
+  if (
+    (assessment.review.outcome !== "pass" && assessment.review.outcome !== "fail")
+    || typeof assessment.review.note !== "string"
+  ) {
+    throw new Error("Benchmark v2 assessment requires an explicit human pass or fail outcome and note");
   }
   const tokenValues = [
     assessment.tokens.fullCallInput,
@@ -233,6 +244,8 @@ export function scoreAssessment(
     target: assessment.target,
     reviewer: assessment.review.humanReviewer,
     reviewedAt: assessment.review.reviewedAt,
+    humanOutcome: assessment.review.outcome,
+    humanNote: assessment.review.note,
     fidelityScore: round(
       categoryScores.reduce((sum, category) => sum + category.earned, 0),
       2
@@ -255,6 +268,7 @@ export function scoreAssessment(
       criticalConstraints100Percent: criticalConstraintMisses.length === 0,
       correctNextAction: nextActionCorrect,
       noRepeatedFailedPath: assessment.repeatedFailedPaths.length === 0,
+      humanOutcomePassed: assessment.review.outcome === "pass",
       canonicalCompressionAtMost40Percent
     }
   };
@@ -287,6 +301,8 @@ export function renderScoreMarkdown(report: ContinuationScoreReport): string {
 - Target: ${report.target.agent} / ${report.target.model}
 - Provider route: ${report.target.provider}
 - Human reviewer: ${report.reviewer}
+- Human outcome: ${report.humanOutcome.toUpperCase()}
+- Human note: ${report.humanNote || "None"}
 - Fidelity: ${report.fidelityScore.toFixed(2)} / 100.00
 - Full-call input tokens: ${report.tokens.fullCallInput}
 - Fixed target overhead tokens: ${report.tokens.fixedOverhead}
@@ -305,6 +321,7 @@ ${rows}
 - ${mark(report.gates.criticalConstraints100Percent)} critical constraints 100%
 - ${mark(report.gates.correctNextAction)} correct next action
 - ${mark(report.gates.noRepeatedFailedPath)} no repeated failed path
+- ${mark(report.gates.humanOutcomePassed)} human reviewer passed this continuation
 - ${mark(report.gates.canonicalCompressionAtMost40Percent)} canonical Work Capsule compression at most 40%
 
 ## Separate findings

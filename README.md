@@ -204,6 +204,10 @@ fixed harness overhead. It reports the visible-transcript comparison, while the
 compression gate compares the compiled continuation brief with the matching
 canonical Work Capsule measured by the same target. The published Phase 0 v1
 report remains frozen with its original metric and schema.
+The self-contained human review workbench records a pass/fail outcome for every
+run and lets the reviewer correct fact verdicts, repeated failed paths, and
+unsupported claims. Those human decisions are enforced by final scoring rather
+than treated as display-only metadata.
 
 ## Security and privacy
 

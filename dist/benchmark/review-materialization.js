@@ -91,7 +91,7 @@ function factAssessments(facts, run) {
             : { factId: fact.id, verdict: exception.verdict, note: exception.note };
     });
 }
-function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, canonicalWorkCapsulePayloadBaseline, advisory, confirmation) {
+function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, canonicalWorkCapsulePayloadBaseline, advisory, confirmation, humanOutcome, humanNote) {
     return {
         schemaVersion: "2.0.0",
         runId: result.runId,
@@ -114,6 +114,8 @@ function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, c
         review: {
             humanReviewer: confirmation.humanReviewer,
             reviewedAt: confirmation.reviewedAt,
+            outcome: humanOutcome,
+            note: humanNote,
             llmJudge: { model: advisory.reviewer.name, advisoryOnly: true }
         },
         categories: {
@@ -169,7 +171,7 @@ function validateConfirmation(confirmation) {
         throw new Error("finalization requires an explicit human reviewer, timestamp, and confirmation source");
     }
 }
-export function finalizeBenchmarkReview(fixtures, results, canonicalMeasurements, advisory, confirmation) {
+export function finalizeBenchmarkReview(fixtures, results, canonicalMeasurements, advisory, confirmation, humanReviews = undefined) {
     validateConfirmation(confirmation);
     const validated = validateReviewInputs(fixtures, results, advisory);
     const canonicalBaselines = canonicalBaselineTokens(validated.resultsByRunId, canonicalMeasurements);
@@ -180,7 +182,10 @@ export function finalizeBenchmarkReview(fixtures, results, canonicalMeasurements
     }));
     const assessments = [...validated.resultsByRunId.values()]
         .sort((left, right) => compareText(left.runId, right.runId))
-        .map((result) => assessmentFor(fixtureById.get(result.fixtureId), result, validated.advisoryByRunId.get(result.runId), visiblePayloadBaselines.get(result.fixtureId), result.mode === "visible-transcript" ? null : canonicalBaselines.get(result.runId), advisory, confirmation));
+        .map((result) => {
+        const humanReview = humanReviews?.get(result.runId);
+        return assessmentFor(fixtureById.get(result.fixtureId), result, validated.advisoryByRunId.get(result.runId), visiblePayloadBaselines.get(result.fixtureId), result.mode === "visible-transcript" ? null : canonicalBaselines.get(result.runId), advisory, confirmation, humanReview?.outcome ?? "pass", humanReview?.note ?? "Human reviewer confirmed the advisory verdicts.");
+    });
     const scores = assessments.map((assessment) => scoreAssessment(fixtureById.get(assessment.fixtureId), assessment));
     const resultSet = {
         schemaVersion: "2.0.0",
@@ -205,12 +210,17 @@ export function finalizeBenchmarkReview(fixtures, results, canonicalMeasurements
         }
     };
 }
-function humanAdjustedAdvisory(fixtures, results, advisory, humanReview) {
+function validFindingList(value) {
+    return Array.isArray(value)
+        && value.every((item) => typeof item === "string" && item.trim().length > 0)
+        && new Set(value).size === value.length;
+}
+function humanAdjustedReview(fixtures, results, advisory, humanReview) {
     const validated = validateReviewInputs(fixtures, results, advisory);
     if (humanReview.reviewerKind !== "human" || humanReview.humanConfirmed !== true) {
         throw new Error("finalization requires explicit human attestation");
     }
-    if (humanReview.schemaVersion !== "1.0.0"
+    if (humanReview.schemaVersion !== "2.0.0"
         || humanReview.benchmarkId !== advisory.benchmarkId
         || humanReview.complete !== true
         || humanReview.humanReviewer.trim().length === 0
@@ -224,7 +234,9 @@ function humanAdjustedAdvisory(fixtures, results, advisory, humanReview) {
             || reviews.has(review.runId)
             || (review.outcome !== "pass" && review.outcome !== "fail")
             || Number.isNaN(Date.parse(review.reviewedAt))
-            || typeof review.note !== "string") {
+            || typeof review.note !== "string"
+            || !validFindingList(review.repeatedFailedPaths)
+            || !validFindingList(review.unsupportedClaims)) {
             throw new Error(`invalid or duplicate human review ${review.runId}`);
         }
         const fixture = validated.fixtures.find((candidate) => candidate.id === result.fixtureId);
@@ -242,38 +254,47 @@ function humanAdjustedAdvisory(fixtures, results, advisory, humanReview) {
         throw new Error(`human review export requires ${validated.resultsByRunId.size} completed runs`);
     }
     return {
-        ...advisory,
-        runs: advisory.runs.map((run) => {
-            const review = reviews.get(run.runId);
-            const result = validated.resultsByRunId.get(run.runId);
-            const fixture = validated.fixtures.find((candidate) => candidate.id === result.fixtureId);
-            const exceptions = Object.fromEntries(allFacts(fixture).flatMap((fact) => {
-                const verdict = review.factVerdicts[fact.id];
-                if (verdict === "preserved") {
-                    return [];
-                }
-                const original = run.exceptions[fact.id];
-                const note = review.note.trim().length > 0
-                    ? review.note.trim()
-                    : original?.verdict === verdict
-                        ? original.note
-                        : `Human reviewer selected ${verdict} after comparing the exact input and output.`;
-                return [[fact.id, { verdict, note }]];
-            }));
-            return { ...run, exceptions };
-        })
+        reviews,
+        advisory: {
+            ...advisory,
+            runs: advisory.runs.map((run) => {
+                const review = reviews.get(run.runId);
+                const result = validated.resultsByRunId.get(run.runId);
+                const fixture = validated.fixtures.find((candidate) => candidate.id === result.fixtureId);
+                const exceptions = Object.fromEntries(allFacts(fixture).flatMap((fact) => {
+                    const verdict = review.factVerdicts[fact.id];
+                    if (verdict === "preserved") {
+                        return [];
+                    }
+                    const original = run.exceptions[fact.id];
+                    const note = review.note.trim().length > 0
+                        ? review.note.trim()
+                        : original?.verdict === verdict
+                            ? original.note
+                            : `Human reviewer selected ${verdict} after comparing the exact input and output.`;
+                    return [[fact.id, { verdict, note }]];
+                }));
+                return {
+                    ...run,
+                    exceptions,
+                    repeatedFailedPaths: [...review.repeatedFailedPaths],
+                    unsupportedClaims: [...review.unsupportedClaims]
+                };
+            })
+        }
     };
 }
 export function finalizeBenchmarkReviewFromExport(fixtures, results, canonicalMeasurements, advisory, humanReview, confirmationSource) {
     if (confirmationSource.trim().length === 0) {
         throw new Error("finalization requires an auditable confirmation source");
     }
-    const materialized = finalizeBenchmarkReview(fixtures, results, canonicalMeasurements, humanAdjustedAdvisory(fixtures, results, advisory, humanReview), {
+    const adjusted = humanAdjustedReview(fixtures, results, advisory, humanReview);
+    const materialized = finalizeBenchmarkReview(fixtures, results, canonicalMeasurements, adjusted.advisory, {
         confirmed: true,
         humanReviewer: humanReview.humanReviewer,
         reviewedAt: humanReview.exportedAt,
         confirmationSource
-    });
+    }, adjusted.reviews);
     return { ...materialized, humanReview };
 }
 function markdownCell(value) {

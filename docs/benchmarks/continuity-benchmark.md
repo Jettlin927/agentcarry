@@ -149,6 +149,7 @@ npm run --silent benchmark:score -- <fixture.json> <assessment.json> --format ma
 - the target does not repeat a recorded failed path;
 - the next action is correct;
 - unsupported claims and hallucinations are no worse than baseline;
+- the human reviewer passes every Capsule continuation in the mode;
 - the compiled continuation brief uses no more than 40% of its canonical Work
   Capsule payload.
 
@@ -169,9 +170,10 @@ npm run --silent benchmark:report -- <result-set.json> --format json
 ```
 
 The report prints PASS or FAIL for fidelity, critical constraints, correct next
-action, repeated failed paths, unsupported claims, canonical compression, each
-capsule mode, and the overall Benchmark v2 gate. It reports the visible ratio,
-full-call input, and fixed overhead without using them in the compression gate.
+action, the per-run human outcome, repeated failed paths, unsupported claims,
+canonical compression, each capsule mode, and the overall Benchmark v2 gate.
+It reports the visible ratio, full-call input, and fixed overhead without using
+them in the compression gate.
 
 ## Reproducible target collection
 
@@ -208,7 +210,8 @@ remain separate steps.
 
 Generate the self-contained browser workbench. It shows the exact handoff input
 and target output side by side, keeps pass/fail decisions in browser-local
-storage, allows fact-level corrections, and exports the review as JSON:
+storage, allows fact-level corrections and human overrides for repeated failed
+paths and unsupported claims, and exports the review as JSON:
 
 ```shell
 npm run --silent benchmark:review -- html benchmark/fixtures <run-directory> \
@@ -240,10 +243,12 @@ npm run --silent benchmark:review -- finalize benchmark/fixtures <run-directory>
   --human-confirmed
 ```
 
-Finalization refuses to overwrite an existing output directory. It validates
-all 12 fixtures, 36 target results, 36 advisory entries, 36 completed browser
-decisions, every fact ID and verdict, reviewer metadata, and aggregate integrity
-before publishing `assessments/`, `scores/`, `human-review.json`,
+Finalization refuses to overwrite an existing output directory. Before review
+materialization it recomputes the plan, calibration, prompt, payload, output,
+byte-count, and canonical-baseline integrity of the raw evidence. It then
+validates all 12 fixtures, 36 target results, 36 advisory entries, 36 completed
+browser decisions, every fact ID and verdict, both human-owned risk lists,
+reviewer metadata, and aggregate integrity before publishing `assessments/`,
 `human-confirmation.json`, `result-set.json`, `report.json`, and `REPORT.md`.
 
 ### Explicit routed-provider mode

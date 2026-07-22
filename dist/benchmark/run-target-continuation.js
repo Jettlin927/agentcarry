@@ -80,6 +80,12 @@ export function createTargetInvocation(artifact, model, options = {}) {
 export function createTargetCalibrationInvocation(model, options = {}) {
     return invocationForPayload("", model, options.settingSources);
 }
+export function createCanonicalCapsuleMeasurementInvocation(artifact, model, options = {}) {
+    if (artifact.mode === "visible-transcript") {
+        throw new Error("canonical Work Capsule measurement requires a capsule mode");
+    }
+    return invocationForPayload(artifact.content, model, options.settingSources);
+}
 async function executeTarget(invocation, runner, now, workingDirectory) {
     const startedAt = now().toISOString();
     const temporaryDirectory = workingDirectory
@@ -204,7 +210,7 @@ export async function runCanonicalCapsuleMeasurement(artifact, model, options = 
     if (options.calibration === undefined) {
         throw new Error("canonical Work Capsule measurement requires fixed-overhead calibration");
     }
-    const invocation = invocationForPayload(artifact.content, model, options.settingSources);
+    const invocation = createCanonicalCapsuleMeasurementInvocation(artifact, model, options);
     const expectedTarget = {
         agent: "claude",
         model,

@@ -93,12 +93,14 @@ export interface HumanRunReview {
   readonly runId: string;
   readonly outcome: "pass" | "fail";
   readonly factVerdicts: Readonly<Record<string, FactVerdict>>;
+  readonly repeatedFailedPaths: readonly string[];
+  readonly unsupportedClaims: readonly string[];
   readonly note: string;
   readonly reviewedAt: string;
 }
 
 export interface HumanReviewExport {
-  readonly schemaVersion: "1.0.0";
+  readonly schemaVersion: "2.0.0";
   readonly benchmarkId: string;
   readonly reviewerKind: "human";
   readonly humanReviewer: string;
@@ -245,7 +247,9 @@ function assessmentFor(
   visibleTranscriptPayloadBaseline: number,
   canonicalWorkCapsulePayloadBaseline: number | null,
   advisory: AdvisoryVerdictSet,
-  confirmation: HumanReviewConfirmationInput
+  confirmation: HumanReviewConfirmationInput,
+  humanOutcome: HumanRunReview["outcome"],
+  humanNote: string
 ): ContinuationAssessment {
   return {
     schemaVersion: "2.0.0",
@@ -269,6 +273,8 @@ function assessmentFor(
     review: {
       humanReviewer: confirmation.humanReviewer,
       reviewedAt: confirmation.reviewedAt,
+      outcome: humanOutcome,
+      note: humanNote,
       llmJudge: { model: advisory.reviewer.name, advisoryOnly: true }
     },
     categories: {
@@ -344,7 +350,8 @@ export function finalizeBenchmarkReview(
   results: readonly TargetRunResult[],
   canonicalMeasurements: readonly CanonicalCapsuleMeasurement[],
   advisory: AdvisoryVerdictSet,
-  confirmation: HumanReviewConfirmationInput
+  confirmation: HumanReviewConfirmationInput,
+  humanReviews: ReadonlyMap<string, HumanRunReview> | undefined = undefined
 ): MaterializedBenchmarkReview {
   validateConfirmation(confirmation);
   const validated = validateReviewInputs(fixtures, results, advisory);
@@ -359,15 +366,20 @@ export function finalizeBenchmarkReview(
   }));
   const assessments = [...validated.resultsByRunId.values()]
     .sort((left, right) => compareText(left.runId, right.runId))
-    .map((result) => assessmentFor(
-      fixtureById.get(result.fixtureId)!,
-      result,
-      validated.advisoryByRunId.get(result.runId)!,
-      visiblePayloadBaselines.get(result.fixtureId)!,
-      result.mode === "visible-transcript" ? null : canonicalBaselines.get(result.runId)!,
-      advisory,
-      confirmation
-    ));
+    .map((result) => {
+      const humanReview = humanReviews?.get(result.runId);
+      return assessmentFor(
+        fixtureById.get(result.fixtureId)!,
+        result,
+        validated.advisoryByRunId.get(result.runId)!,
+        visiblePayloadBaselines.get(result.fixtureId)!,
+        result.mode === "visible-transcript" ? null : canonicalBaselines.get(result.runId)!,
+        advisory,
+        confirmation,
+        humanReview?.outcome ?? "pass",
+        humanReview?.note ?? "Human reviewer confirmed the advisory verdicts."
+      );
+    });
   const scores = assessments.map((assessment) => scoreAssessment(
     fixtureById.get(assessment.fixtureId)!,
     assessment
@@ -396,18 +408,27 @@ export function finalizeBenchmarkReview(
   };
 }
 
-function humanAdjustedAdvisory(
+function validFindingList(value: unknown): value is readonly string[] {
+  return Array.isArray(value)
+    && value.every((item) => typeof item === "string" && item.trim().length > 0)
+    && new Set(value).size === value.length;
+}
+
+function humanAdjustedReview(
   fixtures: readonly ReviewFixture[],
   results: readonly TargetRunResult[],
   advisory: AdvisoryVerdictSet,
   humanReview: HumanReviewExport
-): AdvisoryVerdictSet {
+): {
+  readonly advisory: AdvisoryVerdictSet;
+  readonly reviews: ReadonlyMap<string, HumanRunReview>;
+} {
   const validated = validateReviewInputs(fixtures, results, advisory);
   if (humanReview.reviewerKind !== "human" || humanReview.humanConfirmed !== true) {
     throw new Error("finalization requires explicit human attestation");
   }
   if (
-    humanReview.schemaVersion !== "1.0.0"
+    humanReview.schemaVersion !== "2.0.0"
     || humanReview.benchmarkId !== advisory.benchmarkId
     || humanReview.complete !== true
     || humanReview.humanReviewer.trim().length === 0
@@ -424,6 +445,8 @@ function humanAdjustedAdvisory(
       || (review.outcome !== "pass" && review.outcome !== "fail")
       || Number.isNaN(Date.parse(review.reviewedAt))
       || typeof review.note !== "string"
+      || !validFindingList(review.repeatedFailedPaths)
+      || !validFindingList(review.unsupportedClaims)
     ) {
       throw new Error(`invalid or duplicate human review ${review.runId}`);
     }
@@ -445,8 +468,10 @@ function humanAdjustedAdvisory(
   }
 
   return {
-    ...advisory,
-    runs: advisory.runs.map((run) => {
+    reviews,
+    advisory: {
+      ...advisory,
+      runs: advisory.runs.map((run) => {
       const review = reviews.get(run.runId)!;
       const result = validated.resultsByRunId.get(run.runId)!;
       const fixture = validated.fixtures.find((candidate) => candidate.id === result.fixtureId)!;
@@ -463,8 +488,14 @@ function humanAdjustedAdvisory(
             : `Human reviewer selected ${verdict} after comparing the exact input and output.`;
         return [[fact.id, { verdict, note }]];
       }));
-      return { ...run, exceptions };
-    })
+        return {
+          ...run,
+          exceptions,
+          repeatedFailedPaths: [...review.repeatedFailedPaths],
+          unsupportedClaims: [...review.unsupportedClaims]
+        };
+      })
+    }
   };
 }
 
@@ -479,17 +510,19 @@ export function finalizeBenchmarkReviewFromExport(
   if (confirmationSource.trim().length === 0) {
     throw new Error("finalization requires an auditable confirmation source");
   }
+  const adjusted = humanAdjustedReview(fixtures, results, advisory, humanReview);
   const materialized = finalizeBenchmarkReview(
     fixtures,
     results,
     canonicalMeasurements,
-    humanAdjustedAdvisory(fixtures, results, advisory, humanReview),
+    adjusted.advisory,
     {
       confirmed: true,
       humanReviewer: humanReview.humanReviewer,
       reviewedAt: humanReview.exportedAt,
       confirmationSource
-    }
+    },
+    adjusted.reviews
   );
   return { ...materialized, humanReview };
 }

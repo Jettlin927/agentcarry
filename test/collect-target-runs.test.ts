@@ -18,6 +18,8 @@ import {
 } from "../src/benchmark/collect-target-runs.js";
 import {
   createTargetCalibrationInvocation,
+  createCanonicalCapsuleMeasurementInvocation,
+  createTargetInvocation,
   createTargetSettings,
   targetSettings,
   type CanonicalCapsuleMeasurement,
@@ -61,6 +63,8 @@ function targetResult(
   calibration: TargetCalibration,
   provider = "unspecified"
 ): TargetRunResult {
+  const invocation = createTargetInvocation(artifact, model);
+  const outputText = "Reviewed continuation state.";
   return {
     schemaVersion: "2.0.0",
     runId: `${artifact.fixtureId}:${artifact.mode}:initial`,
@@ -69,21 +73,24 @@ function targetResult(
     sourceFingerprint: artifact.sourceFingerprint,
     target: { agent: "claude", model, provider, settings: targetSettings },
     input: {
-      promptSha256: "a".repeat(64),
-      promptUtf8Bytes: 100,
+      promptSha256: createHash("sha256").update(invocation.stdin, "utf8").digest("hex"),
+      promptUtf8Bytes: Buffer.byteLength(invocation.stdin, "utf8"),
       fullCallInputTokens: calibration.input.exactInputTokens + 50,
       fixedOverheadInputTokens: calibration.input.exactInputTokens,
       agentCarryPayload: {
-        contentType: "text/markdown",
-        text: "Reviewed handoff payload.",
-        sha256: "d".repeat(64),
-        utf8Bytes: 25,
+        contentType: artifact.mode === "visible-transcript" ? artifact.contentType : "text/markdown",
+        text: invocation.payload,
+        sha256: createHash("sha256").update(invocation.payload, "utf8").digest("hex"),
+        utf8Bytes: Buffer.byteLength(invocation.payload, "utf8"),
         tokens: 50
       }
     },
-    output: { text: "Reviewed continuation state.", sha256: "b".repeat(64) },
+    output: {
+      text: outputText,
+      sha256: createHash("sha256").update(outputText, "utf8").digest("hex")
+    },
     invocation: {
-      promptSha256: "a".repeat(64),
+      promptSha256: createHash("sha256").update(invocation.stdin, "utf8").digest("hex"),
       startedAt: "2026-07-21T00:00:00Z",
       completedAt: "2026-07-21T00:00:01Z"
     }
@@ -124,6 +131,7 @@ function canonicalMeasurement(
   if (artifact.mode === "visible-transcript") {
     throw new Error("test canonical measurement requires a capsule mode");
   }
+  const invocation = createCanonicalCapsuleMeasurementInvocation(artifact, model);
   return Promise.resolve({
     schemaVersion: "2.0.0",
     fixtureId: artifact.fixtureId,
@@ -132,8 +140,8 @@ function canonicalMeasurement(
     sourceFingerprint: artifact.sourceFingerprint,
     target: { agent: "claude", model, provider: "unspecified", settings: targetSettings },
     input: {
-      promptSha256: "e".repeat(64),
-      promptUtf8Bytes: 200,
+      promptSha256: createHash("sha256").update(invocation.stdin, "utf8").digest("hex"),
+      promptUtf8Bytes: Buffer.byteLength(invocation.stdin, "utf8"),
       fullCallInputTokens: targetCalibration.input.exactInputTokens + 125,
       fixedOverheadInputTokens: targetCalibration.input.exactInputTokens,
       canonicalWorkCapsulePayload: {
@@ -295,6 +303,64 @@ describe("benchmark target collection", () => {
     expect(runTarget).not.toHaveBeenCalled();
   });
 
+  it("rejects a stored target result whose hashed output was tampered", async () => {
+    const root = await outputRoot("result-integrity");
+    await collectTargetRuns(fixtures, "fixed-model", root, {
+      buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
+      calibrateTarget: async (model) => calibration(model),
+      runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
+    });
+    const resultPath = join(
+      root,
+      "results",
+      "architecture-01-streaming-log--visible-transcript.json"
+    );
+    const stored = JSON.parse(await readFile(resultPath, "utf8")) as TargetRunResult;
+    await writeFile(resultPath, JSON.stringify({
+      ...stored,
+      output: { ...stored.output, text: `${stored.output.text} tampered` }
+    }), "utf8");
+
+    await expect(collectTargetRuns(fixtures, "fixed-model", root, {
+      buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
+      calibrateTarget: async (model) => calibration(model),
+      runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
+    })).rejects.toThrow(
+      "stored target result does not match run plan for architecture-01-streaming-log:visible-transcript:initial"
+    );
+  });
+
+  it("rejects a canonical baseline whose measured prompt hash was tampered", async () => {
+    const root = await outputRoot("canonical-prompt-integrity");
+    await collectTargetRuns(fixtures, "fixed-model", root, {
+      buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
+      calibrateTarget: async (model) => calibration(model),
+      runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
+    });
+    const baselinePath = join(
+      root,
+      "canonical-baselines",
+      "architecture-01-streaming-log--deterministic-capsule.json"
+    );
+    const stored = JSON.parse(await readFile(baselinePath, "utf8")) as CanonicalCapsuleMeasurement;
+    await writeFile(baselinePath, JSON.stringify({
+      ...stored,
+      input: { ...stored.input, promptSha256: "0".repeat(64) }
+    }), "utf8");
+
+    await expect(collectTargetRuns(fixtures, "fixed-model", root, {
+      buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
+      calibrateTarget: async (model) => calibration(model),
+      runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
+    })).rejects.toThrow(
+      "stored canonical baseline does not match architecture-01-streaming-log:deterministic-capsule"
+    );
+  });
+
   it("rejects a stored source-assisted artifact that is not Work Capsule v2", async () => {
     const root = await outputRoot("source-assisted-integrity");
     await collectTargetRuns(fixtures, "fixed-model", root, {
@@ -309,12 +375,18 @@ describe("benchmark target collection", () => {
       "architecture-01-streaming-log--source-assisted-capsule.json"
     );
     const stored = JSON.parse(await readFile(inputPath, "utf8")) as HandoffInputArtifact;
+    const invalidContent = JSON.stringify({
+      schemaVersion: "work-capsule/v1",
+      nextAction: { first: { action: "Continue." } }
+    });
     await writeFile(inputPath, JSON.stringify({
       ...stored,
-      content: JSON.stringify({
-        schemaVersion: "work-capsule/v1",
-        nextAction: { first: { action: "Continue." } }
-      })
+      content: invalidContent,
+      measurements: {
+        ...stored.measurements,
+        utf8Bytes: Buffer.byteLength(invalidContent, "utf8"),
+        unicodeCodePoints: [...invalidContent].length
+      }
     }), "utf8");
     const buildSourceAssisted = vi.fn(sourceAssisted);
     const runTarget = vi.fn(async (
