@@ -30,6 +30,7 @@ jobs:
           package-manager-cache: false
       - run: npm ci
       - run: npm run check
+      - run: npm run dist:check
       - run: npm run benchmark:validate
       - run: npm run acceptance:validate
       - run: npm run acceptance:check-report

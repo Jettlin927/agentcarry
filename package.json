@@ -22,8 +22,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "prepare": "npx --yes --package=typescript@5.9.3 tsc -p tsconfig.build.json",
     "build": "tsc -p tsconfig.build.json",
+    "dist:check": "tsx scripts/check-dist.ts",
     "typecheck": "tsc -p tsconfig.json",
     "check": "npm run typecheck && npm test && npm run build",
     "test": "vitest run --dir test",
