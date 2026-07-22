@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jettlin927/agentcarry/blob/main/benchmark/schema/continuation-assessment.v2.schema.json",
+  "title": "AgentCarry Continuation Assessment v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "fixtureId",
+    "mode",
+    "target",
+    "tokens",
+    "review",
+    "categories",
+    "repeatedFailedPaths",
+    "unsupportedClaims"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "2.0.0" },
+    "runId": { "$ref": "#/$defs/nonEmptyString" },
+    "fixtureId": { "$ref": "#/$defs/nonEmptyString" },
+    "mode": { "enum": ["visible-transcript", "deterministic-capsule", "source-assisted-capsule"] },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent", "model", "provider", "settings"],
+      "properties": {
+        "agent": { "$ref": "#/$defs/nonEmptyString" },
+        "model": { "$ref": "#/$defs/nonEmptyString" },
+        "provider": { "$ref": "#/$defs/nonEmptyString" },
+        "settings": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "fullCallInput",
+        "fixedOverhead",
+        "agentCarryPayload",
+        "visibleTranscriptPayloadBaseline"
+      ],
+      "properties": {
+        "method": { "const": "target-calibration-delta-v1" },
+        "fullCallInput": { "type": "integer", "minimum": 0 },
+        "fixedOverhead": { "type": "integer", "minimum": 0 },
+        "agentCarryPayload": { "type": "integer", "minimum": 0 },
+        "visibleTranscriptPayloadBaseline": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["humanReviewer", "reviewedAt"],
+      "properties": {
+        "humanReviewer": { "$ref": "#/$defs/nonEmptyString" },
+        "reviewedAt": { "type": "string", "format": "date-time" },
+        "llmJudge": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "advisoryOnly"],
+          "properties": {
+            "model": { "$ref": "#/$defs/nonEmptyString" },
+            "advisoryOnly": { "const": true }
+          }
+        }
+      }
+    },
+    "categories": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "criticalConstraints",
+        "objectiveAndState",
+        "decisionsAndFailedAttempts",
+        "completedAndPending",
+        "workspaceEvidence",
+        "nextAction"
+      ],
+      "properties": {
+        "criticalConstraints": { "$ref": "#/$defs/factAssessments" },
+        "objectiveAndState": { "$ref": "#/$defs/factAssessments" },
+        "decisionsAndFailedAttempts": { "$ref": "#/$defs/factAssessments" },
+        "completedAndPending": { "$ref": "#/$defs/factAssessments" },
+        "workspaceEvidence": { "$ref": "#/$defs/factAssessments" },
+        "nextAction": { "$ref": "#/$defs/factAssessments" }
+      }
+    },
+    "repeatedFailedPaths": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonEmptyString" },
+      "uniqueItems": true
+    },
+    "unsupportedClaims": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonEmptyString" },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "factAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["factId", "verdict", "note"],
+      "properties": {
+        "factId": { "$ref": "#/$defs/nonEmptyString" },
+        "verdict": { "enum": ["preserved", "partial", "missing", "contradicted"] },
+        "note": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "factAssessments": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/factAssessment" }
+    }
+  }
+}

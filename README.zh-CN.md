@@ -113,6 +113,20 @@ Phase 0 使用 12 个受控任务，对每个任务比较三种交接：
 
 评分覆盖关键约束、目标与状态、决策与失败尝试、已完成与待办、工作区证据和正确下一步。规则见[连续性 benchmark](docs/benchmarks/continuity-benchmark.md)。
 仓库还提供不会启动 Agent 的 36-run plan，以及可断点续跑且不覆盖 initial result 的 raw-output collector，固定记录 target model、settings、原始回复与所有 input token 类别。
+Benchmark v2 会把目标 CLI 的完整调用 input、经校准的固定 harness 开销和 AgentCarry 可控 payload 分开记录；40% 门槛只比较 AgentCarry payload 与 visible-transcript payload。已发布的 Phase 0 v1 报告及其原始指标保持冻结，不会回写。
+
+### Benchmark v2 token 口径
+
+第二轮 36 个 target session 开始前，collector 会用相同模型、provider route、设置、system prompt、固定 wrapper 和稳定空工作目录执行一次空 payload 校准，并以 `calibration.json` 保存；plan 同时固定校准 prompt 的 hash 与字节数，wrapper 改变后不能混合续跑。每个结果按以下方式复算：
+
+```text
+fullCallInput = input_tokens + cache_creation_input_tokens + cache_read_input_tokens
+fixedOverhead = calibration.fullCallInput
+agentCarryPayload = fullCallInput - fixedOverhead
+payloadRatio = agentCarryPayload / visibleTranscriptPayloadBaseline
+```
+
+Scorer 会拒绝缺失、负数或算术关系不一致的计量；聚合报告分别展示完整调用、固定开销、payload 和 payload ratio。完整方法与 v1 冻结边界见[连续性 benchmark](docs/benchmarks/continuity-benchmark.md)，机器契约见 [`continuation-assessment.v2.schema.json`](benchmark/schema/continuation-assessment.v2.schema.json)。
 
 ## 隐私与安全
 

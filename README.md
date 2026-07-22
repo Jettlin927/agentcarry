@@ -154,6 +154,10 @@ failed attempts, completed and pending work, workspace evidence, and the next
 correct action. A dry 36-run plan and resumable raw-output collector keep target
 model, settings, response text, and exact input-token categories auditable. See
 [Continuity benchmark](docs/benchmarks/continuity-benchmark.md).
+Benchmark v2 separates the target CLI's full-call input from its calibrated
+fixed harness overhead and gates only the AgentCarry-controlled payload against
+the visible-transcript payload. The published Phase 0 v1 report remains frozen
+with its original metric and schema.
 
 ## Security and privacy
 

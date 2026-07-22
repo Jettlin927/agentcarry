@@ -16,7 +16,7 @@ function score(
   ratio: number
 ): ContinuationScoreReport {
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     runId: `${fixtureId}:${mode}:initial`,
     fixtureId,
     mode,
@@ -34,23 +34,26 @@ function score(
     repeatedFailedPaths: [],
     unsupportedClaims: [],
     tokens: {
-      input: mode === "visible-transcript" ? 1_000 : Math.round(1_000 * ratio),
-      visibleTranscriptBaseline: 1_000,
-      ratio
+      method: "target-calibration-delta-v1",
+      fullCallInput: 1_000 + (mode === "visible-transcript" ? 1_000 : Math.round(1_000 * ratio)),
+      fixedOverhead: 1_000,
+      agentCarryPayload: mode === "visible-transcript" ? 1_000 : Math.round(1_000 * ratio),
+      visibleTranscriptPayloadBaseline: 1_000,
+      payloadRatio: ratio
     },
     gates: {
       criticalConstraints100Percent: true,
       correctNextAction: true,
       noRepeatedFailedPath: true,
-      tokenRatioAtMost40Percent: ratio <= 0.4
+      payloadRatioAtMost40Percent: ratio <= 0.4
     }
   };
 }
 
 function resultSet(): BenchmarkResultSet {
   return {
-    schemaVersion: "1.0.0",
-    benchmarkId: "first-36",
+    schemaVersion: "2.0.0",
+    benchmarkId: "second-36",
     reports: fixtureIds.flatMap((fixtureId) => [
       score(fixtureId, "visible-transcript", 80, 1),
       score(fixtureId, "deterministic-capsule", 85, 0.4),
@@ -74,7 +77,14 @@ describe("aggregateBenchmark", () => {
       expect.objectContaining({ mode: "deterministic-capsule", meanFidelityDelta: 5, passed: true }),
       expect.objectContaining({ mode: "source-assisted-capsule", meanFidelityDelta: 10, passed: true })
     ]);
-    expect(report.phase0Passed).toBe(true);
+    expect(report.benchmarkV2Passed).toBe(true);
+    expect(report.modes[1]).toMatchObject({
+      meanFullCallInputTokens: 1400,
+      meanFixedOverheadTokens: 1000,
+      meanAgentCarryPayloadTokens: 400,
+      meanVisibleTranscriptPayloadBaselineTokens: 1000,
+      meanPayloadRatio: 0.4
+    });
   });
 
   it("rejects missing pairs and mixed target settings", () => {
@@ -156,9 +166,11 @@ describe("aggregateBenchmark", () => {
     expect(renderAggregateJson(aggregateBenchmark(reversedSettings, fixtureIds))).toBe(
       renderAggregateJson(report)
     );
-    expect(renderAggregateMarkdown(report)).toContain("Phase 0: **PASS**");
+    expect(renderAggregateMarkdown(report)).toContain("Benchmark v2: **PASS**");
     expect(renderAggregateMarkdown(report)).toContain("Provider route: test-provider");
     expect(renderAggregateMarkdown(report)).toContain("Each comparison must pass fixture by fixture");
+    expect(renderAggregateMarkdown(report)).toContain("Mean fixed overhead");
+    expect(renderAggregateMarkdown(report)).toContain("Mean visible payload baseline");
   });
 
   it("requires an identifiable human review for every initial run", () => {

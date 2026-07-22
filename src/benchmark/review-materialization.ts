@@ -239,12 +239,12 @@ function assessmentFor(
   fixture: ReviewFixture,
   result: TargetRunResult,
   run: AdvisoryRunVerdicts,
-  visibleTranscriptBaseline: number,
+  visibleTranscriptPayloadBaseline: number,
   advisory: AdvisoryVerdictSet,
   confirmation: HumanReviewConfirmationInput
 ): ContinuationAssessment {
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     runId: result.runId,
     fixtureId: result.fixtureId,
     mode: result.mode,
@@ -255,8 +255,11 @@ function assessmentFor(
       settings: { ...result.target.settings }
     },
     tokens: {
-      input: result.input.exactTargetInputTokens,
-      visibleTranscriptBaseline
+      method: "target-calibration-delta-v1",
+      fullCallInput: result.input.fullCallInputTokens,
+      fixedOverhead: result.input.fixedOverheadInputTokens,
+      agentCarryPayload: result.input.agentCarryPayload.tokens,
+      visibleTranscriptPayloadBaseline
     },
     review: {
       humanReviewer: confirmation.humanReviewer,
@@ -299,9 +302,9 @@ export function finalizeBenchmarkReview(
   validateConfirmation(confirmation);
   const validated = validateReviewInputs(fixtures, results, advisory);
   const fixtureById = new Map(validated.fixtures.map((fixture) => [fixture.id, fixture]));
-  const visibleBaselines = new Map(validated.fixtures.map((fixture) => {
+  const visiblePayloadBaselines = new Map(validated.fixtures.map((fixture) => {
     const runId = `${fixture.id}:visible-transcript:initial`;
-    return [fixture.id, validated.resultsByRunId.get(runId)!.input.exactTargetInputTokens];
+    return [fixture.id, validated.resultsByRunId.get(runId)!.input.agentCarryPayload.tokens];
   }));
   const assessments = [...validated.resultsByRunId.values()]
     .sort((left, right) => compareText(left.runId, right.runId))
@@ -309,7 +312,7 @@ export function finalizeBenchmarkReview(
       fixtureById.get(result.fixtureId)!,
       result,
       validated.advisoryByRunId.get(result.runId)!,
-      visibleBaselines.get(result.fixtureId)!,
+      visiblePayloadBaselines.get(result.fixtureId)!,
       advisory,
       confirmation
     ));
@@ -318,7 +321,7 @@ export function finalizeBenchmarkReview(
     assessment
   ));
   const resultSet: BenchmarkResultSet = {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     benchmarkId: advisory.benchmarkId,
     reports: scores,
     reruns: []

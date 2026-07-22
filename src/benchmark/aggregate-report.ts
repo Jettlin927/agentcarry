@@ -20,7 +20,7 @@ export interface RerunDisclosure {
 }
 
 export interface BenchmarkResultSet {
-  readonly schemaVersion: "1.0.0";
+  readonly schemaVersion: "2.0.0";
   readonly benchmarkId: string;
   readonly reports: readonly ContinuationScoreReport[];
   readonly reruns: readonly RerunDisclosure[];
@@ -36,8 +36,12 @@ export interface BenchmarkModeSummary {
   readonly repeatedFailedPaths: number;
   readonly unsupportedClaimRuns: number;
   readonly unsupportedClaims: number;
-  readonly meanTokenRatio: number;
-  readonly tokenRatioAtMost40PercentRuns: number;
+  readonly meanFullCallInputTokens: number;
+  readonly meanFixedOverheadTokens: number;
+  readonly meanAgentCarryPayloadTokens: number;
+  readonly meanVisibleTranscriptPayloadBaselineTokens: number;
+  readonly meanPayloadRatio: number;
+  readonly payloadRatioAtMost40PercentRuns: number;
 }
 
 export interface CapsuleModeGates {
@@ -49,12 +53,12 @@ export interface CapsuleModeGates {
   readonly correctNextAction: boolean;
   readonly noRepeatedFailedPaths: boolean;
   readonly unsupportedClaimsNoWorseThanBaseline: boolean;
-  readonly tokenRatioAtMost40Percent: boolean;
+  readonly payloadRatioAtMost40Percent: boolean;
   readonly passed: boolean;
 }
 
 export interface AggregateBenchmarkReport {
-  readonly schemaVersion: "1.0.0";
+  readonly schemaVersion: "2.0.0";
   readonly benchmarkId: string;
   readonly expectedRuns: number;
   readonly initialRuns: number;
@@ -62,7 +66,7 @@ export interface AggregateBenchmarkReport {
   readonly target: ContinuationScoreReport["target"];
   readonly modes: readonly BenchmarkModeSummary[];
   readonly capsuleGates: readonly CapsuleModeGates[];
-  readonly phase0Passed: boolean;
+  readonly benchmarkV2Passed: boolean;
   readonly reruns: readonly RerunDisclosure[];
 }
 
@@ -97,8 +101,8 @@ function assertComplete(
   resultSet: BenchmarkResultSet,
   expectedFixtureIds: readonly string[]
 ): Map<string, ContinuationScoreReport> {
-  if (resultSet.schemaVersion !== "1.0.0" || resultSet.benchmarkId.trim().length === 0) {
-    throw new Error("benchmark result set requires schema version 1.0.0 and a non-empty id");
+  if (resultSet.schemaVersion !== "2.0.0" || resultSet.benchmarkId.trim().length === 0) {
+    throw new Error("benchmark result set requires schema version 2.0.0 and a non-empty id");
   }
   const fixtureIds = [...new Set(expectedFixtureIds)].sort(compareText);
   if (fixtureIds.length !== 12) {
@@ -110,7 +114,20 @@ function assertComplete(
 
   const runIds = new Set<string>();
   const reports = new Map<string, ContinuationScoreReport>();
+  let fixedOverhead: number | undefined;
   for (const report of resultSet.reports) {
+    if (
+      report.schemaVersion !== "2.0.0"
+      || report.tokens.method !== "target-calibration-delta-v1"
+      || report.tokens.fullCallInput - report.tokens.fixedOverhead
+        !== report.tokens.agentCarryPayload
+    ) {
+      throw new Error(`run ${report.runId} has invalid Benchmark v2 token metering`);
+    }
+    fixedOverhead ??= report.tokens.fixedOverhead;
+    if (report.tokens.fixedOverhead !== fixedOverhead) {
+      throw new Error(`fixed target overhead differs in run ${report.runId}`);
+    }
     if (report.reviewer.trim().length === 0 || Number.isNaN(Date.parse(report.reviewedAt))) {
       throw new Error(`run ${report.runId} requires an identifiable human review and timestamp`);
     }
@@ -138,13 +155,16 @@ function assertComplete(
       }
     }
     const baseline = reports.get(`${fixtureId}:visible-transcript`)!;
-    if (baseline.tokens.input !== baseline.tokens.visibleTranscriptBaseline) {
-      throw new Error(`visible baseline token count mismatch for ${fixtureId}`);
+    if (
+      baseline.tokens.agentCarryPayload
+      !== baseline.tokens.visibleTranscriptPayloadBaseline
+    ) {
+      throw new Error(`visible baseline payload token count mismatch for ${fixtureId}`);
     }
     for (const mode of modes) {
       if (
-        reports.get(`${fixtureId}:${mode}`)!.tokens.visibleTranscriptBaseline
-        !== baseline.tokens.visibleTranscriptBaseline
+        reports.get(`${fixtureId}:${mode}`)!.tokens.visibleTranscriptPayloadBaseline
+        !== baseline.tokens.visibleTranscriptPayloadBaseline
       ) {
         throw new Error(`visible baseline token reference differs for ${fixtureId}`);
       }
@@ -195,8 +215,32 @@ function summarize(mode: Mode, reports: readonly ContinuationScoreReport[]): Ben
     repeatedFailedPaths: reports.reduce((sum, report) => sum + report.repeatedFailedPaths.length, 0),
     unsupportedClaimRuns: reports.filter((report) => report.unsupportedClaims.length > 0).length,
     unsupportedClaims: reports.reduce((sum, report) => sum + report.unsupportedClaims.length, 0),
-    meanTokenRatio: round(reports.reduce((sum, report) => sum + report.tokens.ratio, 0) / reports.length, 4),
-    tokenRatioAtMost40PercentRuns: reports.filter((report) => report.gates.tokenRatioAtMost40Percent).length
+    meanFullCallInputTokens: round(
+      reports.reduce((sum, report) => sum + report.tokens.fullCallInput, 0) / reports.length,
+      2
+    ),
+    meanFixedOverheadTokens: round(
+      reports.reduce((sum, report) => sum + report.tokens.fixedOverhead, 0) / reports.length,
+      2
+    ),
+    meanAgentCarryPayloadTokens: round(
+      reports.reduce((sum, report) => sum + report.tokens.agentCarryPayload, 0) / reports.length,
+      2
+    ),
+    meanVisibleTranscriptPayloadBaselineTokens: round(
+      reports.reduce(
+        (sum, report) => sum + report.tokens.visibleTranscriptPayloadBaseline,
+        0
+      ) / reports.length,
+      2
+    ),
+    meanPayloadRatio: round(
+      reports.reduce((sum, report) => sum + report.tokens.payloadRatio, 0) / reports.length,
+      4
+    ),
+    payloadRatioAtMost40PercentRuns: reports.filter(
+      (report) => report.gates.payloadRatioAtMost40Percent
+    ).length
   };
 }
 
@@ -231,8 +275,8 @@ function capsuleGates(
     unsupportedClaimsNoWorseThanBaseline: comparisons.every(({ capsule, baseline }) =>
       capsule.unsupportedClaims.length <= baseline.unsupportedClaims.length
     ),
-    tokenRatioAtMost40Percent: comparisons.every(({ capsule }) =>
-      capsule.gates.tokenRatioAtMost40Percent
+    payloadRatioAtMost40Percent: comparisons.every(({ capsule }) =>
+      capsule.gates.payloadRatioAtMost40Percent
     )
   };
   return {
@@ -259,7 +303,7 @@ export function aggregateBenchmark(
   const gates = (["deterministic-capsule", "source-assisted-capsule"] as const)
     .map((mode) => capsuleGates(mode, fixtureIds, reports));
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     benchmarkId: resultSet.benchmarkId,
     expectedRuns: 36,
     initialRuns: resultSet.reports.length,
@@ -267,7 +311,7 @@ export function aggregateBenchmark(
     target: resultSet.reports[0]!.target,
     modes: modeSummaries,
     capsuleGates: gates,
-    phase0Passed: gates.some((gate) => gate.passed),
+    benchmarkV2Passed: gates.some((gate) => gate.passed),
     reruns: [...resultSet.reruns]
   };
 }
@@ -278,10 +322,10 @@ function mark(value: boolean): "PASS" | "FAIL" {
 
 export function renderAggregateMarkdown(report: AggregateBenchmarkReport): string {
   const modeRows = report.modes.map((mode) =>
-    `| ${mode.mode} | ${mode.runs} | ${mode.meanFidelity.toFixed(2)} | ${mode.criticalConstraintPasses}/12 | ${mode.correctNextActionRuns}/12 | ${mode.repeatedFailedPathRuns}/${mode.repeatedFailedPaths} | ${mode.unsupportedClaimRuns}/${mode.unsupportedClaims} | ${mode.meanTokenRatio.toFixed(4)} |`
+    `| ${mode.mode} | ${mode.runs} | ${mode.meanFidelity.toFixed(2)} | ${mode.criticalConstraintPasses}/12 | ${mode.correctNextActionRuns}/12 | ${mode.repeatedFailedPathRuns}/${mode.repeatedFailedPaths} | ${mode.unsupportedClaimRuns}/${mode.unsupportedClaims} | ${mode.meanFullCallInputTokens.toFixed(2)} | ${mode.meanFixedOverheadTokens.toFixed(2)} | ${mode.meanAgentCarryPayloadTokens.toFixed(2)} | ${mode.meanVisibleTranscriptPayloadBaselineTokens.toFixed(2)} | ${mode.meanPayloadRatio.toFixed(4)} |`
   ).join("\n");
   const gateRows = report.capsuleGates.map((gate) =>
-    `| ${gate.mode} | ${gate.meanFidelityDelta >= 0 ? "+" : ""}${gate.meanFidelityDelta.toFixed(2)} | ${mark(gate.fidelityNoWorseThanBaseline)} | ${mark(gate.criticalConstraints100Percent)} | ${mark(gate.correctNextAction)} | ${mark(gate.noRepeatedFailedPaths)} | ${gate.unsupportedClaimDelta >= 0 ? "+" : ""}${gate.unsupportedClaimDelta} | ${mark(gate.unsupportedClaimsNoWorseThanBaseline)} | ${mark(gate.tokenRatioAtMost40Percent)} | ${mark(gate.passed)} |`
+    `| ${gate.mode} | ${gate.meanFidelityDelta >= 0 ? "+" : ""}${gate.meanFidelityDelta.toFixed(2)} | ${mark(gate.fidelityNoWorseThanBaseline)} | ${mark(gate.criticalConstraints100Percent)} | ${mark(gate.correctNextAction)} | ${mark(gate.noRepeatedFailedPaths)} | ${gate.unsupportedClaimDelta >= 0 ? "+" : ""}${gate.unsupportedClaimDelta} | ${mark(gate.unsupportedClaimsNoWorseThanBaseline)} | ${mark(gate.payloadRatioAtMost40Percent)} | ${mark(gate.passed)} |`
   ).join("\n");
   const reruns = report.reruns.length === 0
     ? "None."
@@ -294,17 +338,17 @@ export function renderAggregateMarkdown(report: AggregateBenchmarkReport): strin
 - Target: ${report.target.agent} / ${report.target.model}
 - Provider route: ${report.target.provider}
 - Target settings: \`${canonicalJsonValue(report.target.settings)}\`
-- Phase 0: **${mark(report.phase0Passed)}**
+- Benchmark v2: **${mark(report.benchmarkV2Passed)}**
 
-| Mode | Runs | Mean fidelity | Critical constraints | Correct next action | Repeated runs/items | Unsupported runs/items | Mean token ratio |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Mode | Runs | Mean fidelity | Critical constraints | Correct next action | Repeated runs/items | Unsupported runs/items | Mean full call | Mean fixed overhead | Mean AgentCarry payload | Mean visible payload baseline | Mean payload ratio |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 ${modeRows}
 
 ## Capsule gates
 
 Each comparison must pass fixture by fixture, not only on the aggregate mean.
 
-| Mode | Mean fidelity delta | Every fidelity >= baseline | Critical 100% | Next action | No repeated path | Unsupported delta | Every unsupported <= baseline | Tokens <= 40% | All gates |
+| Mode | Mean fidelity delta | Every fidelity >= baseline | Critical 100% | Next action | No repeated path | Unsupported delta | Every unsupported <= baseline | Payload <= 40% | All gates |
 | --- | ---: | --- | --- | --- | --- | ---: | --- | --- | --- |
 ${gateRows}
 

@@ -36,8 +36,8 @@ Each fixture is continued in the same target model/settings using:
 3. **Source-assisted capsule:** a fresh ephemeral, no-tools summarizer; never the
    source session itself.
 
-The first evaluation is 12 × 3 = 36 target sessions. Close or disputed results
-may be rerun; all reruns are reported.
+Each evaluation is 12 × 3 = 36 target continuation sessions. Close or disputed
+results may be rerun; all reruns are reported.
 
 All three inputs are generated from the same `source` and `workspace` fixture
 fields. Input builders never read `groundTruth`:
@@ -54,10 +54,57 @@ loss. Source-assisted mode invokes a fresh Claude Code print session with no
 tools, no slash commands, strict empty MCP configuration, and
 `--no-session-persistence`; it never resumes the source session.
 
+The canonical JSON capsule remains a separate input artifact for machine use
+and audit. Capsule target calls receive only the compiled continuation brief;
+the raw target result records that exact payload text, hash, bytes, and measured
+tokens. The browser review therefore shows what the target actually received,
+not the larger canonical artifact.
+
 Every artifact records a fingerprint of the same source, byte and character
-counts, generation settings, and summarizer usage when applicable. Exact target
-input tokens are attached from the target run response; they are not replaced by
-an undocumented tokenizer estimate.
+counts, generation settings, and summarizer usage when applicable.
+
+## Benchmark v2 token method
+
+Benchmark v2 uses the target model's reported input usage instead of a local
+tokenizer estimate. Before the 36 continuation sessions, the collector makes
+one empty-payload calibration call with the same model, provider route, target
+settings, system prompt, fixed wrapper, and stable empty working directory. The
+calibration is stored once as `calibration.json` and is never overwritten on
+resume. The run plan pins the calibration prompt hash and byte length, so a
+resume fails instead of mixing results after the fixed wrapper changes.
+
+For every target result:
+
+```text
+fullCallInput = input_tokens + cache_creation_input_tokens + cache_read_input_tokens
+fixedOverhead = calibration.fullCallInput
+agentCarryPayload = fullCallInput - fixedOverhead
+payloadRatio = agentCarryPayload / visibleTranscriptPayloadBaseline
+```
+
+The raw result stores the first three values and the exact payload. The
+assessment stores all four inputs plus the metering method
+`target-calibration-delta-v1`; the scorer rejects missing, negative, or
+arithmetically inconsistent measurements. `fixedOverhead` covers the target
+CLI's system/harness and the fixed benchmark wrapper. `agentCarryPayload` is the
+model-reported differential caused by the actual handoff payload.
+
+The visible-transcript run for each fixture supplies
+`visibleTranscriptPayloadBaseline`. Benchmark v2's compression gate is
+therefore explicitly:
+
+```text
+agentCarryPayload / visibleTranscriptPayloadBaseline <= 0.40
+```
+
+The aggregate report publishes mean full-call input, fixed overhead,
+AgentCarry payload, and payload ratio separately. All 36 reports must share the
+same calibration overhead and visible baseline references.
+
+The committed [Phase 0 v1 report](../../benchmark/runs/2026-07-21-cc-switch-gpt-5.6-sol/final/REPORT.md),
+raw target results, assessments, scores, and v1 schema are historical artifacts.
+Benchmark v2 does not rewrite or reinterpret their original full-call token
+ratio.
 
 ## Fidelity score
 
@@ -89,7 +136,7 @@ npm run --silent benchmark:score -- <fixture.json> <assessment.json> --format ma
 - the target does not repeat a recorded failed path;
 - the next action is correct;
 - unsupported claims and hallucinations are no worse than baseline;
-- capsule input uses no more than 40% of baseline tokens.
+- AgentCarry payload uses no more than 40% of the visible-transcript payload.
 
 Results must be published even if a gate fails.
 
@@ -108,8 +155,9 @@ npm run --silent benchmark:report -- <result-set.json> --format json
 ```
 
 The report prints PASS or FAIL for fidelity, critical constraints, correct next
-action, repeated failed paths, unsupported claims, token ratio, each capsule
-mode, and the overall Phase 0 gate.
+action, repeated failed paths, unsupported claims, payload ratio, each capsule
+mode, and the overall Benchmark v2 gate. It also reports full-call input and
+fixed overhead without using either value in the compression gate.
 
 ## Reproducible target collection
 
@@ -129,8 +177,10 @@ npm run --silent benchmark:collect -- benchmark/fixtures --model <exact-model> -
 
 Every target run is a fresh Claude Code print session with one fixed system
 prompt, no tools, no persistence, no slash commands, an empty strict MCP set,
-plan permission mode, one turn, and no setting sources. The runner records the
-raw response plus normal, cache-creation, and cache-read input tokens. It writes
+plan permission mode, one turn, and no setting sources. One preceding
+empty-payload call calibrates fixed overhead; it is not a continuation result.
+The runner records the raw response plus full-call, fixed-overhead, and payload
+input tokens. It writes
 each generated input before its target call and creates each initial result with
 exclusive-write semantics. A failed later call leaves earlier evidence intact;
 re-running the same plan skips validated results and never overwrites them.

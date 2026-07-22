@@ -17,7 +17,7 @@ export interface FactAssessment {
 }
 
 export interface ContinuationAssessment {
-  readonly schemaVersion: "1.0.0";
+  readonly schemaVersion: "2.0.0";
   readonly runId: string;
   readonly fixtureId: string;
   readonly mode: "visible-transcript" | "deterministic-capsule" | "source-assisted-capsule";
@@ -28,8 +28,11 @@ export interface ContinuationAssessment {
     readonly settings: Readonly<Record<string, unknown>>;
   };
   readonly tokens: {
-    readonly input: number;
-    readonly visibleTranscriptBaseline: number;
+    readonly method: "target-calibration-delta-v1";
+    readonly fullCallInput: number;
+    readonly fixedOverhead: number;
+    readonly agentCarryPayload: number;
+    readonly visibleTranscriptPayloadBaseline: number;
   };
   readonly review: {
     readonly humanReviewer: string;
@@ -65,7 +68,7 @@ export interface CategoryScore {
 }
 
 export interface ContinuationScoreReport {
-  readonly schemaVersion: "1.0.0";
+  readonly schemaVersion: "2.0.0";
   readonly runId: string;
   readonly fixtureId: string;
   readonly mode: ContinuationAssessment["mode"];
@@ -81,15 +84,18 @@ export interface ContinuationScoreReport {
   readonly repeatedFailedPaths: readonly string[];
   readonly unsupportedClaims: readonly string[];
   readonly tokens: {
-    readonly input: number;
-    readonly visibleTranscriptBaseline: number;
-    readonly ratio: number;
+    readonly method: "target-calibration-delta-v1";
+    readonly fullCallInput: number;
+    readonly fixedOverhead: number;
+    readonly agentCarryPayload: number;
+    readonly visibleTranscriptPayloadBaseline: number;
+    readonly payloadRatio: number;
   };
   readonly gates: {
     readonly criticalConstraints100Percent: boolean;
     readonly correctNextAction: boolean;
     readonly noRepeatedFailedPath: boolean;
-    readonly tokenRatioAtMost40Percent: boolean;
+    readonly payloadRatioAtMost40Percent: boolean;
   };
 }
 
@@ -137,8 +143,33 @@ export function scoreAssessment(
   if (fixture.id !== assessment.fixtureId) {
     throw new Error(`fixture id ${fixture.id} does not match assessment ${assessment.fixtureId}`);
   }
-  if (assessment.tokens.visibleTranscriptBaseline < 1) {
-    throw new Error("visible transcript baseline tokens must be at least 1");
+  if (assessment.schemaVersion !== "2.0.0" || assessment.tokens.method !== "target-calibration-delta-v1") {
+    throw new Error("Benchmark v2 assessment requires target-calibration-delta-v1 metering");
+  }
+  const tokenValues = [
+    assessment.tokens.fullCallInput,
+    assessment.tokens.fixedOverhead,
+    assessment.tokens.agentCarryPayload,
+    assessment.tokens.visibleTranscriptPayloadBaseline
+  ];
+  if (tokenValues.some((value) => !Number.isInteger(value) || value < 0)) {
+    throw new Error("Benchmark v2 token measurements must be non-negative integers");
+  }
+  if (assessment.tokens.visibleTranscriptPayloadBaseline < 1) {
+    throw new Error("visible transcript payload baseline tokens must be at least 1");
+  }
+  if (
+    assessment.tokens.fullCallInput - assessment.tokens.fixedOverhead
+    !== assessment.tokens.agentCarryPayload
+  ) {
+    throw new Error("AgentCarry payload tokens must equal full-call input minus fixed overhead");
+  }
+  if (
+    assessment.mode === "visible-transcript"
+    && assessment.tokens.agentCarryPayload
+      !== assessment.tokens.visibleTranscriptPayloadBaseline
+  ) {
+    throw new Error("visible transcript payload must equal its payload baseline");
   }
 
   for (const category of categoryOrder) {
@@ -169,13 +200,16 @@ export function scoreAssessment(
   const nextActionCorrect = assessment.categories.nextAction.every(
     (fact) => fact.verdict === "preserved"
   );
-  const tokenRatio = round(
-    assessment.tokens.input / assessment.tokens.visibleTranscriptBaseline,
+  const payloadRatio = round(
+    assessment.tokens.agentCarryPayload
+      / assessment.tokens.visibleTranscriptPayloadBaseline,
     4
   );
+  const payloadRatioAtMost40Percent = assessment.tokens.agentCarryPayload * 100
+    <= assessment.tokens.visibleTranscriptPayloadBaseline * 40;
 
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     runId: assessment.runId,
     fixtureId: assessment.fixtureId,
     mode: assessment.mode,
@@ -191,15 +225,18 @@ export function scoreAssessment(
     repeatedFailedPaths: [...assessment.repeatedFailedPaths].sort(),
     unsupportedClaims: [...assessment.unsupportedClaims].sort(),
     tokens: {
-      input: assessment.tokens.input,
-      visibleTranscriptBaseline: assessment.tokens.visibleTranscriptBaseline,
-      ratio: tokenRatio
+      method: assessment.tokens.method,
+      fullCallInput: assessment.tokens.fullCallInput,
+      fixedOverhead: assessment.tokens.fixedOverhead,
+      agentCarryPayload: assessment.tokens.agentCarryPayload,
+      visibleTranscriptPayloadBaseline: assessment.tokens.visibleTranscriptPayloadBaseline,
+      payloadRatio
     },
     gates: {
       criticalConstraints100Percent: criticalConstraintMisses.length === 0,
       correctNextAction: nextActionCorrect,
       noRepeatedFailedPath: assessment.repeatedFailedPaths.length === 0,
-      tokenRatioAtMost40Percent: tokenRatio <= 0.4
+      payloadRatioAtMost40Percent
     }
   };
 }
@@ -232,7 +269,11 @@ export function renderScoreMarkdown(report: ContinuationScoreReport): string {
 - Provider route: ${report.target.provider}
 - Human reviewer: ${report.reviewer}
 - Fidelity: ${report.fidelityScore.toFixed(2)} / 100.00
-- Token ratio: ${report.tokens.ratio.toFixed(4)}
+- Full-call input tokens: ${report.tokens.fullCallInput}
+- Fixed target overhead tokens: ${report.tokens.fixedOverhead}
+- AgentCarry payload tokens: ${report.tokens.agentCarryPayload}
+- Visible-transcript payload baseline: ${report.tokens.visibleTranscriptPayloadBaseline}
+- Payload ratio: ${report.tokens.payloadRatio.toFixed(4)}
 
 | Category | Earned | Weight |
 | --- | ---: | ---: |
@@ -243,7 +284,7 @@ ${rows}
 - ${mark(report.gates.criticalConstraints100Percent)} critical constraints 100%
 - ${mark(report.gates.correctNextAction)} correct next action
 - ${mark(report.gates.noRepeatedFailedPath)} no repeated failed path
-- ${mark(report.gates.tokenRatioAtMost40Percent)} token ratio at most 40%
+- ${mark(report.gates.payloadRatioAtMost40Percent)} payload ratio at most 40%
 
 ## Separate findings
 

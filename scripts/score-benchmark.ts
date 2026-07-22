@@ -29,7 +29,7 @@ async function main(): Promise<void> {
   const fixture = await readJson(args[0]!) as ScoreableFixture;
   const assessment = await readJson(args[1]!);
   const schemaPath = fileURLToPath(
-    new URL("../benchmark/schema/continuation-assessment.v1.schema.json", import.meta.url)
+    new URL("../benchmark/schema/continuation-assessment.v2.schema.json", import.meta.url)
   );
   const schema = await readJson(schemaPath) as object;
   const ajv = new Ajv2020({ allErrors: true, strict: true });
