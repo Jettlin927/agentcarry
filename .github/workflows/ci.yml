@@ -31,5 +31,6 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run benchmark:validate
+      - run: npm run acceptance:validate
       - run: npm run compatibility:check
       - run: npm run demo:tracer

@@ -1,0 +1,131 @@
+name: External handoff acceptance / 外部用户真实交接验收
+description: Submit one privacy-safe Codex to Claude Code handoff record / 提交一次不含私密聊天的真实交接记录
+title: "[External acceptance] <GitHub handle> / <Windows or macOS>"
+labels:
+  - compatibility
+  - docs
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing AgentCarry. Please submit this Issue from the same GitHub account named below. Do not attach screenshots, transcripts, session files, API keys, email addresses, local paths, or provider responses.
+
+        感谢参与测试。请使用下方填写的同一个 GitHub 账号亲自提交本 Issue。不要上传截图、完整聊天、session 文件、密钥、邮箱、本地路径或 provider 原始响应。
+
+        Follow / 按照：[2-minute external acceptance](https://github.com/Jettlin927/agentcarry/blob/main/docs/external-acceptance.md) · [中文步骤](https://github.com/Jettlin927/agentcarry/blob/main/docs/external-acceptance.zh-CN.md)
+  - type: checkboxes
+    id: eligibility
+    attributes:
+      label: Eligibility / 参与资格
+      options:
+        - label: I had not authored commits or pull requests in AgentCarry before this attempt. / 本次尝试前，我没有为 AgentCarry 提交过 commit 或 PR。
+          required: true
+        - label: I consent to publish this sanitized record under my public GitHub handle. / 我同意以公开 GitHub 用户名发布这份脱敏记录。
+          required: true
+  - type: input
+    id: github_handle
+    attributes:
+      label: GitHub handle
+      description: Must match the account opening this Issue. / 必须与提交本 Issue 的账号一致。
+      placeholder: octocat
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system / 操作系统
+      options:
+        - Windows
+        - macOS
+    validations:
+      required: true
+  - type: input
+    id: os_version
+    attributes:
+      label: OS version and architecture / 系统版本与架构
+      placeholder: Windows 11 x64 / macOS 15.5 arm64
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Version facts / 版本信息
+      description: AgentCarry commit, Node.js, Codex, and Claude Code versions only. / 只填写 AgentCarry commit、Node.js、Codex 和 Claude Code 版本。
+      placeholder: |
+        AgentCarry commit: <40-character SHA>
+        Node.js: v22.x.x
+        Codex: <version>
+        Claude Code: <version>
+    validations:
+      required: true
+  - type: dropdown
+    id: source_state
+    attributes:
+      label: Source state / 来源会话状态
+      options:
+        - idle / 已完成或空闲
+        - active / 仍在进行
+    validations:
+      required: true
+  - type: dropdown
+    id: selection
+    attributes:
+      label: Source selection / 来源选择
+      options:
+        - automatic / 自动选择
+        - explicit session ID / 显式 session ID
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome / 结果
+      description: Continued means Claude began the recorded first action, not merely that a session opened. / continued 指 Claude 已开始 Capsule 记录的第一动作，而不只是打开了 session。
+      options:
+        - continued / 已开始第一动作
+        - blocked / 未能开始第一动作
+    validations:
+      required: true
+  - type: input
+    id: seconds
+    attributes:
+      label: Seconds from command to outcome / 从输入命令到结果的秒数
+      description: If continued, this is Time to Continuation. / 如成功，这是 Time to Continuation。
+      placeholder: "95"
+    validations:
+      required: true
+  - type: textarea
+    id: losses
+    attributes:
+      label: Loss codes shown by AgentCarry / AgentCarry 显示的损失代码
+      description: Codes only, one per line; write NONE if empty. / 只写代码，每行一个；没有则写 NONE。
+      placeholder: HIDDEN_AGENT_STATE_UNAVAILABLE
+    validations:
+      required: true
+  - type: textarea
+    id: supplement
+    attributes:
+      label: Manual supplement / 手工补充
+      description: Write NONE, or list only categories and a sanitized one-sentence summary. Never paste the missing private content. / 没有则写 NONE；否则只写类别和一句脱敏摘要，禁止粘贴私密内容。
+      placeholder: "next-action — clarified which focused test should run first"
+    validations:
+      required: true
+  - type: textarea
+    id: blockers
+    attributes:
+      label: Blocker / 阻塞点
+      description: Required for blocked attempts; use a short stable code plus sanitized summary. Write NONE after continuation. / 失败时填写短代码与脱敏摘要；成功则写 NONE。
+      placeholder: TARGET_PROVIDER_UNAVAILABLE — configured provider was temporarily unavailable
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy attestation / 隐私确认
+      options:
+        - label: This Issue contains no secret or credential. / 本 Issue 不含密钥或凭证。
+          required: true
+        - label: This Issue contains no private transcript or screenshot. / 本 Issue 不含私密聊天或截图。
+          required: true
+        - label: This Issue contains no unredacted source session file or local path. / 本 Issue 不含未脱敏来源文件或本地路径。
+          required: true

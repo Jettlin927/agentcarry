@@ -121,6 +121,21 @@ not install Claude Code or start a login flow.
 See the sanitized [real-target interactive smoke](docs/demos/codex-to-claude-interactive.md)
 and its separate three-platform process boundary.
 
+## Two-minute external acceptance
+
+Non-author Windows and macOS users can install the pinned public acceptance
+build and perform one real handoff with two terminal commands:
+
+```text
+npm install --global github:Jettlin927/agentcarry#v0.1.0-acceptance.1
+agentcarry continue --to claude
+```
+
+The auditable, privacy-safe protocol and current cohort report are in
+[External handoff acceptance](docs/external-acceptance.md) and
+[`acceptance/REPORT.md`](acceptance/REPORT.md). AgentCarry still does not install
+Codex or Claude Code or manage their authentication.
+
 ## Install the repository Skill
 
 First ask the coding agent that will use the Skill:

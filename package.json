@@ -22,6 +22,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "prepare": "npm run build",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "check": "npm run typecheck && npm test && npm run build",
@@ -32,6 +33,8 @@
     "benchmark:report": "tsx scripts/aggregate-benchmark.ts",
     "benchmark:collect": "tsx scripts/collect-benchmark-targets.ts",
     "benchmark:review": "tsx scripts/review-benchmark.ts",
+    "acceptance:validate": "tsx scripts/external-acceptance.ts validate acceptance/runs",
+    "acceptance:report": "tsx scripts/external-acceptance.ts report acceptance/runs",
     "demo:tracer": "npm run build && tsx scripts/demo-tracer.ts",
     "compatibility:check": "tsx scripts/check-compatibility.ts"
   },

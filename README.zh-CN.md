@@ -96,6 +96,21 @@ seed 失败时不会执行 resume；AgentCarry 不安装 Claude Code，也不会
 脱敏的 [真实 Claude 交互启动记录](docs/demos/codex-to-claude-interactive.md) 同时说明了
 Windows provider 冒烟与三平台进程边界各自证明了什么。
 
+## 两分钟外部验收
+
+没有参与过 AgentCarry 开发的 Windows/macOS 用户，可以安装固定的公开验收版本，
+再用一条命令完成真实交接：
+
+```text
+npm install --global github:Jettlin927/agentcarry#v0.1.0-acceptance.1
+agentcarry continue --to claude
+```
+
+不收集私密聊天的验收协议和当前 cohort 进度见
+[外部用户真实 handoff 验收](docs/external-acceptance.zh-CN.md)与
+[`acceptance/REPORT.md`](acceptance/REPORT.md)。AgentCarry 仍然不会安装 Codex、
+Claude Code 或管理它们的认证。
+
 ## 安装仓库 Skill
 
 首先直接告诉当前 Coding Agent：

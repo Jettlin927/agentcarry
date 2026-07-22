@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0.0",
+  "attemptId": "your-github-handle-yyyymmdd",
+  "recordedAt": "2026-07-23T08:00:00Z",
+  "participant": {
+    "githubHandle": "your-github-handle",
+    "nonAuthorAtAttempt": true,
+    "evidenceUrl": "https://github.com/Jettlin927/agentcarry/issues/41",
+    "consentToPublish": true
+  },
+  "environment": {
+    "os": "windows",
+    "osVersion": "Windows 11",
+    "architecture": "x64",
+    "nodeVersion": "v22.18.0",
+    "agentCarryCommit": "0000000000000000000000000000000000000000",
+    "codexVersion": "0.145.0-alpha.27",
+    "claudeCodeVersion": "2.1.158"
+  },
+  "attempt": {
+    "sourceState": "idle",
+    "selection": "automatic",
+    "outcome": "continued",
+    "targetSessionCreated": true,
+    "firstActionStarted": true,
+    "manualSupplement": {
+      "required": false,
+      "categories": []
+    },
+    "lossCodes": [
+      "HIDDEN_AGENT_STATE_UNAVAILABLE"
+    ],
+    "blockers": []
+  },
+  "timing": {
+    "commandStartedAt": "2026-07-23T07:58:00Z",
+    "outcomeRecordedAt": "2026-07-23T08:00:00Z",
+    "secondsToOutcome": 120,
+    "secondsToContinuation": 120
+  },
+  "privacy": {
+    "noSecrets": true,
+    "noPrivateTranscript": true,
+    "noUnredactedSourceFile": true
+  }
+}
