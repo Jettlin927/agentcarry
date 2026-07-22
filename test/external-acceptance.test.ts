@@ -160,6 +160,33 @@ describe("external handoff acceptance", () => {
     expect(timing.errors).toContainEqual(expect.objectContaining({ code: "TIMING" }));
   });
 
+  it("rejects reversed subsecond timing and punctuated private paths", () => {
+    const reversed = validateExternalHandoffRecord({
+      ...record(1),
+      timing: {
+        commandStartedAt: "2026-07-23T08:00:00.499Z",
+        outcomeRecordedAt: "2026-07-23T08:00:00.000Z",
+        secondsToOutcome: 0,
+        secondsToContinuation: 0
+      }
+    });
+    expect(reversed.errors).toContainEqual(expect.objectContaining({ code: "TIMING" }));
+
+    for (const osVersion of [
+      "path=/Users/alice/private.txt",
+      "Removed (/Users/alice/private.txt)"
+    ]) {
+      const privatePath = validateExternalHandoffRecord({
+        ...record(1),
+        environment: { ...record(1).environment, osVersion }
+      });
+      expect(privatePath.errors).toContainEqual(expect.objectContaining({
+        code: "SENSITIVE_VALUE",
+        message: "matched PRIVATE_LOCAL_PATH"
+      }));
+    }
+  });
+
   it("requires a separate follow-up Issue for every blocked failure mode", () => {
     const blocked = record(9);
     const result = validateExternalHandoffRecord({
@@ -240,6 +267,18 @@ describe("external handoff acceptance", () => {
     expect(() => aggregateExternalAcceptance([record(1), record(2, {
       participant: record(1).participant
     })])).toThrow("duplicate participant participant-1");
+
+    expect(() => aggregateExternalAcceptance([record(1, {
+      participant: {
+        ...record(1).participant,
+        evidenceUrl: "https://github.com/Jettlin927/agentcarry/issues/101#issuecomment-1"
+      }
+    }), record(2, {
+      participant: {
+        ...record(2).participant,
+        evidenceUrl: "https://github.com/Jettlin927/agentcarry/issues/101#issuecomment-2"
+      }
+    })])).toThrow("duplicate evidence https://github.com/Jettlin927/agentcarry/issues/101");
   });
 
   it("renders an auditable Markdown table and cohort gates", () => {
