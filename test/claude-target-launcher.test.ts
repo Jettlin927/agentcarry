@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import type { CapsuleBuildResult, WorkCapsule } from "../src/capsule/build-capsule.js";
 import {
   ClaudeTargetLauncher,
+  TargetLaunchError,
   buildContinuationPrompt,
   renderCapsuleJson,
   renderCapsuleMarkdown,
   renderContinuationBrief,
-  type CommandRunner
+  type CommandRunner,
+  type LaunchRunner
 } from "../src/adapters/claude/target-launcher.js";
 
 const capsule = {
@@ -87,19 +89,25 @@ describe("ClaudeTargetLauncher", () => {
           "11111111-1111-4111-8111-111111111111",
           "--print",
           "--output-format",
-          "json"
+          "json",
+          "--tools",
+          ""
         ],
         cwd: "C:\\Users\\dev\\中文 项目",
         stdin: "capsule-prompt",
-        displayCommand: "claude --session-id 11111111-1111-4111-8111-111111111111 --print --output-format json < capsule-prompt"
+        displayCommand: "claude --session-id 11111111-1111-4111-8111-111111111111 --print --output-format json --tools \"\" < capsule-prompt"
       },
       {
         purpose: "resume-interactive",
         command: "claude",
-        args: ["--resume", "11111111-1111-4111-8111-111111111111"],
+        args: [
+          "--resume",
+          "11111111-1111-4111-8111-111111111111",
+          "Continue the AgentCarry handoff now. Start with the recorded First action."
+        ],
         cwd: "C:\\Users\\dev\\中文 项目",
         stdin: "inherit",
-        displayCommand: "claude --resume 11111111-1111-4111-8111-111111111111"
+        displayCommand: "claude --resume 11111111-1111-4111-8111-111111111111 \"Continue the AgentCarry handoff now. Start with the recorded First action.\""
       }
     ]);
     expect(prepared.steps.flatMap((step) => step.args)).not.toContain("--model");
@@ -107,6 +115,46 @@ describe("ClaudeTargetLauncher", () => {
     expect(prepared.continuationBrief).toBe(renderContinuationBrief(capsule));
     expect(prepared.capsuleJson).toBe(renderCapsuleJson(capsule));
     expect(prepared.lossReceipt).toBe(result.receipt);
+  });
+
+  it("seeds the redacted prompt before resuming the interactive session", async () => {
+    const runLaunch = vi.fn<LaunchRunner>(async () => ({
+      exitCode: 0,
+      stdout: "",
+      stderr: ""
+    }));
+    const launcher = new ClaudeTargetLauncher({
+      cwd: "C:\\Users\\dev\\中文 项目",
+      createSessionId: () => "11111111-1111-4111-8111-111111111111",
+      runLaunch
+    });
+    const prepared = launcher.prepare(result);
+
+    await expect(launcher.launch(prepared)).resolves.toEqual({
+      agent: "claude",
+      targetSessionId: "11111111-1111-4111-8111-111111111111",
+      completedSteps: ["seed-session", "resume-interactive"]
+    });
+    expect(runLaunch).toHaveBeenCalledTimes(2);
+    expect(runLaunch).toHaveBeenNthCalledWith(1, prepared.steps[0], prepared.prompt);
+    expect(runLaunch).toHaveBeenNthCalledWith(2, prepared.steps[1], undefined);
+  });
+
+  it("stops before interactive resume when seeding fails", async () => {
+    const runLaunch = vi.fn<LaunchRunner>(async () => ({
+      exitCode: 7,
+      stdout: "provider output that must not leak",
+      stderr: "private target diagnostic"
+    }));
+    const launcher = new ClaudeTargetLauncher({ cwd: ".", runLaunch });
+    const prepared = launcher.prepare(result);
+
+    await expect(launcher.launch(prepared)).rejects.toMatchObject({
+      code: "TARGET_SEED_FAILED",
+      step: "seed-session",
+      exitCode: 7
+    } satisfies Partial<TargetLaunchError>);
+    expect(runLaunch).toHaveBeenCalledOnce();
   });
 
   it("keeps the exact canonical Capsule separate for audit", () => {
