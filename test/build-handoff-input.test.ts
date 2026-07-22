@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { Ajv2020 } from "ajv/dist/2020.js";
@@ -162,6 +163,45 @@ describe("benchmark handoff inputs", () => {
     ) as { properties: { schemaVersion: { const: string } }; required: string[] };
     expect(capsuleSchema.properties.schemaVersion.const).toBe("2.0.0");
     expect(capsuleSchema.required).toContain("nextAction");
+    expect(invocation.stdin).toContain("WORK CAPSULE V2 JSON SCHEMA");
+    expect(invocation.stdin).toContain('"schemaVersion":{"const":"2.0.0"}');
+  });
+
+  it("rejects routed-provider output that ignores the Work Capsule v2 schema", async () => {
+    const runner: ProcessRunner = async () => ({
+      exitCode: 0,
+      stdout: JSON.stringify({
+        result: JSON.stringify({
+          schemaVersion: "work-capsule/v1",
+          currentUserMessage: { text: "Continue." },
+          constraints: [{ fact: "Keep the API stable.", sourceEventIds: ["d01-user-1"] }],
+          nextAction: {
+            first: { action: "Add the regression test.", sourceEventIds: ["d01-user-2"] }
+          }
+        }),
+        usage: { input_tokens: 10 }
+      }),
+      stderr: ""
+    });
+
+    await expect(runSourceAssisted(fixture, "routed-model", runner)).rejects.toThrow(
+      "source-assisted summarizer returned invalid Work Capsule v2"
+    );
+  });
+
+  it("accepts a valid Work Capsule v2 returned through routed-provider result text", async () => {
+    const capsule = JSON.parse(buildDeterministicCapsule(fixture).content) as unknown;
+    const runner: ProcessRunner = async () => ({
+      exitCode: 0,
+      stdout: JSON.stringify({
+        result: JSON.stringify(capsule),
+        usage: { input_tokens: 10 }
+      }),
+      stderr: ""
+    });
+
+    const artifact = await runSourceAssisted(fixture, "routed-model", runner);
+    expect(JSON.parse(artifact.content)).toMatchObject({ schemaVersion: "2.0.0" });
   });
 
   it("can explicitly load trusted user settings without enabling tools or persistence", async () => {
@@ -178,8 +218,10 @@ describe("benchmark handoff inputs", () => {
 
   it("records summarizer token usage without reading or mutating a source session", async () => {
     const deterministicCapsule = JSON.parse(buildDeterministicCapsule(fixture).content) as unknown;
+    let actualPrompt = "";
     const runner: ProcessRunner = async (_command, _args, options) => {
       expect(options.cwd).toContain("agentcarry-benchmark-");
+      actualPrompt = options.stdin;
       return {
         exitCode: 0,
         stdout: JSON.stringify({
@@ -197,6 +239,9 @@ describe("benchmark handoff inputs", () => {
     const artifact = await runSourceAssisted(fixture, "controlled-model", runner);
 
     expect(artifact.generation.summarizerInputTokens).toBe(351);
+    expect(artifact.generation.promptSha256).toBe(
+      createHash("sha256").update(actualPrompt, "utf8").digest("hex")
+    );
     expect(artifact.generation.persistence).toBe("disabled");
     expect(artifact.generation.tools).toBe("disabled");
   });

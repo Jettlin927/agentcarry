@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildDeterministicCapsule,
+  buildSourceAssistedPrompt,
   sourceAssistedArtifact,
   type BenchmarkSourceFixture,
   type HandoffInputArtifact
@@ -48,7 +49,8 @@ async function sourceAssisted(
     fixture,
     model,
     JSON.parse(buildDeterministicCapsule(fixture).content) as unknown,
-    100
+    100,
+    buildSourceAssistedPrompt(fixture)
   );
 }
 
@@ -244,6 +246,44 @@ describe("benchmark target collection", () => {
       runTarget
     })).rejects.toThrow("stored target calibration does not match the benchmark plan");
     expect(calibrateTarget).not.toHaveBeenCalled();
+    expect(runTarget).not.toHaveBeenCalled();
+  });
+
+  it("rejects a stored source-assisted artifact that is not Work Capsule v2", async () => {
+    const root = await outputRoot("source-assisted-integrity");
+    await collectTargetRuns(fixtures, "fixed-model", root, {
+      buildSourceAssisted: sourceAssisted,
+      calibrateTarget: async (model) => calibration(model),
+      runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
+    });
+    const inputPath = join(
+      root,
+      "inputs",
+      "architecture-01-streaming-log--source-assisted-capsule.json"
+    );
+    const stored = JSON.parse(await readFile(inputPath, "utf8")) as HandoffInputArtifact;
+    await writeFile(inputPath, JSON.stringify({
+      ...stored,
+      content: JSON.stringify({
+        schemaVersion: "work-capsule/v1",
+        nextAction: { first: { action: "Continue." } }
+      })
+    }), "utf8");
+    const buildSourceAssisted = vi.fn(sourceAssisted);
+    const runTarget = vi.fn(async (
+      artifact: HandoffInputArtifact,
+      model: string,
+      targetCalibration: TargetCalibration
+    ) => targetResult(artifact, model, targetCalibration));
+
+    await expect(collectTargetRuns(fixtures, "fixed-model", root, {
+      buildSourceAssisted,
+      calibrateTarget: async (model) => calibration(model),
+      runTarget
+    })).rejects.toThrow(
+      "stored capsule input is not Work Capsule v2 for architecture-01-streaming-log:source-assisted-capsule:initial"
+    );
+    expect(buildSourceAssisted).not.toHaveBeenCalled();
     expect(runTarget).not.toHaveBeenCalled();
   });
 });
