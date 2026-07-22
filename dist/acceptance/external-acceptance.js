@@ -18,9 +18,10 @@ function schemaError(error) {
 function validateTiming(record) {
     const start = Date.parse(record.timing.commandStartedAt);
     const end = Date.parse(record.timing.outcomeRecordedAt);
-    const expectedSeconds = Math.round((end - start) / 1_000);
+    const elapsedMilliseconds = end - start;
+    const expectedSeconds = Math.round(elapsedMilliseconds / 1_000);
     const errors = [];
-    if (expectedSeconds < 0 || expectedSeconds !== record.timing.secondsToOutcome) {
+    if (elapsedMilliseconds < 0 || expectedSeconds !== record.timing.secondsToOutcome) {
         errors.push({
             code: "TIMING",
             location: "/timing/secondsToOutcome",
@@ -41,7 +42,7 @@ const publicationRiskPatterns = [
     { code: "EMAIL_ADDRESS", pattern: /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i },
     {
         code: "PRIVATE_LOCAL_PATH",
-        pattern: /(?:\b[A-Z]:[\\/][^\s]+|\\\\[^\\/\s]+[\\/][^\s]+|(?:^|\s)\/[^/\s][^\s]*|~[\\/])/i
+        pattern: /(?:\b[A-Z]:[\\/][^\s]+|\\\\[^\\/\s]+[\\/][^\s]+|(?:^|[^A-Za-z0-9/])\/[^/\s][^\s]*|~[\\/])/i
     }
 ];
 function publicationRisks(value, location = "") {
@@ -130,12 +131,13 @@ export function aggregateExternalAcceptance(records) {
             throw new Error(`duplicate participant ${record.participant.githubHandle}`);
         if (attempts.has(record.attemptId))
             throw new Error(`duplicate attempt ${record.attemptId}`);
-        if (evidence.has(record.participant.evidenceUrl)) {
-            throw new Error(`duplicate evidence ${record.participant.evidenceUrl}`);
+        const evidenceUrl = record.participant.evidenceUrl.split("#", 1)[0];
+        if (evidence.has(evidenceUrl)) {
+            throw new Error(`duplicate evidence ${evidenceUrl}`);
         }
         participants.add(handle);
         attempts.add(record.attemptId);
-        evidence.add(record.participant.evidenceUrl);
+        evidence.add(evidenceUrl);
     }
     const continued = records.filter((record) => record.attempt.outcome === "continued");
     const platformCounts = {

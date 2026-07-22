@@ -1,4 +1,4 @@
-import { readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { lstat, readdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   aggregateExternalAcceptance,
@@ -8,12 +8,25 @@ import {
 } from "../src/acceptance/external-acceptance.js";
 
 async function jsonFiles(path: string): Promise<string[]> {
-  const metadata = await stat(path);
-  if (metadata.isFile()) return path.endsWith(".json") ? [path] : [];
-  const entries = await readdir(path, { withFileTypes: true });
-  return (await Promise.all(entries.map((entry) =>
-    jsonFiles(resolve(path, entry.name))
-  ))).flat().sort();
+  const root = resolve(path);
+  const metadata = await lstat(root);
+  if (metadata.isSymbolicLink()) throw new Error(`records path must not be a symbolic link: ${root}`);
+  if (metadata.isFile()) return root.endsWith(".json") ? [root] : [];
+  if (!metadata.isDirectory()) return [];
+
+  const files: string[] = [];
+  const visit = async (directory: string): Promise<void> => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const nested = resolve(directory, entry.name);
+      if (entry.isDirectory()) {
+        await visit(nested);
+      } else if (entry.isFile() && nested.endsWith(".json")) {
+        files.push(nested);
+      }
+    }
+  };
+  await visit(root);
+  return files.sort();
 }
 
 async function readRecords(path: string, verbose: boolean): Promise<ExternalHandoffRecord[]> {
@@ -22,7 +35,8 @@ async function readRecords(path: string, verbose: boolean): Promise<ExternalHand
   for (const file of await jsonFiles(resolve(path))) {
     let value: unknown;
     try {
-      value = JSON.parse(await readFile(file, "utf8")) as unknown;
+      const text = await readFile(file, "utf8");
+      value = JSON.parse(text.replace(/^﻿/, "")) as unknown;
     } catch {
       console.error(`FAIL ${file}: invalid JSON`);
       invalid = true;

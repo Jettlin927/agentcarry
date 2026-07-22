@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -65,6 +65,30 @@ describe("external acceptance CLI", () => {
     expect(stale.code).toBe(1);
     expect(stale.stderr).toContain("STALE");
   }, 15_000);
+
+  it("accepts UTF-8 BOM records and ignores nested symbolic links", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agentcarry-acceptance-"));
+    temporaryRoots.push(root);
+    const records = join(root, "records");
+    await mkdir(records);
+    const template = await readFile(fileURLToPath(new URL(
+      "../acceptance/external-handoff-record.template.json",
+      import.meta.url
+    )), "utf8");
+    await writeFile(join(records, "record.json"), `﻿${template}`, "utf8");
+    const outside = join(root, "outside");
+    await mkdir(outside);
+    const linked = join(records, "linked");
+    await symlink(outside, linked, process.platform === "win32" ? "junction" : "dir");
+
+    const result = await runCli(["validate", records], root);
+
+    expect(result).toMatchObject({ code: 0, stderr: "" });
+    expect(result.stdout).toContain("PASS 1 valid external handoff record(s)");
+    const linkedResult = await runCli(["validate", linked], root);
+    expect(linkedResult.code).toBe(2);
+    expect(linkedResult.stderr).toContain("records path must not be a symbolic link");
+  });
 
   it("returns usage error status for an unknown command", async () => {
     const root = await mkdtemp(join(tmpdir(), "agentcarry-acceptance-"));
