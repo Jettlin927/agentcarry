@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nRead multi-gigabyte JSONL logs with peak memory below 100 MiB and preserve event order.\n\n## Assistant\n\nThe existing readFile plus split implementation peaks above 2 GiB.\n\n## User\n\nReject pre-indexing for the first read. Use streaming lines and allow an optional later index.\n\n## Assistant\n\nsrc/log/stream-events.ts yields ordered events and stays at 42 MiB on the sample; malformed-line recovery is implemented.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "architecture-01-streaming-log",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 421,
+    "utf8Bytes": 421
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "37d5a57123ebb60fc9d102736ca21c5c98622a7269a6a518335316fe5667f625"
+}
