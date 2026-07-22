@@ -1,0 +1,44 @@
+{
+  "fixtureId": "feature-03-config-errors",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "87704098f14feaba86e09c20c85ec698fe5481c38931ba02bf9706acbe64c14c",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- Redact at the validation-error formatter, not in the parser, and preserve the failing field path. [evidence: f03-user-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- Add nested config validation. Environment variables override files, and errors must never include secret values. [evidence: f03-user-1]\n\n## Current state\n- Completed: Schema parsing and environment precedence are implemented with path-aware validation errors. [evidence: f03-assistant-1]\n- Completed: Logging the fully resolved config for debugging was attempted and removed because it exposes unrelated secrets. [evidence: f03-assistant-2]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result f03-tool-1 — Precedence tests pass; a nested invalid token is echoed in the current error message. [evidence: f03-tool-1]\n- Validation: UNKNOWN Source tool result f03-tool-2 — src/config/parse.ts and src/config/precedence.ts are modified; src/config/format-error.ts is not created. [evidence: f03-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: /Users/dev/Config Demo\n- Git: branch=feature/config-validation; head=f0300003; dirty=true\n- File: modified src/config/parse.ts [evidence: none]\n- File: created src/config/precedence.ts [evidence: none]\n- File: referenced src/config/format-error.ts [evidence: none]\n",
+      "tokens": 389,
+      "utf8Bytes": 1689
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1740,
+    "promptSha256": "ba0c188a7a37274d7d3744b6abd61d2954193b0ad9ea68266db99c77946ee33f",
+    "promptUtf8Bytes": 1802
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:14:30.210Z",
+    "promptSha256": "ba0c188a7a37274d7d3744b6abd61d2954193b0ad9ea68266db99c77946ee33f",
+    "startedAt": "2026-07-22T21:14:14.556Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "0ab5964730a72b2ae8cd4e5cb914950e866c8809d6d76cdf23f1ecce63f209d8",
+    "text": "## 续接简报\n\n- **目标**：完善嵌套配置校验；环境变量优先于配置文件；任何错误信息都不得泄露密钥值。\n- **关键约束**：必须在**验证错误格式化层**脱敏，而不是解析器层；脱敏时保留失败字段的完整路径。\n- **当前状态**：\n  - Schema 解析、环境变量优先级和带路径的校验错误已实现。\n  - 工作区位于 `/Users/dev/Config Demo`，分支 `feature/config-validation`，当前有未提交修改。\n  - `src/config/parse.ts` 已修改，`src/config/precedence.ts` 已创建；`src/config/format-error.ts` 尚未创建。\n- **既定决策**：只格式化/替换错误中的敏感值，不改变解析结果或字段路径。\n- **已失败且禁止重走的路径**：曾尝试记录完整解析后配置，因会暴露其他无关密钥而已撤销；不要恢复该日志方案。\n- **验证现状**：现有结果显示优先级测试通过，但嵌套非法 token 仍会原样出现在错误消息中；整体验证状态仍为 **UNKNOWN**，不得视为最终通过。\n- **待完成**：实现错误格式化层的敏感值脱敏，并在后续验证路径保留、环境优先级以及错误中不出现密钥值。\n- **唯一正确的下一步**：在验证错误格式化器中加入敏感值脱敏，同时保留失败字段路径；不要修改解析器来脱敏。"
+  },
+  "runId": "feature-03-config-errors:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "ec9cc0c1730a10eef152aec54c9fb8f439f745ea6ec6847c04910ab3ab10fd37",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

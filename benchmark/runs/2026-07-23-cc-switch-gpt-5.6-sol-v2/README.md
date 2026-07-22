@@ -1,7 +1,8 @@
-# Benchmark v2 second-36 — paused, not final
+# Benchmark v2 second-36 — collection complete, human review pending
 
-This directory is an auditable partial run, not a benchmark result or product
-claim.
+This directory contains the complete raw second-36 collection. It is not a
+final benchmark result until a human reviews all 36 continuations and the
+repository materializes the signed review export.
 
 ## Fixed target
 
@@ -11,45 +12,64 @@ claim.
 - setting sources: `user`
 - plan: 12 fixtures × 3 modes = 36 initial target continuations
 - token method: `target-calibration-delta-v1`
+- fixed target overhead: 1351 input tokens
 
 No credential value is serialized. AgentCarry did not install or authenticate
 the target agent.
 
-## Current evidence
+## Complete evidence
 
-- valid target results: 2 / 36
-- valid inputs: visible transcript and deterministic capsule for
-  `architecture-01-streaming-log`
-- rejected pre-target artifact: 1 source-assisted capsule under `rejected/`
-- human review and aggregate report: not started
+- raw handoff inputs: 36 / 36
+- raw target results: 36 / 36
+- canonical Work Capsule input measurements: 24 / 24
+- AI advisory entries: 36 / 36
+- human review: pending
+- aggregate report: intentionally not materialized before human review
 
-The rejected artifact is retained only as root-cause evidence. A routed
-provider ignored Claude Code's `--json-schema` metadata and returned a
-historical v1-shaped capsule. It is not a target result and must never enter the
-36-run aggregate. The fail-closed boundary fix was completed in
-[Issue #47](https://github.com/Jettlin927/agentcarry/issues/47) and
-[PR #48](https://github.com/Jettlin927/agentcarry/pull/48).
+The 24 files under `canonical-baselines/` measure each original canonical JSON
+Capsule through the same target, wrapper, and fixed-overhead calibration as the
+compiled continuation brief. They are metering calls, not additional
+continuation results. The visible-transcript ratio remains reported, while the
+40% compression gate compares the compiled brief with its matching canonical
+Capsule measurement, as decided in
+[Issue #49](https://github.com/Jettlin927/agentcarry/issues/49).
 
-## Why collection paused
+## Restart and interruption disclosure
 
-The first real comparable pair measured:
+The two pre-decision target results used to discover the invalid visible-token
+gate were not mixed into this aggregate. Their original plan, 1349-token
+calibration, inputs, results, and README are preserved under `pre-decision/`;
+the rejected historical v1 source-assisted artifact remains under `rejected/`.
+The final second-36 collection restarted all 36 initial results with one
+1351-token calibration after the metric decision.
 
-| Mode | Full-call input | Fixed overhead | AgentCarry payload |
-| --- | ---: | ---: | ---: |
-| visible-transcript | 1443 | 1349 | 94 |
-| deterministic-capsule | 1837 | 1349 | 488 |
+During that full collection, the provider returned one stream body decoding
+error while generating the source-assisted input for
+`feature-02-deploy-dry-run`. The failure happened before that input or any
+target result was persisted. The exclusive-write collector resumed the same
+plan, validated and skipped the existing 23 target results, then completed the
+remaining 13. No persisted initial result was overwritten or replaced during
+that resume.
 
-The current release gate requires capsule payload to be no more than 40% of the
-visible-transcript payload. This fixture permits at most 37.6 tokens, while its
-eight required ground-truth facts include tool and workspace information absent
-from the visible transcript. The measured ratio is 519.1%.
+## Human review
 
-Collection stopped before the remaining calls to avoid spending on a gate that
-this pair already fails fixture by fixture. The metric decision and recommended
-non-gaming correction are tracked in
-[Issue #49](https://github.com/Jettlin927/agentcarry/issues/49). The benchmark
-execution issue remains [#42](https://github.com/Jettlin927/agentcarry/issues/42).
+`advisory-verdicts.json` is an AI-only first pass and cannot finalize the
+benchmark. `REVIEW.html` is the self-contained Chinese review workbench: it
+shows the exact target payload and response side by side, supports pass/fail and
+fact-level corrections, stores progress locally in the browser, and exports the
+required human-review JSON. `REVIEW_PACKET.md` is the non-interactive archive.
 
-Do not present this directory as a completed benchmark. Resume only after the
-release gate is decided, then regenerate the rejected source-assisted input and
-continue with the existing exclusive-write collector.
+After all 36 rows are personally reviewed, finalize with an auditable Issue
+comment URL:
+
+```shell
+npm run --silent benchmark:review -- finalize benchmark/fixtures \
+  benchmark/runs/2026-07-23-cc-switch-gpt-5.6-sol-v2 \
+  --output benchmark/runs/2026-07-23-cc-switch-gpt-5.6-sol-v2/final \
+  --review-file <exported-human-review.json> \
+  --confirmation-source <issue-comment-url> \
+  --human-confirmed
+```
+
+Do not present this directory as a completed or passing benchmark until that
+finalization succeeds and the resulting report is committed.

@@ -3,8 +3,11 @@ import {
   type AggregateBenchmarkReport,
   type BenchmarkResultSet
 } from "./aggregate-report.js";
-import type { HandoffMode } from "./build-handoff-input.js";
-import type { TargetRunResult } from "./run-target-continuation.js";
+import { canonicalJson, type HandoffMode } from "./build-handoff-input.js";
+import type {
+  CanonicalCapsuleMeasurement,
+  TargetRunResult
+} from "./run-target-continuation.js";
 import {
   categoryWeights,
   scoreAssessment,
@@ -240,6 +243,7 @@ function assessmentFor(
   result: TargetRunResult,
   run: AdvisoryRunVerdicts,
   visibleTranscriptPayloadBaseline: number,
+  canonicalWorkCapsulePayloadBaseline: number | null,
   advisory: AdvisoryVerdictSet,
   confirmation: HumanReviewConfirmationInput
 ): ContinuationAssessment {
@@ -259,7 +263,8 @@ function assessmentFor(
       fullCallInput: result.input.fullCallInputTokens,
       fixedOverhead: result.input.fixedOverheadInputTokens,
       agentCarryPayload: result.input.agentCarryPayload.tokens,
-      visibleTranscriptPayloadBaseline
+      visibleTranscriptPayloadBaseline,
+      canonicalWorkCapsulePayloadBaseline
     },
     review: {
       humanReviewer: confirmation.humanReviewer,
@@ -282,6 +287,47 @@ function assessmentFor(
   };
 }
 
+function canonicalBaselineTokens(
+  resultsByRunId: ReadonlyMap<string, TargetRunResult>,
+  measurements: readonly CanonicalCapsuleMeasurement[]
+): ReadonlyMap<string, number> {
+  const baselines = new Map<string, number>();
+  for (const measurement of measurements) {
+    const runId = `${measurement.fixtureId}:${measurement.mode}:initial`;
+    const result = resultsByRunId.get(runId);
+    const tokens = measurement.input?.canonicalWorkCapsulePayload?.tokens;
+    if (
+      result === undefined
+      || result.mode === "visible-transcript"
+      || baselines.has(runId)
+      || measurement.schemaVersion !== "2.0.0"
+      || measurement.purpose !== "canonical-work-capsule-baseline"
+      || measurement.sourceFingerprint !== result.sourceFingerprint
+      || canonicalJson(measurement.target) !== canonicalJson(result.target)
+      || !Number.isInteger(tokens)
+      || tokens < 1
+      || measurement.input.fixedOverheadInputTokens !== result.input.fixedOverheadInputTokens
+      || measurement.input.fullCallInputTokens
+        - measurement.input.fixedOverheadInputTokens !== tokens
+    ) {
+      throw new Error(`invalid or duplicate canonical Work Capsule baseline ${runId}`);
+    }
+    baselines.set(runId, tokens);
+  }
+  const expected = [...resultsByRunId.values()].filter(
+    (result) => result.mode !== "visible-transcript"
+  );
+  if (baselines.size !== expected.length) {
+    throw new Error(`benchmark review requires ${expected.length} canonical Work Capsule baselines`);
+  }
+  for (const result of expected) {
+    if (!baselines.has(result.runId)) {
+      throw new Error(`missing canonical Work Capsule baseline ${result.runId}`);
+    }
+  }
+  return baselines;
+}
+
 function validateConfirmation(confirmation: HumanReviewConfirmationInput): void {
   if (
     confirmation.confirmed !== true
@@ -296,11 +342,16 @@ function validateConfirmation(confirmation: HumanReviewConfirmationInput): void 
 export function finalizeBenchmarkReview(
   fixtures: readonly ReviewFixture[],
   results: readonly TargetRunResult[],
+  canonicalMeasurements: readonly CanonicalCapsuleMeasurement[],
   advisory: AdvisoryVerdictSet,
   confirmation: HumanReviewConfirmationInput
 ): MaterializedBenchmarkReview {
   validateConfirmation(confirmation);
   const validated = validateReviewInputs(fixtures, results, advisory);
+  const canonicalBaselines = canonicalBaselineTokens(
+    validated.resultsByRunId,
+    canonicalMeasurements
+  );
   const fixtureById = new Map(validated.fixtures.map((fixture) => [fixture.id, fixture]));
   const visiblePayloadBaselines = new Map(validated.fixtures.map((fixture) => {
     const runId = `${fixture.id}:visible-transcript:initial`;
@@ -313,6 +364,7 @@ export function finalizeBenchmarkReview(
       result,
       validated.advisoryByRunId.get(result.runId)!,
       visiblePayloadBaselines.get(result.fixtureId)!,
+      result.mode === "visible-transcript" ? null : canonicalBaselines.get(result.runId)!,
       advisory,
       confirmation
     ));
@@ -419,6 +471,7 @@ function humanAdjustedAdvisory(
 export function finalizeBenchmarkReviewFromExport(
   fixtures: readonly ReviewFixture[],
   results: readonly TargetRunResult[],
+  canonicalMeasurements: readonly CanonicalCapsuleMeasurement[],
   advisory: AdvisoryVerdictSet,
   humanReview: HumanReviewExport,
   confirmationSource: string
@@ -429,6 +482,7 @@ export function finalizeBenchmarkReviewFromExport(
   const materialized = finalizeBenchmarkReview(
     fixtures,
     results,
+    canonicalMeasurements,
     humanAdjustedAdvisory(fixtures, results, advisory, humanReview),
     {
       confirmed: true,

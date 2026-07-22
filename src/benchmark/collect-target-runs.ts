@@ -18,8 +18,10 @@ import {
 import {
   createTargetCalibrationInvocation,
   createTargetSettings,
+  runCanonicalCapsuleMeasurement,
   runTargetCalibration,
   runTargetContinuation,
+  type CanonicalCapsuleMeasurement,
   type TargetCalibration,
   type TargetSettingSources,
   type TargetSettings,
@@ -75,10 +77,16 @@ type TargetRunner = (
 ) => Promise<TargetRunResult>;
 
 type CalibrationRunner = (model: string) => Promise<TargetCalibration>;
+type CanonicalCapsuleRunner = (
+  artifact: HandoffInputArtifact,
+  model: string,
+  calibration: TargetCalibration
+) => Promise<CanonicalCapsuleMeasurement>;
 
 export interface CollectionDependencies {
   readonly buildSourceAssisted?: SourceAssistedBuilder;
   readonly calibrateTarget?: CalibrationRunner;
+  readonly measureCanonicalCapsule?: CanonicalCapsuleRunner;
   readonly runTarget?: TargetRunner;
   readonly onProgress?: (message: string) => void;
 }
@@ -249,6 +257,41 @@ function assertCalibration(value: unknown, plan: BenchmarkRunPlan): TargetCalibr
   return calibration;
 }
 
+function assertCanonicalMeasurement(
+  value: unknown,
+  artifact: HandoffInputArtifact,
+  plan: BenchmarkRunPlan,
+  calibration: TargetCalibration
+): CanonicalCapsuleMeasurement {
+  const measurement = value as CanonicalCapsuleMeasurement;
+  if (
+    artifact.mode === "visible-transcript"
+    || measurement?.schemaVersion !== "2.0.0"
+    || measurement.fixtureId !== artifact.fixtureId
+    || measurement.mode !== artifact.mode
+    || measurement.purpose !== "canonical-work-capsule-baseline"
+    || measurement.sourceFingerprint !== artifact.sourceFingerprint
+    || canonicalJson(measurement.target) !== canonicalJson(plan.target)
+    || !Number.isInteger(measurement.input?.fullCallInputTokens)
+    || !Number.isInteger(measurement.input?.fixedOverheadInputTokens)
+    || !Number.isInteger(measurement.input?.canonicalWorkCapsulePayload?.tokens)
+    || measurement.input.fixedOverheadInputTokens !== calibration.input.exactInputTokens
+    || measurement.input.canonicalWorkCapsulePayload.tokens
+      !== measurement.input.fullCallInputTokens - measurement.input.fixedOverheadInputTokens
+    || measurement.input.canonicalWorkCapsulePayload.tokens < 1
+    || measurement.input.canonicalWorkCapsulePayload.sha256 !== sha256(artifact.content)
+    || measurement.input.canonicalWorkCapsulePayload.utf8Bytes
+      !== Buffer.byteLength(artifact.content, "utf8")
+    || !/^[a-f0-9]{64}$/.test(measurement.input.promptSha256)
+    || !/^[a-f0-9]{64}$/.test(measurement.responseSha256)
+    || Number.isNaN(Date.parse(measurement.invocation?.startedAt))
+    || Number.isNaN(Date.parse(measurement.invocation?.completedAt))
+  ) {
+    throw new Error(`stored canonical baseline does not match ${artifact.fixtureId}:${artifact.mode}`);
+  }
+  return measurement;
+}
+
 function fileStem(fixtureId: string, mode: HandoffMode): string {
   if (!/^[A-Za-z0-9._-]+$/.test(fixtureId)) {
     throw new Error(`fixture id is not safe for an artifact filename: ${fixtureId}`);
@@ -293,10 +336,12 @@ export async function collectTargetRuns(
   const outputRoot = resolve(outputDirectory);
   const inputDirectory = join(outputRoot, "inputs");
   const resultDirectory = join(outputRoot, "results");
+  const canonicalBaselineDirectory = join(outputRoot, "canonical-baselines");
   const targetWorkingDirectory = join(outputRoot, "target-cwd");
   await Promise.all([
     mkdir(inputDirectory, { recursive: true }),
     mkdir(resultDirectory, { recursive: true }),
+    mkdir(canonicalBaselineDirectory, { recursive: true }),
     mkdir(targetWorkingDirectory, { recursive: true })
   ]);
   await ensurePlan(join(outputRoot, "plan.json"), plan);
@@ -333,6 +378,14 @@ export async function collectTargetRuns(
       calibration: targetCalibration,
       workingDirectory: targetWorkingDirectory
     }));
+  const canonicalCapsuleRunner = dependencies.measureCanonicalCapsule
+    ?? (async (artifact, targetModel, targetCalibration) =>
+      await runCanonicalCapsuleMeasurement(artifact, targetModel, {
+        provider: plan.target.provider,
+        settingSources: plan.target.settings.settingSources,
+        calibration: targetCalibration,
+        workingDirectory: targetWorkingDirectory
+      }));
   let completed = 0;
   let skipped = 0;
 
@@ -349,6 +402,20 @@ export async function collectTargetRuns(
       assertArtifact(artifact, plannedRun, model);
       await writeJsonOnce(inputPath, artifact);
       dependencies.onProgress?.(`input ${plannedRun.runId}`);
+    }
+
+    if (artifact.mode !== "visible-transcript") {
+      const baselinePath = join(canonicalBaselineDirectory, `${stem}.json`);
+      const storedBaseline = await readJsonIfPresent(baselinePath);
+      if (storedBaseline === undefined) {
+        const baseline = await canonicalCapsuleRunner(artifact, model, calibration);
+        assertCanonicalMeasurement(baseline, artifact, plan, calibration);
+        await writeJsonOnce(baselinePath, baseline);
+        dependencies.onProgress?.(`canonical-baseline ${plannedRun.runId}`);
+      } else {
+        assertCanonicalMeasurement(storedBaseline, artifact, plan, calibration);
+        dependencies.onProgress?.(`skip-canonical-baseline ${plannedRun.runId}`);
+      }
     }
 
     const storedResult = await readJsonIfPresent(resultPath);

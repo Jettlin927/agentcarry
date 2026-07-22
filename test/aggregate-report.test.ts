@@ -39,13 +39,15 @@ function score(
       fixedOverhead: 1_000,
       agentCarryPayload: mode === "visible-transcript" ? 1_000 : Math.round(1_000 * ratio),
       visibleTranscriptPayloadBaseline: 1_000,
-      payloadRatio: ratio
+      visibleTranscriptPayloadRatio: ratio,
+      canonicalWorkCapsulePayloadBaseline: mode === "visible-transcript" ? null : 1_000,
+      canonicalCompressionRatio: mode === "visible-transcript" ? null : ratio
     },
     gates: {
       criticalConstraints100Percent: true,
       correctNextAction: true,
       noRepeatedFailedPath: true,
-      payloadRatioAtMost40Percent: ratio <= 0.4
+      canonicalCompressionAtMost40Percent: mode === "visible-transcript" ? null : ratio <= 0.4
     }
   };
 }
@@ -83,7 +85,9 @@ describe("aggregateBenchmark", () => {
       meanFixedOverheadTokens: 1000,
       meanAgentCarryPayloadTokens: 400,
       meanVisibleTranscriptPayloadBaselineTokens: 1000,
-      meanPayloadRatio: 0.4
+      meanVisibleTranscriptPayloadRatio: 0.4,
+      meanCanonicalWorkCapsulePayloadBaselineTokens: 1000,
+      meanCanonicalCompressionRatio: 0.4
     });
   });
 
@@ -171,6 +175,7 @@ describe("aggregateBenchmark", () => {
     expect(renderAggregateMarkdown(report)).toContain("Each comparison must pass fixture by fixture");
     expect(renderAggregateMarkdown(report)).toContain("Mean fixed overhead");
     expect(renderAggregateMarkdown(report)).toContain("Mean visible payload baseline");
+    expect(renderAggregateMarkdown(report)).toContain("Mean canonical Capsule baseline");
   });
 
   it("requires an identifiable human review for every initial run", () => {

@@ -14,7 +14,11 @@ import {
   renderReviewHtml,
   type ReviewInputArtifact
 } from "../src/benchmark/render-review-html.js";
-import { targetSettings, type TargetRunResult } from "../src/benchmark/run-target-continuation.js";
+import {
+  targetSettings,
+  type CanonicalCapsuleMeasurement,
+  type TargetRunResult
+} from "../src/benchmark/run-target-continuation.js";
 
 const fixtureDirectory = fileURLToPath(new URL("../benchmark/fixtures/", import.meta.url));
 const fixtures = readdirSync(fixtureDirectory)
@@ -71,6 +75,32 @@ function result(
 }
 
 const results = fixtures.flatMap((fixture) => modes.map((mode) => result(fixture, mode)));
+const canonicalBaselines: CanonicalCapsuleMeasurement[] = results.flatMap((entry) =>
+  entry.mode === "visible-transcript" ? [] : [{
+    schemaVersion: "2.0.0" as const,
+    fixtureId: entry.fixtureId,
+    mode: entry.mode,
+    purpose: "canonical-work-capsule-baseline" as const,
+    sourceFingerprint: entry.sourceFingerprint,
+    target: entry.target,
+    input: {
+      promptSha256: "e".repeat(64),
+      promptUtf8Bytes: 100,
+      fullCallInputTokens: 2_000,
+      fixedOverheadInputTokens: 1_000,
+      canonicalWorkCapsulePayload: {
+        sha256: "f".repeat(64),
+        utf8Bytes: 500,
+        tokens: 1_000
+      }
+    },
+    responseSha256: "a".repeat(64),
+    invocation: {
+      startedAt: "2026-07-21T00:00:00Z",
+      completedAt: "2026-07-21T00:00:01Z"
+    }
+  }]
+);
 const inputs: ReviewInputArtifact[] = fixtures.flatMap((fixture) => modes.map((mode) => ({
   fixtureId: fixture.id,
   mode,
@@ -136,7 +166,13 @@ function humanReviewExport(): HumanReviewExport {
 
 describe("benchmark review materialization", () => {
   it("materializes all assessments, deterministic scores, and the aggregate report", () => {
-    const materialized = finalizeBenchmarkReview(fixtures, results, advisory(), confirmation);
+    const materialized = finalizeBenchmarkReview(
+      fixtures,
+      results,
+      canonicalBaselines,
+      advisory(),
+      confirmation
+    );
 
     expect(materialized.assessments).toHaveLength(36);
     expect(materialized.scores).toHaveLength(36);
@@ -152,6 +188,12 @@ describe("benchmark review materialization", () => {
       llmJudge: { model: "test-advisory-model", advisoryOnly: true }
     });
     expect(materialized.confirmation.confirmationSource).toContain("issuecomment-1");
+    expect(materialized.assessments.find(
+      (assessment) => assessment.mode === "visible-transcript"
+    )?.tokens.canonicalWorkCapsulePayloadBaseline).toBeNull();
+    expect(materialized.assessments.find(
+      (assessment) => assessment.mode === "deterministic-capsule"
+    )?.tokens.canonicalWorkCapsulePayloadBaseline).toBe(1_000);
   });
 
   it("applies explicit exceptions and rejects unknown fact ids", () => {
@@ -171,7 +213,13 @@ describe("benchmark review materialization", () => {
         : run)
     };
 
-    const materialized = finalizeBenchmarkReview(fixtures, results, withException, confirmation);
+    const materialized = finalizeBenchmarkReview(
+      fixtures,
+      results,
+      canonicalBaselines,
+      withException,
+      confirmation
+    );
     const assessment = materialized.assessments.find((entry) => entry.runId === runId)!;
     expect(assessment.categories.nextAction).toEqual([{
       factId: nextActionId,
@@ -190,7 +238,13 @@ describe("benchmark review materialization", () => {
           }
         : run)
     };
-    expect(() => finalizeBenchmarkReview(fixtures, results, invalid, confirmation)).toThrow(
+    expect(() => finalizeBenchmarkReview(
+      fixtures,
+      results,
+      canonicalBaselines,
+      invalid,
+      confirmation
+    )).toThrow(
       "unknown fact id unknown"
     );
   });
@@ -244,6 +298,7 @@ describe("benchmark review materialization", () => {
     const materialized = finalizeBenchmarkReviewFromExport(
       fixtures,
       results,
+      canonicalBaselines,
       advisory(),
       corrected,
       "https://github.com/example/repo/issues/5#issuecomment-2"
@@ -261,6 +316,7 @@ describe("benchmark review materialization", () => {
     expect(() => finalizeBenchmarkReviewFromExport(
       fixtures,
       results,
+      canonicalBaselines,
       advisory(),
       { ...humanReview, complete: false } as unknown as HumanReviewExport,
       "https://github.com/example/repo/issues/5#issuecomment-3"
@@ -269,6 +325,7 @@ describe("benchmark review materialization", () => {
     expect(() => finalizeBenchmarkReviewFromExport(
       fixtures,
       results,
+      canonicalBaselines,
       advisory(),
       {
         ...humanReview,

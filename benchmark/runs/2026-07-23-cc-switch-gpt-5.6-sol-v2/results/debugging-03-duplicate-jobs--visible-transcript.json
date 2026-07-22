@@ -1,0 +1,44 @@
+{
+  "fixtureId": "debugging-03-duplicate-jobs",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "71db6ca27afb68d845a88e84437373f7a2fdd18fe86fc2a8f9d79cc0a907962c",
+      "text": "## User\n\nStop duplicate invoice jobs while preserving the queue schema and at-most-once side effects.\n\n## Assistant\n\nThe initial hypothesis is that the broker delivers the same message twice after a network retry.\n\n## Assistant\n\nsrc/worker/lease.ts now stores the marker before handler dispatch; the deterministic fake-clock test is still missing.\n\n## User\n\nDo not change queue payloads. Add the fake-clock regression before touching retry policy.\n",
+      "tokens": 84,
+      "utf8Bytes": 448
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1435,
+    "promptSha256": "0aa8c18a95cbec870a07655fce1ec219e6d8f5cb1d293d86758df82d83c53271",
+    "promptUtf8Bytes": 561
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:01:42.180Z",
+    "promptSha256": "0aa8c18a95cbec870a07655fce1ec219e6d8f5cb1d293d86758df82d83c53271",
+    "startedAt": "2026-07-22T21:01:27.897Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "8392a22a6d5892457df122720bf96f6dd9d47082373230abd82127b226ff0f86",
+    "text": "## 续接简报\n\n- **目标**：阻止重复发票任务执行，同时保持现有队列载荷/schema 不变，并确保副作用至多发生一次。\n- **关键约束**：\n  - 不得修改队列 payload/schema。\n  - 必须先补确定性的 fake-clock 回归测试，再考虑或修改重试策略。\n  - 避免未经验证地将问题归因于 broker 网络重试。\n- **当前状态**：\n  - 初步假设是 broker 在网络重试后重复投递同一消息，但尚未验证。\n  - `src/worker/lease.ts` 已改为在分派 handler 前写入 marker。\n  - 对应的确定性 fake-clock 测试仍缺失；现有改动尚未在该回归场景下得到验证。\n- **已作决定**：通过 dispatch 前持久化 marker 来保护 at-most-once 副作用；测试优先于重试策略调整。\n- **失败尝试**：交接中未记录明确失败尝试。不要转向修改 payload 或提前调整 retry policy。\n- **已完成**：`src/worker/lease.ts` 的 marker 写入顺序调整。\n- **待完成**：增加 fake-clock 回归，覆盖重复投递/租约时序，并断言 handler 及发票副作用最多执行一次。\n- **唯一正确的下一步**：仅添加该确定性 fake-clock 回归测试，复现重复消息时序并验证现有 marker-before-dispatch 行为；此时不要改队列 payload 或重试策略。"
+  },
+  "runId": "debugging-03-duplicate-jobs:visible-transcript:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "569be092bf2d03da6b24b9ac18edb33f425fb26f7e24f9c84ae7d0e3683750fd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

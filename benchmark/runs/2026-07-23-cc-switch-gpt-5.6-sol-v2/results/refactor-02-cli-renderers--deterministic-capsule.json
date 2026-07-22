@@ -1,0 +1,44 @@
+{
+  "fixtureId": "refactor-02-cli-renderers",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "ff597f70996f85feb3af7a2b00e6a5237baf0501c3b217df6dd55b2a3f9ffef8",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- Renderers own formatting. Diagnostics go to stderr; do not special-case commands. [evidence: r02-user-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- Separate CLI rendering from command logic. Existing human output must stay compatible; JSON mode must write JSON only to stdout. [evidence: r02-user-1]\n\n## Current state\n- Completed: Command handlers now return result objects and the text renderer reproduces existing snapshots. [evidence: r02-assistant-1]\n- Completed: A global no-color flag fixed the snapshot but broke human color output, so that change was reverted. [evidence: r02-assistant-2]\n- Failed outcome: The source event marks this path as failed, rejected, reverted, or unresolved. [evidence: r02-assistant-2]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result r02-tool-1 — The JSON snapshot contains ANSI color codes and one diagnostic line before the JSON document. [evidence: r02-tool-1]\n- Validation: UNKNOWN Source tool result r02-tool-2 — src/cli/commands.ts and src/cli/text-renderer.ts are modified; json-renderer.ts exists but has no diagnostic routing test. [evidence: r02-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: C:\\Users\\dev\\CLI 工具\n- Git: branch=refactor/cli-renderers; head=r0200002; dirty=true\n- File: modified src/cli/commands.ts [evidence: none]\n- File: created src/cli/text-renderer.ts [evidence: none]\n- File: created src/cli/json-renderer.ts [evidence: none]\n",
+      "tokens": 439,
+      "utf8Bytes": 1824
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1790,
+    "promptSha256": "fbb2b35e6090051142467f81bdf331e7f760ad53e92391f3a49c8f6ee84e4c7d",
+    "promptUtf8Bytes": 1937
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:21:55.378Z",
+    "promptSha256": "fbb2b35e6090051142467f81bdf331e7f760ad53e92391f3a49c8f6ee84e4c7d",
+    "startedAt": "2026-07-22T21:21:39.419Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "9b677d49e15afb2622c45a04eba2797ad5fbd433767c807e4d4efcb9732a434c",
+    "text": "## 续接简报\n\n- **目标**：彻底分离 CLI 渲染与命令逻辑；保持现有人类可读输出兼容，同时确保 JSON 模式的 `stdout` 只包含合法 JSON。\n- **关键约束**：\n  - 格式化必须由 renderer 负责。\n  - 诊断信息必须写入 `stderr`。\n  - 不得针对具体命令添加特殊分支。\n  - 必须保留人类输出的颜色行为。\n  - 工作区为 `C:\\Users\\dev\\CLI 工具`，分支 `refactor/cli-renderers`，当前有未提交改动。\n- **当前状态**：\n  - `src/cli/commands.ts` 已修改。\n  - `src/cli/text-renderer.ts` 已创建。\n  - `src/cli/json-renderer.ts` 已创建。\n  - 命令处理器已改为返回结果对象。\n  - 文本 renderer 已能复现原有快照。\n  - 现有 JSON 快照仍含 ANSI 颜色码，且 JSON 文档前出现一行诊断信息。\n  - `json-renderer.ts` 尚无诊断路由测试。\n- **已定决策**：采用 renderer 统一负责格式化和输出通道路由，而不是在命令处理器中处理输出差异。\n- **失败路径（明确避免）**：不要重新引入全局禁用颜色标志；该方案虽修复 JSON 快照，却破坏了人类输出颜色，已被回滚。\n- **已完成工作**：命令结果对象化、文本 renderer 接入并保持既有文本快照兼容。\n- **待完成工作**：消除 JSON `stdout` 中的 ANSI 与前置诊断行，并补充诊断路由覆盖；当前验证状态未知，不得视为已通过。\n- **唯一正确的下一步**：在 renderer 边界统一实现输出路由——格式化归 renderer，诊断写入 `stderr`、JSON 独占 `stdout`，且不对任何命令做特殊处理。"
+  },
+  "runId": "refactor-02-cli-renderers:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "0b4bb6d3d348e114ba5c656c4dde88d60ef6baf47cbbb1fcdadf74defcc28ba2",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

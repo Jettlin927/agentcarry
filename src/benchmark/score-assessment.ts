@@ -33,6 +33,7 @@ export interface ContinuationAssessment {
     readonly fixedOverhead: number;
     readonly agentCarryPayload: number;
     readonly visibleTranscriptPayloadBaseline: number;
+    readonly canonicalWorkCapsulePayloadBaseline: number | null;
   };
   readonly review: {
     readonly humanReviewer: string;
@@ -89,13 +90,15 @@ export interface ContinuationScoreReport {
     readonly fixedOverhead: number;
     readonly agentCarryPayload: number;
     readonly visibleTranscriptPayloadBaseline: number;
-    readonly payloadRatio: number;
+    readonly visibleTranscriptPayloadRatio: number;
+    readonly canonicalWorkCapsulePayloadBaseline: number | null;
+    readonly canonicalCompressionRatio: number | null;
   };
   readonly gates: {
     readonly criticalConstraints100Percent: boolean;
     readonly correctNextAction: boolean;
     readonly noRepeatedFailedPath: boolean;
-    readonly payloadRatioAtMost40Percent: boolean;
+    readonly canonicalCompressionAtMost40Percent: boolean | null;
   };
 }
 
@@ -150,9 +153,10 @@ export function scoreAssessment(
     assessment.tokens.fullCallInput,
     assessment.tokens.fixedOverhead,
     assessment.tokens.agentCarryPayload,
-    assessment.tokens.visibleTranscriptPayloadBaseline
+    assessment.tokens.visibleTranscriptPayloadBaseline,
+    assessment.tokens.canonicalWorkCapsulePayloadBaseline
   ];
-  if (tokenValues.some((value) => !Number.isInteger(value) || value < 0)) {
+  if (tokenValues.some((value) => value !== null && (!Number.isInteger(value) || value < 0))) {
     throw new Error("Benchmark v2 token measurements must be non-negative integers");
   }
   if (assessment.tokens.visibleTranscriptPayloadBaseline < 1) {
@@ -170,6 +174,14 @@ export function scoreAssessment(
       !== assessment.tokens.visibleTranscriptPayloadBaseline
   ) {
     throw new Error("visible transcript payload must equal its payload baseline");
+  }
+  if (
+    assessment.mode === "visible-transcript"
+      ? assessment.tokens.canonicalWorkCapsulePayloadBaseline !== null
+      : assessment.tokens.canonicalWorkCapsulePayloadBaseline === null
+        || assessment.tokens.canonicalWorkCapsulePayloadBaseline < 1
+  ) {
+    throw new Error("canonical Work Capsule baseline must be null for visible mode and positive for capsule modes");
   }
 
   for (const category of categoryOrder) {
@@ -200,13 +212,18 @@ export function scoreAssessment(
   const nextActionCorrect = assessment.categories.nextAction.every(
     (fact) => fact.verdict === "preserved"
   );
-  const payloadRatio = round(
+  const visibleTranscriptPayloadRatio = round(
     assessment.tokens.agentCarryPayload
       / assessment.tokens.visibleTranscriptPayloadBaseline,
     4
   );
-  const payloadRatioAtMost40Percent = assessment.tokens.agentCarryPayload * 100
-    <= assessment.tokens.visibleTranscriptPayloadBaseline * 40;
+  const canonicalBaseline = assessment.tokens.canonicalWorkCapsulePayloadBaseline;
+  const canonicalCompressionRatio = canonicalBaseline === null
+    ? null
+    : round(assessment.tokens.agentCarryPayload / canonicalBaseline, 4);
+  const canonicalCompressionAtMost40Percent = canonicalBaseline === null
+    ? null
+    : assessment.tokens.agentCarryPayload * 100 <= canonicalBaseline * 40;
 
   return {
     schemaVersion: "2.0.0",
@@ -230,19 +247,21 @@ export function scoreAssessment(
       fixedOverhead: assessment.tokens.fixedOverhead,
       agentCarryPayload: assessment.tokens.agentCarryPayload,
       visibleTranscriptPayloadBaseline: assessment.tokens.visibleTranscriptPayloadBaseline,
-      payloadRatio
+      visibleTranscriptPayloadRatio,
+      canonicalWorkCapsulePayloadBaseline: canonicalBaseline,
+      canonicalCompressionRatio
     },
     gates: {
       criticalConstraints100Percent: criticalConstraintMisses.length === 0,
       correctNextAction: nextActionCorrect,
       noRepeatedFailedPath: assessment.repeatedFailedPaths.length === 0,
-      payloadRatioAtMost40Percent
+      canonicalCompressionAtMost40Percent
     }
   };
 }
 
-function mark(value: boolean): string {
-  return value ? "PASS" : "FAIL";
+function mark(value: boolean | null): string {
+  return value === null ? "N/A" : value ? "PASS" : "FAIL";
 }
 
 export function renderScoreMarkdown(report: ContinuationScoreReport): string {
@@ -273,7 +292,9 @@ export function renderScoreMarkdown(report: ContinuationScoreReport): string {
 - Fixed target overhead tokens: ${report.tokens.fixedOverhead}
 - AgentCarry payload tokens: ${report.tokens.agentCarryPayload}
 - Visible-transcript payload baseline: ${report.tokens.visibleTranscriptPayloadBaseline}
-- Payload ratio: ${report.tokens.payloadRatio.toFixed(4)}
+- Visible-transcript payload ratio: ${report.tokens.visibleTranscriptPayloadRatio.toFixed(4)}
+- Canonical Work Capsule payload baseline: ${report.tokens.canonicalWorkCapsulePayloadBaseline ?? "N/A"}
+- Canonical compression ratio: ${report.tokens.canonicalCompressionRatio?.toFixed(4) ?? "N/A"}
 
 | Category | Earned | Weight |
 | --- | ---: | ---: |
@@ -284,7 +305,7 @@ ${rows}
 - ${mark(report.gates.criticalConstraints100Percent)} critical constraints 100%
 - ${mark(report.gates.correctNextAction)} correct next action
 - ${mark(report.gates.noRepeatedFailedPath)} no repeated failed path
-- ${mark(report.gates.payloadRatioAtMost40Percent)} payload ratio at most 40%
+- ${mark(report.gates.canonicalCompressionAtMost40Percent)} canonical Work Capsule compression at most 40%
 
 ## Separate findings
 

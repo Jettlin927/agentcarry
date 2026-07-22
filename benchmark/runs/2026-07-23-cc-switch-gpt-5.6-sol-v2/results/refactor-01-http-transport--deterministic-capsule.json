@@ -1,0 +1,44 @@
+{
+  "fixtureId": "refactor-01-http-transport",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "73533364e6d5c4b4a8a2506df0746bd44f42c80f8df2a3f58530c6b51e574367",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- Header preservation belongs inside the transport. The streaming response method is still unconverted. [evidence: r01-user-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- Extract HTTP transport from ApiClient without changing public exports or adding dependencies. [evidence: r01-user-1]\n\n## Current state\n- Completed: I moved request construction into src/http/transport.ts and kept ApiClient as the public facade. [evidence: r01-assistant-1]\n- Completed: Copying every header in ApiClient was attempted and reverted because it duplicated transport policy. [evidence: r01-assistant-2]\n- Failed attempt: Unit tests pass, but the auth retry test fails because the retry loses the Authorization header. [evidence: r01-tool-1]\n- Failed outcome: The source event marks this path as failed, rejected, reverted, or unresolved. [evidence: r01-tool-1, r01-assistant-2, r01-user-2]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result r01-tool-1 — Unit tests pass, but the auth retry test fails because the retry loses the Authorization header. [evidence: r01-tool-1]\n- Validation: UNKNOWN Source tool result r01-tool-2 — git diff shows src/api-client.ts and src/http/transport.ts modified; src/index.ts is unchanged. [evidence: r01-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: /Users/dev/SDK Refactor\n- Git: branch=refactor/http-transport; head=r0100001; dirty=true\n- File: modified src/api-client.ts [evidence: none]\n- File: created src/http/transport.ts [evidence: none]\n- File: referenced src/index.ts [evidence: none]\n",
+      "tokens": 457,
+      "utf8Bytes": 1935
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1808,
+    "promptSha256": "d8973b39d0952581f3c3c5a4d72107e93ebdd8b21209ccf45d5348d2b9a36e2a",
+    "promptUtf8Bytes": 2048
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:18:17.182Z",
+    "promptSha256": "d8973b39d0952581f3c3c5a4d72107e93ebdd8b21209ccf45d5348d2b9a36e2a",
+    "startedAt": "2026-07-22T21:18:01.179Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "c134b7011b84e1d3e21273d76881e4dbb166e1a5c3040533f945c8478a7ed719",
+    "text": "# 继续工作简报\n\n- **目标**：从 `ApiClient` 中提取 HTTP transport，同时保持现有公开导出不变、不增加依赖。\n- **关键约束**：\n  - Header 保留策略必须位于 transport 内部，不能回到 `ApiClient`。\n  - `ApiClient` 继续作为公开 facade。\n  - 不修改 `src/index.ts` 的公开导出。\n- **当前状态**：\n  - 分支：`refactor/http-transport`，工作区为 dirty。\n  - 已修改 `src/api-client.ts`。\n  - 已创建 `src/http/transport.ts`。\n  - `src/index.ts` 未变。\n- **已完成工作**：\n  - 请求构造已迁移到 `src/http/transport.ts`。\n  - `ApiClient` 已保留为公开 facade。\n- **既定决策**：请求与 Header 策略由 transport 统一负责，避免在 `ApiClient` 中重复 transport policy。\n- **失败路径（不要重试）**：\n  - 曾尝试在 `ApiClient` 中复制所有 Header；因重复 transport policy 已撤销。\n  - 当前认证重试会丢失 `Authorization` Header，相关 auth retry 测试仍失败。\n- **验证状态**：\n  - 普通单元测试据报通过，但 auth retry 测试失败；整体验证尚未通过。\n  - diff 据报仅涉及 `src/api-client.ts` 和 `src/http/transport.ts`，但未形成最终验证结论。\n- **待完成工作**：尚未转换流式响应方法，并需确保重试过程中由 transport 保留包括 `Authorization` 在内的 Header。\n- **唯一正确的下一步**：在 `src/http/transport.ts` 的 transport 层转换流式响应方法，并在那里修正重试请求的 Header 保留逻辑；不要在 `ApiClient` 中复制 Header。"
+  },
+  "runId": "refactor-01-http-transport:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "886d793ac79031e1d1c75c7b9e38665933f37092df12844fea3bb025c6352865",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

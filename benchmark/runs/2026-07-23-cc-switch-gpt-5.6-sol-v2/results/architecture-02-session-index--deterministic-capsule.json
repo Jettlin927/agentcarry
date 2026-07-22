@@ -1,0 +1,44 @@
+{
+  "fixtureId": "architecture-02-session-index",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "15c07c0ccee2d290d268e4c610519578efe131d3d4febb8a232d8a7824f84d35",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- Investigate and resolve the latest source result: Update churn grows the file indefinitely; compaction and crash-safe replacement are not implemented. [evidence: a02-tool-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- Design a local session index that works offline on Windows, macOS, and Linux with no native dependency. [evidence: a02-user-1]\n- Use append-only JSONL plus an in-memory index until measured startup exceeds two seconds at 10,000 sessions. [evidence: a02-user-2]\n\n## Current state\n- Completed: SQLite gives good queries, but the chosen driver requires native binaries on Windows. [evidence: a02-assistant-1]\n- Completed: Append and startup loading are implemented in src/index/jsonl-store.ts; 10,000 synthetic sessions load in 640 ms. [evidence: a02-assistant-2]\n- Failed attempt: The clean Windows install fails while compiling the SQLite binding. [evidence: a02-tool-1]\n- Failed outcome: The source event marks this path as failed, rejected, reverted, or unresolved. [evidence: a02-tool-1]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result a02-tool-1 — The clean Windows install fails while compiling the SQLite binding. [evidence: a02-tool-1]\n- Validation: UNKNOWN Source tool result a02-tool-2 — Update churn grows the file indefinitely; compaction and crash-safe replacement are not implemented. [evidence: a02-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: C:\\Users\\dev\\Session Index\n- Git: branch=architecture/session-index; head=a0200002; dirty=true\n- File: created src/index/jsonl-store.ts [evidence: none]\n- File: created test/index-startup.test.ts [evidence: none]\n- File: referenced src/index/compact.ts [evidence: none]\n",
+      "tokens": 484,
+      "utf8Bytes": 2073
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1835,
+    "promptSha256": "e34f8f7d074b8f4552c064ec18e2fe5343561fe1aa60d71ebd90f0f0047a1636",
+    "promptUtf8Bytes": 2186
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:48:23.424Z",
+    "promptSha256": "e34f8f7d074b8f4552c064ec18e2fe5343561fe1aa60d71ebd90f0f0047a1636",
+    "startedAt": "2026-07-22T20:48:03.204Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "0df1be53b00c5c4375bd54fa0cdf44aee1288dd235d25189313f8e087df5fe1b",
+    "text": "## 续接简报\n\n- **目标**：完善离线、本地、跨 Windows/macOS/Linux 且无原生依赖的会话索引。\n- **关键约束**：继续采用追加式 JSONL 与内存索引；只有在实测 10,000 个会话启动耗时超过 2 秒后，才考虑更换架构。\n- **当前状态**：\n  - `src/index/jsonl-store.ts` 已实现追加写入和启动加载。\n  - 10,000 个合成会话报告加载耗时为 **640 ms**。\n  - 工作区位于 `C:\\Users\\dev\\Session Index`，分支 `architecture/session-index`，HEAD `a0200002`，当前为 dirty。\n  - 已创建 `test/index-startup.test.ts`；`src/index/compact.ts` 仅被引用，具体状态无证据。\n- **既定决策**：保留 JSONL + 内存索引方案，目前性能未达到切换架构的阈值。\n- **明确失败路径**：SQLite 驱动依赖原生二进制，干净 Windows 安装会在编译 binding 时失败；不要重新采用该路径。\n- **已完成工作**：JSONL 追加与启动加载，以及 10,000 会话的合成性能测量。\n- **待完成工作**：更新操作持续追加会导致文件无限增长；尚未实现压缩，也没有崩溃安全的文件替换机制。相关工具结果的验证状态仍为 **UNKNOWN**，且无已运行命令的证据。\n- **唯一正确的下一步行动**：调查现有 JSONL 更新与加载语义，并解决更新膨胀问题，实现无原生依赖、跨平台的压缩及崩溃安全替换；不要转回 SQLite 原生 binding 方案。"
+  },
+  "runId": "architecture-02-session-index:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "5ad936ae939e2eb5d688352ddbc9325e850b5a3cbfe0fdfd708e0a5ab116a595",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

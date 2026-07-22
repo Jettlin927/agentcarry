@@ -1,0 +1,38 @@
+{
+  "fixtureId": "architecture-02-session-index",
+  "input": {
+    "canonicalWorkCapsulePayload": {
+      "sha256": "0d71d4c323489a8518e3520c63f987cd0a5a727074a7e838043fc230a1f4221b",
+      "tokens": 1912,
+      "utf8Bytes": 6550
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 3263,
+    "promptSha256": "364aa74568eb871a6a9e63443e76ff90589400818464295fbcc29ec7f1e2d6a5",
+    "promptUtf8Bytes": 6663
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:48:03.203Z",
+    "startedAt": "2026-07-22T20:47:46.078Z"
+  },
+  "mode": "deterministic-capsule",
+  "purpose": "canonical-work-capsule-baseline",
+  "responseSha256": "db12d5c9b295a417088804ab8efd1aec8361477daf6dd59e4cb0acdeaabe0a84",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "5ad936ae939e2eb5d688352ddbc9325e850b5a3cbfe0fdfd708e0a5ab116a595",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "fixtureId": "refactor-02-cli-renderers",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "69d831c86207f1393ea652befa6885a14990093100cd62b7d70934e8c1998891",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- 先为 JSON renderer 添加诊断路由测试，验证诊断写入 stderr，而 stdout 只包含不带 ANSI 代码的 JSON 文档。 [evidence: r02-user-1, r02-user-2, r02-tool-1, r02-tool-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- 现有人类可读输出必须保持兼容。 [evidence: r02-user-1]\n- JSON 模式必须只向 stdout 写入 JSON。 [evidence: r02-user-1]\n- 诊断信息必须写入 stderr。 [evidence: r02-user-2]\n- 格式化逻辑归 renderer 所有，不得针对具体命令添加特殊处理。 [evidence: r02-user-2]\n- 不能用破坏人类输出颜色的全局 no-color 设置修复 JSON 输出。 [evidence: r02-assistant-2]\n\n## Current state\n- Objective: 将 CLI 渲染与命令逻辑分离，同时保持现有人类可读输出兼容；JSON 模式的 stdout 只能包含 JSON，诊断信息写入 stderr，格式化由 renderer 负责，并且不得针对各命令做特殊处理。 [evidence: r02-user-1, r02-user-2]\n- Current request: Renderers own formatting. Diagnostics go to stderr; do not special-case commands. [evidence: r02-user-2]\n- Completed: Command handlers 已被报告为返回结果对象。 [evidence: r02-assistant-1]\n- Completed: Text renderer 已被报告为能够复现既有 snapshots。 [evidence: r02-assistant-1]\n- Completed: 导致人类输出失去颜色的全局 no-color 改动已经撤销。 [evidence: r02-assistant-2]\n- Completed: 当前 workspace 中已存在 text renderer 和 JSON renderer，commands 文件也已有修改。 [evidence: r02-tool-2]\n- Pending: 为 JSON renderer 补充诊断路由测试；当前来源明确指出该测试不存在。 [evidence: r02-tool-2]\n- Pending: 获得通过的 JSON 输出验证，证明 stdout 仅含 JSON、没有 ANSI 颜色代码，并且诊断信息仅写入 stderr。 [evidence: r02-user-1, r02-user-2, r02-tool-1]\n- Pending: 在完成 renderer 层修复后重新验证人类可读输出及其颜色仍与既有行为兼容。 [evidence: r02-user-1, r02-assistant-1, r02-assistant-2]\n- Decision: 采用 renderer 统一负责输出格式化和诊断流路由的设计，而不是在 command handlers 中分别处理。 [evidence: r02-user-2]\n- Decision: 全局 no-color 方案因破坏人类输出颜色而被撤销。 [evidence: r02-assistant-2]\n- Failed attempt: 生成并验证 JSON snapshot。 [evidence: r02-tool-1]\n- Failed outcome: 验证失败：snapshot 含有 ANSI 颜色代码，并且 JSON 文档前出现了一行诊断信息。 [evidence: r02-tool-1]\n- Failure reason: JSON 输出尚未与颜色格式及诊断输出隔离。 [evidence: r02-tool-1]\n- Failed attempt: 使用全局 no-color 标志消除 JSON snapshot 中的 ANSI 颜色代码。 [evidence: r02-assistant-2]\n- Failed outcome: JSON snapshot 得到修复，但人类可读输出的颜色被破坏，因此该改动已撤销。 [evidence: r02-assistant-2]\n- Failure reason: 全局设置同时影响 JSON renderer 和 text renderer，违反人类输出兼容要求。 [evidence: r02-assistant-2]\n- Open question: 来源未提供测试文件布局、测试框架或应运行的具体测试命令。 [evidence: none]\n- Open question: 来源未提供三个变更文件的内容，因此当前 renderer 和 command handler 的具体实现程度尚不可确认。 [evidence: r02-tool-2]\n\n## Later actions\n- 根据该测试在 renderer 层修正 JSON 格式化和输出流路由，不使用全局 no-color，也不在各 command handler 中添加特殊处理。 [evidence: r02-user-2, r02-tool-1, r02-assistant-2]\n- 运行 JSON 输出验证以及既有人类可读输出 snapshots，确认 JSON stdout 纯净且人类输出及颜色保持兼容。 [evidence: r02-user-1, r02-assistant-1, r02-assistant-2]\n\n## Validations\n- Validation: PASSED 既有人类可读输出 snapshots — 先前助手报告 text renderer 能够复现既有 snapshots；来源未提供命令、执行时间或最终改动后的复验结果。 [evidence: r02-assistant-1]\n- Validation: FAILED JSON snapshot 输出纯净性 — JSON snapshot 含 ANSI 颜色代码，且 JSON 文档前存在一行诊断信息。 [evidence: r02-tool-1]\n- Validation: UNKNOWN JSON renderer 诊断路由测试 — 当前 workspace 信息指出 json-renderer.ts 尚无诊断路由测试，因此没有可用的通过结果。 [evidence: r02-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING EXACT_CAPTURE_TIME_UNAVAILABLE: 来源未提供精确采集时间；必填 capturedAt 字段使用当前已知日期的 00:00:00Z 占位，不能视为实际采集时刻。\n- WARNING SESSION_ID_INFERRED: 来源未提供显式 sessionId；source.sessionId 根据所有事件 ID 的共同前缀 r02 填写。\n- INFO SOURCE_SNAPSHOT_METADATA_UNAVAILABLE: 未提供来源快照的字节长度、SHA-256、采集期间变化状态或尾部片段状态，因此 source.snapshot 被省略。\n- WARNING FILE_CONTENT_UNAVAILABLE: 仅提供了文件路径和状态，没有文件内容、diff 或哈希，无法确认当前实现细节。\n- WARNING COMMAND_HISTORY_UNAVAILABLE: 工具结果描述了验证现象，但未提供执行命令、工作目录、退出码或执行时间，因此 commands 为空。\n- INFO HIDDEN_REASONING_UNAVAILABLE: 隐藏推理不可用；胶囊仅保留显式用户消息、助手消息、工具结果和 workspace 状态。\n- INFO PROMPT_CACHE_UNAVAILABLE: 未提供 prompt cache 内容或状态，无法携带或核验相关上下文。\n- WARNING TOOL_STATE_UNAVAILABLE: 除显式工具结果外，工具内部状态、调用参数和执行环境不可用。\n- INFO ATTACHMENTS_UNAVAILABLE: 来源未提供附件或附件可用性信息，因此没有附件可携带到目标会话。\n\n## Workspace\n- Root: C:\\Users\\dev\\CLI 工具\n- Git: branch=refactor/cli-renderers; head=r0200002; dirty=true\n- File: modified src/cli/commands.ts [evidence: workspace-files, r02-tool-2]\n- File: created src/cli/text-renderer.ts [evidence: workspace-files, r02-tool-2]\n- File: created src/cli/json-renderer.ts [evidence: workspace-files, r02-tool-2]\n",
+      "tokens": 1609,
+      "utf8Bytes": 6090
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 2960,
+    "promptSha256": "01449eb70f4e0fd2420f3827e104ecb4a6f6796b6c3d3ebb3ba74b37b86b54b5",
+    "promptUtf8Bytes": 6203
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:24:56.455Z",
+    "promptSha256": "01449eb70f4e0fd2420f3827e104ecb4a6f6796b6c3d3ebb3ba74b37b86b54b5",
+    "startedAt": "2026-07-22T21:24:38.222Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "1ba0801d190917eb665923cf81bc540063aba2b17f5c3968bd90e6b5beac3ed2",
+    "text": "# 续接简报\n\n## 目标\n将 CLI 渲染与命令逻辑分离，同时确保：\n- 现有人类可读输出及颜色保持兼容。\n- JSON 模式的 `stdout` 仅包含合法、无 ANSI 代码的 JSON。\n- 所有诊断信息写入 `stderr`。\n- 格式化与输出流路由统一由 renderer 负责，不针对具体命令特殊处理。\n\n## 关键约束\n- 不得使用全局 `no-color`：该路径虽能清理 JSON，却会破坏人类输出颜色。\n- 不得在各 command handler 中加入 JSON 或诊断路由特判。\n- 首个动作必须是补充 JSON renderer 的诊断路由测试，之后才能修复实现。\n- 测试框架、测试文件布局及具体测试命令尚不明确，不能臆测。\n\n## 当前状态\n- 分支：`refactor/cli-renderers`\n- HEAD：`r0200002`\n- Workspace 为 dirty：\n  - `src/cli/commands.ts` 已修改\n  - `src/cli/text-renderer.ts` 已创建\n  - `src/cli/json-renderer.ts` 已创建\n- Command handlers 已被报告为返回结果对象。\n- Text renderer 已被报告为可复现既有 snapshots，但最终改动后尚未复验。\n- 全局 `no-color` 改动已撤销。\n- 当前没有 JSON renderer 诊断路由测试。\n\n## 已确定设计\nrenderer 统一拥有格式化和输出流路由职责；commands 仅返回结果对象，不处理输出模式差异。\n\n## 已失败路径\n1. JSON snapshot 验证失败：JSON 前出现诊断行，且内容含 ANSI 颜色代码。\n2. 全局启用 `no-color`：修复了 JSON snapshot，但破坏了人类输出颜色，因此已撤销，禁止重试。\n\n## 待完成\n1. 添加 JSON renderer 诊断路由测试。\n2. 根据测试在 renderer 层隔离 ANSI 格式与诊断输出。\n3. 验证 JSON `stdout` 仅含无 ANSI 的 JSON，诊断仅进入 `stderr`。\n4. 重新验证人类可读 snapshots 及颜色兼容性。\n\n## 唯一正确的下一步\n**先为 JSON renderer 添加诊断路由测试，明确断言诊断写入 `stderr`，而 `stdout` 只包含不带 ANSI 转义码的 JSON 文档；此时不要修改 renderer 实现、commands，也不要重新引入全局 `no-color`。**"
+  },
+  "runId": "refactor-02-cli-renderers:source-assisted-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "0b4bb6d3d348e114ba5c656c4dde88d60ef6baf47cbbb1fcdadf74defcc28ba2",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

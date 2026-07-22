@@ -1,0 +1,44 @@
+{
+  "fixtureId": "feature-02-deploy-dry-run",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "a2a5b8ea310844687c81448c9f45d58f9bbed378f14ddd7e0047df1d5d00f4f0",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- 修改 src/cli/deploy.ts，将 --dry-run 接入现有计划生成和 human plan renderer 路径，并使该路径避开 executor 构造。 [evidence: f02-user-2, f02-assistant-1, workspace-files]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- deploy --dry-run 不得发出任何网络请求。 [evidence: f02-user-1]\n- deploy --dry-run 不得写入任何文件，包括创建临时 bundle 目录。 [evidence: f02-user-1, f02-tool-1]\n- dry-run 输出必须显示精确的计划操作。 [evidence: f02-user-1]\n- CLI 测试必须断言 executor 从未被构造。 [evidence: f02-user-2]\n\n## Current state\n- Objective: 为 deploy 添加 --dry-run：显示精确的计划操作，不发出网络请求、不写入文件，并在 CLI 路径中确保不构造 executor。 [evidence: f02-user-1, f02-user-2]\n- Current request: Wire --dry-run into the CLI next and assert the executor is never constructed. [evidence: f02-user-2]\n- Completed: 计划生成已经与执行分离，human plan renderer 已完成。 [evidence: f02-assistant-1]\n- Completed: bundle 准备现在能够返回计划路径而不创建它们。 [evidence: f02-tool-2]\n- Completed: 针对 bundle 规划行为的 focused unit test 已通过。 [evidence: f02-tool-2]\n- Pending: src/cli/deploy.ts 当前仍未更改，需要将 --dry-run 接入 CLI。 [evidence: f02-user-2, workspace-files]\n- Pending: 需要添加或更新 CLI 测试，断言 dry-run 路径从未构造 executor。 [evidence: f02-user-2]\n- Pending: 完成 CLI 接入后，需要验证端到端 dry-run 不写文件、不请求网络并显示精确计划。 [evidence: f02-user-1, f02-user-2]\n- Decision: 部署计划生成与实际执行保持分离，并使用已经完成的 human plan renderer 展示计划。 [evidence: f02-assistant-1]\n- Decision: bundle 准备在 dry-run 规划阶段只返回计划路径，不创建这些路径。 [evidence: f02-tool-2]\n- Decision: 不使用 mock filesystem 掩盖 CLI dry-run 的文件写入；该测试 mock 已被撤销。 [evidence: f02-assistant-2]\n- Failed attempt: 运行初始 dry-run side-effect 测试。 [evidence: f02-tool-1]\n- Failed outcome: 测试失败。 [evidence: f02-tool-1]\n- Failure reason: dry-run 仍然创建了临时 bundle 目录。 [evidence: f02-tool-1]\n- Failed attempt: 在 CLI 测试中 mock filesystem。 [evidence: f02-assistant-2]\n- Failed outcome: 该做法掩盖了实际文件写入，随后被撤销。 [evidence: f02-assistant-2]\n- Failure reason: mock 使测试无法发现 dry-run 的写文件副作用。 [evidence: f02-assistant-2]\n\n## Later actions\n- 添加或更新 CLI 测试，明确断言 executor 从未被构造。 [evidence: f02-user-2]\n- 验证完整 CLI dry-run 路径没有网络请求或文件写入，并输出精确的计划操作。 [evidence: f02-user-1, f02-user-2]\n\n## Validations\n- Validation: FAILED dry-run side-effect test（bundle 修复前） — 测试发现 dry-run 仍创建临时 bundle 目录。 [evidence: f02-tool-1]\n- Validation: PASSED focused bundle unit test（bundle 修复后） — bundle 准备返回计划路径而不创建路径，focused unit test 通过。 [evidence: f02-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING SOURCE_METADATA_UNAVAILABLE: 源数据未提供 sessionId 或精确捕获时间；sessionId 标记为 unavailable，capturedAt 使用当前日期的零时占位值。\n- INFO SOURCE_SNAPSHOT_UNAVAILABLE: 未提供源快照的 byteLength、sha256、捕获期间变更状态或尾部片段状态。\n- WARNING COMMAND_DETAILS_UNAVAILABLE: 工具结果只描述测试结果，未提供执行命令、工作目录、退出码或执行时间，因此 commands 为空。\n- WARNING FILE_CONTENT_UNAVAILABLE: workspace 仅提供文件状态，未提供文件内容、行号或 sha256。\n- INFO ATTACHMENTS_UNAVAILABLE: 源数据未提供任何可用附件或附件元数据。\n- INFO HIDDEN_REASONING_UNAVAILABLE: 源 agent 的隐藏推理不可用；仅保留可见消息、工具结果和 workspace 状态。\n- INFO PROMPT_CACHE_UNAVAILABLE: 源会话的 prompt cache 内容和状态不可用。\n- INFO TOOL_STATE_UNAVAILABLE: 除所提供 tool-result 文本外，源工具调用状态、参数和内部状态不可用。\n\n## Workspace\n- Root: C:\\Users\\dev\\Deploy Demo\n- Git: branch=feature/deploy-dry-run; head=f0200002; dirty=true\n- File: created src/deploy/plan.ts [evidence: workspace-files]\n- File: modified src/deploy/bundle.ts [evidence: workspace-files, f02-tool-2]\n- File: referenced src/cli/deploy.ts [evidence: workspace-files, f02-user-2]\n",
+      "tokens": 1249,
+      "utf8Bytes": 4631
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 2600,
+    "promptSha256": "6de8f121769fa0b1406a2a527b091163e7c14cf870d2e55f6c2f60978ed5f5b7",
+    "promptUtf8Bytes": 4744
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:13:45.395Z",
+    "promptSha256": "6de8f121769fa0b1406a2a527b091163e7c14cf870d2e55f6c2f60978ed5f5b7",
+    "startedAt": "2026-07-22T21:13:27.790Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "5845a9d11a2c389c282bb533f37cdabe71e5579b34159ee41165f201d9f216d0",
+    "text": "## 续接简报\n\n- **目标**：为 `deploy` 增加 `--dry-run`，输出精确的部署计划，同时不发送网络请求、不写入任何文件，并确保 CLI 路径完全不构造 executor。\n- **关键约束**：\n  - 不得创建临时 bundle 目录或进行其他文件写入。\n  - 不得发出网络请求。\n  - 必须复用已分离的计划生成逻辑和 human plan renderer。\n  - CLI 测试必须明确断言 executor 从未构造。\n  - 不得通过 mock filesystem 掩盖真实写入副作用。\n- **当前状态**：\n  - 工作区：`C:\\Users\\dev\\Deploy Demo`\n  - 分支：`feature/deploy-dry-run`，HEAD `f0200002`，工作区有未提交改动。\n  - `src/deploy/plan.ts` 已创建。\n  - `src/deploy/bundle.ts` 已修改。\n  - `src/cli/deploy.ts` 尚未接入 `--dry-run`。\n- **已完成**：\n  - 计划生成与实际执行已分离。\n  - human plan renderer 已完成。\n  - bundle 规划阶段可返回计划路径而不创建目录。\n  - 对应 focused bundle unit test 已通过。\n- **既定决策**：\n  - dry-run 只生成并渲染计划，不进入执行路径。\n  - bundle dry-run 只计算路径，不创建路径。\n  - 保留真实文件系统行为以检测副作用。\n- **失败记录（禁止重走）**：\n  - 修复前的 side-effect 测试发现 dry-run 创建临时 bundle 目录。\n  - 在 CLI 测试中 mock filesystem 会掩盖实际写入，该方案已撤销，不应恢复。\n- **待完成**：\n  - 接入 CLI 的 `--dry-run` 分支。\n  - 添加或更新 CLI 测试，断言 executor 从未构造。\n  - 随后验证完整路径无网络请求、无文件写入且输出精确计划；目前尚无这项新验证结果。\n- **唯一正确的下一步**：计划获准并退出计划模式后，修改 `src/cli/deploy.ts`，让 `--dry-run` 直接走现有计划生成与 human renderer 路径，并在任何 executor 构造发生前返回。"
+  },
+  "runId": "feature-02-deploy-dry-run:source-assisted-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "bbc9aec142fb32b3fc9882673c3da0503a066bfbcb3233267204aa993e78e2cd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -14,7 +14,8 @@
     "fullCallInput": 1400,
     "fixedOverhead": 1000,
     "agentCarryPayload": 400,
-    "visibleTranscriptPayloadBaseline": 1000
+    "visibleTranscriptPayloadBaseline": 1000,
+    "canonicalWorkCapsulePayloadBaseline": 1000
   },
   "review": {
     "humanReviewer": "benchmark-reviewer",

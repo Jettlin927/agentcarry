@@ -1,0 +1,44 @@
+{
+  "fixtureId": "refactor-02-cli-renderers",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "7c9b5dc9097416daba3b31fc8f2a73afeccebfbb0b52c2037f944397caccad72",
+      "text": "## User\n\nSeparate CLI rendering from command logic. Existing human output must stay compatible; JSON mode must write JSON only to stdout.\n\n## Assistant\n\nCommand handlers now return result objects and the text renderer reproduces existing snapshots.\n\n## Assistant\n\nA global no-color flag fixed the snapshot but broke human color output, so that change was reverted.\n\n## User\n\nRenderers own formatting. Diagnostics go to stderr; do not special-case commands.\n",
+      "tokens": 85,
+      "utf8Bytes": 457
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1436,
+    "promptSha256": "bf007e2d1f925fac6cf751d11eda3cd312693556b171633df4d3e6275d9dc70c",
+    "promptUtf8Bytes": 570
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:21:19.983Z",
+    "promptSha256": "bf007e2d1f925fac6cf751d11eda3cd312693556b171633df4d3e6275d9dc70c",
+    "startedAt": "2026-07-22T21:21:04.267Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "cadc390e380789aa64885e0cae2ea64005b9f07bf8849cf87269d206f30a435f",
+    "text": "## 续接简报\n\n- **目标**：彻底分离 CLI 渲染与命令逻辑；保持现有人类可读输出兼容，同时确保 JSON 模式的 `stdout` 只包含合法 JSON。\n- **关键约束**：\n  - 命令处理器只返回结果对象，不负责格式化或输出。\n  - 所有格式化均由渲染器负责。\n  - 诊断信息统一写入 `stderr`。\n  - 不得针对单个命令添加特殊分支。\n  - 必须保留正常的人类输出颜色行为。\n- **当前状态**：命令处理器已改为返回结果对象；文本渲染器已能复现现有快照。\n- **既定决策**：在人类文本和 JSON 输出模式间通过统一渲染边界处理格式与流向。\n- **失败路径**：曾使用全局禁色修复快照，但破坏了人类输出颜色，已回退；不要再次采用全局禁色方案。\n- **已完成**：命令逻辑与文本格式化初步解耦；文本输出快照兼容。\n- **待完成**：统一保证渲染结果写入 `stdout`、诊断写入 `stderr`，并确保 JSON 模式下没有任何非 JSON 内容污染 `stdout`。\n- **唯一正确的下一步**：修改中央渲染/输出分发路径，以模式无关且不区分具体命令的方式，将渲染器输出发送到 `stdout`、诊断发送到 `stderr`，同时保留文本渲染器现有颜色策略。"
+  },
+  "runId": "refactor-02-cli-renderers:visible-transcript:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "0b4bb6d3d348e114ba5c656c4dde88d60ef6baf47cbbb1fcdadf74defcc28ba2",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

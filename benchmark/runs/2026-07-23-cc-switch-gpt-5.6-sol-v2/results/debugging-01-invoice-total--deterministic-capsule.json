@@ -1,0 +1,44 @@
+{
+  "fixtureId": "debugging-01-invoice-total",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "e21fa2a797a7af4b56d52594db33d8d170dbbebdacff1a0e216134f2f29015c5",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- Prove the parser fix with a regression test. [evidence: d01-user-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- Fix stale invoice totals without changing the public API; currency values must remain decimal strings. [evidence: d01-user-1]\n- Do not retry the cache path; prove the parser fix with a regression test next. [evidence: d01-user-2]\n\n## Current state\n- Completed: The first hypothesis is a stale total cache in InvoiceService. [evidence: d01-assistant-1]\n- Completed: src/invoice/parser.ts now retains negative adjustments; the focused regression test is not written yet. [evidence: d01-assistant-2]\n- Failed attempt: Disabling the cache does not change the failing total test. [evidence: d01-tool-1]\n- Failed outcome: The source event marks this path as failed, rejected, reverted, or unresolved. [evidence: d01-tool-1]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result d01-tool-1 — Disabling the cache does not change the failing total test. [evidence: d01-tool-1]\n- Validation: UNKNOWN Source tool result d01-tool-2 — The parser drops negative adjustment rows before aggregation. [evidence: d01-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: C:\\Users\\dev\\账单 示例\n- Git: branch=fix/invoice-total; head=d0100001; dirty=true\n- File: modified src/invoice/parser.ts [evidence: none]\n- File: referenced test/invoice-total.test.ts [evidence: none]\n",
+      "tokens": 429,
+      "utf8Bytes": 1783
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1780,
+    "promptSha256": "361417511570ecf80fef48f3bd0c374cc72f0c9584bc0e843c7bef49ed23b2c9",
+    "promptUtf8Bytes": 1896
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:55:37.923Z",
+    "promptSha256": "361417511570ecf80fef48f3bd0c374cc72f0c9584bc0e843c7bef49ed23b2c9",
+    "startedAt": "2026-07-22T20:55:23.257Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "176a213482170ac4664eb9279029271241fba17ad1ae1579eb211b8cf4c6e049",
+    "text": "# 续接简报\n\n- **目标**：修复发票总额陈旧/错误问题；不改变公共 API，货币值继续使用十进制字符串。\n- **关键约束**：不得再次尝试缓存路径；必须先用回归测试证明解析器修复有效。\n- **当前状态**：工作区位于 `C:\\Users\\dev\\账单 示例`，分支 `fix/invoice-total`，工作区有未提交修改。`src/invoice/parser.ts` 已修改为保留负数调整行，但尚未编写聚焦回归测试。\n- **已作决定**：问题应沿解析器丢弃负数调整行的方向处理，而非缓存方向。\n- **失败尝试**：禁用 `InvoiceService` 缓存未改变失败的总额测试；该路径不得重试。\n- **已完成工作**：解析器修复已写入 `src/invoice/parser.ts`，使负数调整能够进入后续聚合。\n- **待完成工作**：新增回归测试并验证负数调整正确参与发票总额计算；现有验证状态仍为未知，不能声称修复已通过测试。\n- **唯一正确的下一步**：在 `test/invoice-total.test.ts` 中添加聚焦回归测试，证明解析器保留负数调整且聚合后的总额正确，同时断言金额仍为十进制字符串。"
+  },
+  "runId": "debugging-01-invoice-total:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "8f06cca2af1e60b7da4ec093b9dcf9f676d7ceb7d289db9e3c2081371c2657e7",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

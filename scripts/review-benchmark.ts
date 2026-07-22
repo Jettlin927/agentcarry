@@ -26,7 +26,10 @@ import {
   renderReviewHtml,
   type ReviewInputArtifact
 } from "../src/benchmark/render-review-html.js";
-import type { TargetRunResult } from "../src/benchmark/run-target-continuation.js";
+import type {
+  CanonicalCapsuleMeasurement,
+  TargetRunResult
+} from "../src/benchmark/run-target-continuation.js";
 import {
   renderScoreJson,
   renderScoreMarkdown
@@ -55,6 +58,16 @@ async function readResults(runDirectory: string): Promise<TargetRunResult[]> {
   const names = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
   return await Promise.all(names.map(async (name) =>
     await readJson(join(directory, name)) as TargetRunResult
+  ));
+}
+
+async function readCanonicalBaselines(
+  runDirectory: string
+): Promise<CanonicalCapsuleMeasurement[]> {
+  const directory = join(runDirectory, "canonical-baselines");
+  const names = (await readdir(directory)).filter((name) => name.endsWith(".json")).sort();
+  return await Promise.all(names.map(async (name) =>
+    await readJson(join(directory, name)) as CanonicalCapsuleMeasurement
   ));
 }
 
@@ -209,6 +222,7 @@ async function main(): Promise<void> {
   const materialized = finalizeBenchmarkReviewFromExport(
     fixtures,
     results,
+    await readCanonicalBaselines(runRoot),
     advisory,
     humanReview,
     confirmationSource

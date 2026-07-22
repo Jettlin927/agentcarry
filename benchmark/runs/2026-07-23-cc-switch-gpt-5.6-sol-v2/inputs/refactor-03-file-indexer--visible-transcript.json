@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nExtract file indexing behind one interface; keep Windows, macOS, and Linux behavior and never load every file into memory.\n\n## Assistant\n\nDirectory traversal and streamed hashing moved into src/indexer/local-indexer.ts.\n\n## Assistant\n\nResolving every path through realpath was tried and reverted because it changed reported paths on Windows junctions.\n\n## User\n\nThe remaining work is .ignore-file support. Keep ignore parsing inside the local indexer.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "refactor-03-file-indexer",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 461,
+    "utf8Bytes": 461
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "2b86ba6d7a244cab256cc49a42634cfa03d57963cc588c9c3541401b45642636"
+}

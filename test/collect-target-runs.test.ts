@@ -20,6 +20,7 @@ import {
   createTargetCalibrationInvocation,
   createTargetSettings,
   targetSettings,
+  type CanonicalCapsuleMeasurement,
   type TargetCalibration,
   type TargetRunResult
 } from "../src/benchmark/run-target-continuation.js";
@@ -115,6 +116,40 @@ function calibration(
   };
 }
 
+function canonicalMeasurement(
+  artifact: HandoffInputArtifact,
+  model: string,
+  targetCalibration: TargetCalibration
+): Promise<CanonicalCapsuleMeasurement> {
+  if (artifact.mode === "visible-transcript") {
+    throw new Error("test canonical measurement requires a capsule mode");
+  }
+  return Promise.resolve({
+    schemaVersion: "2.0.0",
+    fixtureId: artifact.fixtureId,
+    mode: artifact.mode,
+    purpose: "canonical-work-capsule-baseline",
+    sourceFingerprint: artifact.sourceFingerprint,
+    target: { agent: "claude", model, provider: "unspecified", settings: targetSettings },
+    input: {
+      promptSha256: "e".repeat(64),
+      promptUtf8Bytes: 200,
+      fullCallInputTokens: targetCalibration.input.exactInputTokens + 125,
+      fixedOverheadInputTokens: targetCalibration.input.exactInputTokens,
+      canonicalWorkCapsulePayload: {
+        sha256: createHash("sha256").update(artifact.content, "utf8").digest("hex"),
+        utf8Bytes: Buffer.byteLength(artifact.content, "utf8"),
+        tokens: 125
+      }
+    },
+    responseSha256: "f".repeat(64),
+    invocation: {
+      startedAt: "2026-07-21T00:00:00Z",
+      completedAt: "2026-07-21T00:00:01Z"
+    }
+  });
+}
+
 describe("benchmark target collection", () => {
   it("builds one deterministic 12 by 3 plan with fixed target settings", () => {
     const plan = createBenchmarkRunPlan([...fixtures].reverse(), "fixed-model");
@@ -153,17 +188,20 @@ describe("benchmark target collection", () => {
   it("collects every raw result once and resumes without overwriting", async () => {
     const root = await outputRoot("collect");
     const buildSourceAssisted = vi.fn(sourceAssisted);
+    const measureCanonicalCapsule = vi.fn(canonicalMeasurement);
     const runTarget = vi.fn(async (artifact: HandoffInputArtifact, model: string) =>
       targetResult(artifact, model, calibration(model)));
     const calibrateTarget = vi.fn(async (model: string) => calibration(model));
 
     const first = await collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted,
+      measureCanonicalCapsule,
       calibrateTarget,
       runTarget
     });
     const second = await collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted,
+      measureCanonicalCapsule,
       calibrateTarget,
       runTarget
     });
@@ -172,9 +210,11 @@ describe("benchmark target collection", () => {
     expect(second).toMatchObject({ planned: 36, completed: 0, skipped: 36 });
     expect(buildSourceAssisted).toHaveBeenCalledTimes(12);
     expect(runTarget).toHaveBeenCalledTimes(36);
+    expect(measureCanonicalCapsule).toHaveBeenCalledTimes(24);
     expect(calibrateTarget).toHaveBeenCalledTimes(1);
     expect(await readdir(join(root, "inputs"))).toHaveLength(36);
     expect(await readdir(join(root, "results"))).toHaveLength(36);
+    expect(await readdir(join(root, "canonical-baselines"))).toHaveLength(24);
   });
 
   it("preserves completed runs and the generated input after a later failure", async () => {
@@ -190,6 +230,7 @@ describe("benchmark target collection", () => {
 
     await expect(collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
       calibrateTarget: async (model) => calibration(model),
       runTarget: failingTarget
     })).rejects.toThrow("simulated provider failure");
@@ -198,6 +239,7 @@ describe("benchmark target collection", () => {
 
     const resumed = await collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
       calibrateTarget: async (model) => calibration(model),
       runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
     });
@@ -209,12 +251,14 @@ describe("benchmark target collection", () => {
     const root = await outputRoot("model");
     await collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
       calibrateTarget: async (model) => calibration(model),
       runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
     });
 
     await expect(collectTargetRuns(fixtures, "different-model", root, {
       buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
       calibrateTarget: async (model) => calibration(model),
       runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
     })).rejects.toThrow("existing benchmark plan differs");
@@ -224,6 +268,7 @@ describe("benchmark target collection", () => {
     const root = await outputRoot("calibration-integrity");
     await collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
       calibrateTarget: async (model) => calibration(model),
       runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
     });
@@ -242,6 +287,7 @@ describe("benchmark target collection", () => {
 
     await expect(collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
       calibrateTarget,
       runTarget
     })).rejects.toThrow("stored target calibration does not match the benchmark plan");
@@ -253,6 +299,7 @@ describe("benchmark target collection", () => {
     const root = await outputRoot("source-assisted-integrity");
     await collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted: sourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
       calibrateTarget: async (model) => calibration(model),
       runTarget: async (artifact, model) => targetResult(artifact, model, calibration(model))
     });
@@ -278,6 +325,7 @@ describe("benchmark target collection", () => {
 
     await expect(collectTargetRuns(fixtures, "fixed-model", root, {
       buildSourceAssisted,
+      measureCanonicalCapsule: canonicalMeasurement,
       calibrateTarget: async (model) => calibration(model),
       runTarget
     })).rejects.toThrow(

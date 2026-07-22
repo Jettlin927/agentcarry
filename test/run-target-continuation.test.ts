@@ -13,6 +13,7 @@ import {
   createTargetInvocation,
   runTargetCalibration,
   runTargetContinuation,
+  runCanonicalCapsuleMeasurement,
   targetPayload,
   targetSettings
 } from "../src/benchmark/run-target-continuation.js";
@@ -163,6 +164,58 @@ describe("target continuation runner", () => {
       }
     });
     await expect(stat(temporaryCwd)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("measures canonical Work Capsule payload with the same calibrated target", async () => {
+    const artifact = buildDeterministicCapsule(fixture);
+    const measurement = await runCanonicalCapsuleMeasurement(artifact, "fixed-model", {
+      runner: async (_command, _args, options) => {
+        expect(options.stdin).toContain(artifact.content);
+        return {
+          exitCode: 0,
+          stdout: JSON.stringify({ result: "Measured.", usage: { input_tokens: 140 } }),
+          stderr: ""
+        };
+      },
+      provider: "test-provider",
+      calibration: {
+        schemaVersion: "2.0.0",
+        target: {
+          agent: "claude",
+          model: "fixed-model",
+          provider: "test-provider",
+          settings: targetSettings
+        },
+        input: {
+          promptSha256: "a".repeat(64),
+          promptUtf8Bytes: 100,
+          exactInputTokens: 100
+        },
+        invocation: {
+          startedAt: "2026-07-21T00:00:00Z",
+          completedAt: "2026-07-21T00:00:01Z"
+        }
+      },
+      now: () => new Date("2026-07-21T00:00:00Z")
+    });
+
+    expect(measurement).toMatchObject({
+      fixtureId: fixture.id,
+      mode: "deterministic-capsule",
+      purpose: "canonical-work-capsule-baseline",
+      input: {
+        fullCallInputTokens: 140,
+        fixedOverheadInputTokens: 100,
+        canonicalWorkCapsulePayload: { tokens: 40 }
+      }
+    });
+  });
+
+  it("does not define a canonical Capsule baseline for visible transcripts", async () => {
+    await expect(runCanonicalCapsuleMeasurement(
+      buildVisibleTranscript(fixture),
+      "fixed-model"
+    )).rejects.toThrow("requires a capsule mode");
   });
 
   it("rejects missing calibration before invoking the target", async () => {

@@ -1,4 +1,5 @@
 import { aggregateBenchmark } from "./aggregate-report.js";
+import { canonicalJson } from "./build-handoff-input.js";
 import { categoryWeights, scoreAssessment } from "./score-assessment.js";
 const modes = [
     "visible-transcript",
@@ -90,7 +91,7 @@ function factAssessments(facts, run) {
             : { factId: fact.id, verdict: exception.verdict, note: exception.note };
     });
 }
-function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, advisory, confirmation) {
+function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, canonicalWorkCapsulePayloadBaseline, advisory, confirmation) {
     return {
         schemaVersion: "2.0.0",
         runId: result.runId,
@@ -107,7 +108,8 @@ function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, a
             fullCallInput: result.input.fullCallInputTokens,
             fixedOverhead: result.input.fixedOverheadInputTokens,
             agentCarryPayload: result.input.agentCarryPayload.tokens,
-            visibleTranscriptPayloadBaseline
+            visibleTranscriptPayloadBaseline,
+            canonicalWorkCapsulePayloadBaseline
         },
         review: {
             humanReviewer: confirmation.humanReviewer,
@@ -126,6 +128,39 @@ function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, a
         unsupportedClaims: [...(run.unsupportedClaims ?? advisory.defaultUnsupportedClaims)]
     };
 }
+function canonicalBaselineTokens(resultsByRunId, measurements) {
+    const baselines = new Map();
+    for (const measurement of measurements) {
+        const runId = `${measurement.fixtureId}:${measurement.mode}:initial`;
+        const result = resultsByRunId.get(runId);
+        const tokens = measurement.input?.canonicalWorkCapsulePayload?.tokens;
+        if (result === undefined
+            || result.mode === "visible-transcript"
+            || baselines.has(runId)
+            || measurement.schemaVersion !== "2.0.0"
+            || measurement.purpose !== "canonical-work-capsule-baseline"
+            || measurement.sourceFingerprint !== result.sourceFingerprint
+            || canonicalJson(measurement.target) !== canonicalJson(result.target)
+            || !Number.isInteger(tokens)
+            || tokens < 1
+            || measurement.input.fixedOverheadInputTokens !== result.input.fixedOverheadInputTokens
+            || measurement.input.fullCallInputTokens
+                - measurement.input.fixedOverheadInputTokens !== tokens) {
+            throw new Error(`invalid or duplicate canonical Work Capsule baseline ${runId}`);
+        }
+        baselines.set(runId, tokens);
+    }
+    const expected = [...resultsByRunId.values()].filter((result) => result.mode !== "visible-transcript");
+    if (baselines.size !== expected.length) {
+        throw new Error(`benchmark review requires ${expected.length} canonical Work Capsule baselines`);
+    }
+    for (const result of expected) {
+        if (!baselines.has(result.runId)) {
+            throw new Error(`missing canonical Work Capsule baseline ${result.runId}`);
+        }
+    }
+    return baselines;
+}
 function validateConfirmation(confirmation) {
     if (confirmation.confirmed !== true
         || confirmation.humanReviewer.trim().length === 0
@@ -134,9 +169,10 @@ function validateConfirmation(confirmation) {
         throw new Error("finalization requires an explicit human reviewer, timestamp, and confirmation source");
     }
 }
-export function finalizeBenchmarkReview(fixtures, results, advisory, confirmation) {
+export function finalizeBenchmarkReview(fixtures, results, canonicalMeasurements, advisory, confirmation) {
     validateConfirmation(confirmation);
     const validated = validateReviewInputs(fixtures, results, advisory);
+    const canonicalBaselines = canonicalBaselineTokens(validated.resultsByRunId, canonicalMeasurements);
     const fixtureById = new Map(validated.fixtures.map((fixture) => [fixture.id, fixture]));
     const visiblePayloadBaselines = new Map(validated.fixtures.map((fixture) => {
         const runId = `${fixture.id}:visible-transcript:initial`;
@@ -144,7 +180,7 @@ export function finalizeBenchmarkReview(fixtures, results, advisory, confirmatio
     }));
     const assessments = [...validated.resultsByRunId.values()]
         .sort((left, right) => compareText(left.runId, right.runId))
-        .map((result) => assessmentFor(fixtureById.get(result.fixtureId), result, validated.advisoryByRunId.get(result.runId), visiblePayloadBaselines.get(result.fixtureId), advisory, confirmation));
+        .map((result) => assessmentFor(fixtureById.get(result.fixtureId), result, validated.advisoryByRunId.get(result.runId), visiblePayloadBaselines.get(result.fixtureId), result.mode === "visible-transcript" ? null : canonicalBaselines.get(result.runId), advisory, confirmation));
     const scores = assessments.map((assessment) => scoreAssessment(fixtureById.get(assessment.fixtureId), assessment));
     const resultSet = {
         schemaVersion: "2.0.0",
@@ -228,11 +264,11 @@ function humanAdjustedAdvisory(fixtures, results, advisory, humanReview) {
         })
     };
 }
-export function finalizeBenchmarkReviewFromExport(fixtures, results, advisory, humanReview, confirmationSource) {
+export function finalizeBenchmarkReviewFromExport(fixtures, results, canonicalMeasurements, advisory, humanReview, confirmationSource) {
     if (confirmationSource.trim().length === 0) {
         throw new Error("finalization requires an auditable confirmation source");
     }
-    const materialized = finalizeBenchmarkReview(fixtures, results, humanAdjustedAdvisory(fixtures, results, advisory, humanReview), {
+    const materialized = finalizeBenchmarkReview(fixtures, results, canonicalMeasurements, humanAdjustedAdvisory(fixtures, results, advisory, humanReview), {
         confirmed: true,
         humanReviewer: humanReview.humanReviewer,
         reviewedAt: humanReview.exportedAt,

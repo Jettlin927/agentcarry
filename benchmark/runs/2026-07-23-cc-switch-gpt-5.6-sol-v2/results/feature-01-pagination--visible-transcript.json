@@ -1,0 +1,44 @@
+{
+  "fixtureId": "feature-01-pagination",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "5024b62b6a27ad3c93e681a087afdbc03a2703d968008221d3ddda4bc24d725b",
+      "text": "## User\n\nAdd cursor pagination without breaking the existing single-page list method. Do not prefetch pages.\n\n## Assistant\n\nThe response parser now returns items plus nextCursor, and list() still returns only the first page.\n\n## Assistant\n\nAn eager collectAll() helper was drafted and deleted because it prefetched every page.\n\n## User\n\nExpose an async iterator named pages(); each next() should fetch exactly one page.\n",
+      "tokens": 82,
+      "utf8Bytes": 420
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1433,
+    "promptSha256": "43f37789a4fff793efafb831ca1d6800c36acabdfbb8ee9d0c6d2d877faad1ae",
+    "promptUtf8Bytes": 533
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:05:29.767Z",
+    "promptSha256": "43f37789a4fff793efafb831ca1d6800c36acabdfbb8ee9d0c6d2d877faad1ae",
+    "startedAt": "2026-07-22T21:05:12.280Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "9914da8da5a41d3af9d1a2cfd70a9ee55175afaed046c73aa6b4ec4c97366812",
+    "text": "## 续接简报\n\n- **目标**：新增异步迭代器 `pages()`，通过游标逐页获取列表数据，同时保持现有 `list()` 仅返回第一页。\n- **关键约束**：\n  - 不得预取后续页面。\n  - 每次有效的 `next()` 调用必须且仅能发起一次页面请求。\n  - 不得改变 `list()` 的单页行为。\n- **当前状态 / 已完成**：\n  - 响应解析器已返回 `items` 和 `nextCursor`。\n  - `list()` 仍只返回第一页。\n- **既定决策**：分页能力通过独立的 `pages()` 异步迭代器暴露，而非修改 `list()`。\n- **失败路径**：曾起草 `collectAll()`，但因会急切抓取全部页面而已删除；不要恢复或采用该方案。\n- **待完成**：实现 `pages()` 的惰性游标推进及分页终止逻辑，并补充对单次请求、无预取和 `list()` 兼容性的验证。\n- **唯一下一步**：基于现有请求与解析流程，设计 `pages()` 的实现，使每次迭代推进只获取当前一页，并将 `nextCursor` 留到下一次 `next()` 使用。"
+  },
+  "runId": "feature-01-pagination:visible-transcript:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "0d98d6f3b4cb4f8f97e1050fccd2970674dbd54b5e4f22e00d2d325d15c18d3f",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

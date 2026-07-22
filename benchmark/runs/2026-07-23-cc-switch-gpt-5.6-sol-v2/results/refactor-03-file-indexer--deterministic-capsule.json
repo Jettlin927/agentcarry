@@ -1,0 +1,44 @@
+{
+  "fixtureId": "refactor-03-file-indexer",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "1f0cbcb1c20ff4a813053c21d38927c68e2e21091d2fb025d75a3854247fee29",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- The remaining work is .ignore-file support. Keep ignore parsing inside the local indexer. [evidence: r03-user-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- Extract file indexing behind one interface; keep Windows, macOS, and Linux behavior and never load every file into memory. [evidence: r03-user-1]\n\n## Current state\n- Completed: Directory traversal and streamed hashing moved into src/indexer/local-indexer.ts. [evidence: r03-assistant-1]\n- Completed: Resolving every path through realpath was tried and reverted because it changed reported paths on Windows junctions. [evidence: r03-assistant-2]\n- Failed outcome: The source event marks this path as failed, rejected, reverted, or unresolved. [evidence: r03-assistant-2]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result r03-tool-1 — The first recursive implementation follows a fixture symlink forever. [evidence: r03-tool-1]\n- Validation: UNKNOWN Source tool result r03-tool-2 — Tracking visited directory identities stops the loop and keeps presented paths; unit tests pass. [evidence: r03-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: /Users/dev/Indexer Sample\n- Git: branch=refactor/local-indexer; head=r0300003; dirty=true\n- File: modified src/indexer/index.ts [evidence: none]\n- File: created src/indexer/local-indexer.ts [evidence: none]\n- File: created test/indexer-symlink.test.ts [evidence: none]\n",
+      "tokens": 419,
+      "utf8Bytes": 1789
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1770,
+    "promptSha256": "479a1734814916bc9d87dce65fb5d5c734f140eb8f518a13a9173d667d54bb3d",
+    "promptUtf8Bytes": 1902
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:25:44.793Z",
+    "promptSha256": "479a1734814916bc9d87dce65fb5d5c734f140eb8f518a13a9173d667d54bb3d",
+    "startedAt": "2026-07-22T21:25:28.169Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "9364b825d2361ef0e065709ea24004adb4773fc3ad54903c8b00ca2218e0c885",
+    "text": "## 续接简报\n\n- **目标**：为本地文件索引器补充 `.ignore` 文件支持。\n- **关键约束**：\n  - ignore 解析必须保留在 `src/indexer/local-indexer.ts` 本地索引器内部。\n  - 文件索引须统一封装在一个接口后。\n  - 保持 Windows、macOS、Linux 现有行为。\n  - 必须流式处理，禁止一次性将所有文件载入内存。\n- **当前状态**：\n  - 工作区：`/Users/dev/Indexer Sample`\n  - 分支：`refactor/local-indexer`，HEAD `r0300003`，工作区有未提交修改。\n  - `src/indexer/index.ts` 已修改。\n  - `src/indexer/local-indexer.ts`、`test/indexer-symlink.test.ts` 已创建。\n- **已完成**：\n  - 目录遍历与流式哈希已迁移到 `src/indexer/local-indexer.ts`。\n  - 已采用“跟踪已访问目录身份”的方式阻止符号链接循环，同时保留对外展示路径。\n- **已否决路径**：\n  - 不要重新采用“所有路径均先经过 `realpath`”的方案；该方案已回退，因为它会改变 Windows junction 的报告路径。\n- **验证状态**：\n  - 曾发现递归实现会在 fixture 符号链接上无限循环。\n  - 来源称目录身份跟踪可终止循环且单元测试通过，但交接记录将验证标为 **UNKNOWN**，不得视为本次已重新验证。\n  - 无已记录的执行命令。\n- **待完成**：实现 `.ignore` 文件的解析与索引过滤，并补充相应验证；目前没有其他已记录的后续任务。\n- **唯一正确的下一步**：在保持现有目录身份去重、展示路径及流式处理行为不变的前提下，规划并实现 `src/indexer/local-indexer.ts` 内部的 `.ignore` 支持。"
+  },
+  "runId": "refactor-03-file-indexer:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "2b86ba6d7a244cab256cc49a42634cfa03d57963cc588c9c3541401b45642636",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

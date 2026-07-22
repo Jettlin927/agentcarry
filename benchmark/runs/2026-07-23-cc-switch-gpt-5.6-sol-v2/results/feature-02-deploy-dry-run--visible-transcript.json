@@ -1,0 +1,44 @@
+{
+  "fixtureId": "feature-02-deploy-dry-run",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "c6e93c3437cc14289e73a770ded0d531b381f29708a6f089defc69113927cdec",
+      "text": "## User\n\nAdd deploy --dry-run. It must make no network requests and write no files, while showing the exact planned operations.\n\n## Assistant\n\nPlanning is separated from execution and the human plan renderer is complete.\n\n## Assistant\n\nMocking the filesystem in the CLI test hid the write and was reverted.\n\n## User\n\nWire --dry-run into the CLI next and assert the executor is never constructed.\n",
+      "tokens": 81,
+      "utf8Bytes": 396
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1432,
+    "promptSha256": "4d62b23acc32fb8005f429ebf6d970b841f72d107fd40faf04a3f0db59b9786e",
+    "promptUtf8Bytes": 509
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:08:51.961Z",
+    "promptSha256": "4d62b23acc32fb8005f429ebf6d970b841f72d107fd40faf04a3f0db59b9786e",
+    "startedAt": "2026-07-22T21:08:39.893Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "02783c548f0acaf43f36e5fad4e778a44b960245e30c97cd56d632250187dc1c",
+    "text": "## 续接简报\n\n- **目标**：为 `deploy` 增加 `--dry-run`，展示与实际部署完全一致的计划操作。\n- **关键约束**：\n  - dry-run 不得发起任何网络请求。\n  - dry-run 不得写入任何文件。\n  - 必须断言执行器（executor）从未被构造，而不只是未执行。\n- **当前状态**：\n  - 规划与执行已分离。\n  - 人类可读的计划渲染器已完成。\n- **已有决策**：CLI 检测到 `--dry-run` 后，应走现有规划及渲染路径，并在构造执行器之前返回。\n- **失败尝试**：曾在 CLI 测试中 mock 文件系统，但这掩盖了真实写文件行为；该方案已撤销，后续不得复用。\n- **已完成**：规划层拆分及 human plan renderer。\n- **待完成**：将 `--dry-run` 接入 CLI，并补充 CLI 测试，验证计划输出且 executor 构造器调用次数为零，同时不通过 mock 文件系统规避写入。\n- **唯一正确的下一步**：修改 CLI 的 `deploy` 分支，使 `--dry-run` 在计划渲染后、executor 构造前直接结束，并在对应 CLI 测试中明确断言 executor 从未被构造。"
+  },
+  "runId": "feature-02-deploy-dry-run:visible-transcript:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "bbc9aec142fb32b3fc9882673c3da0503a066bfbcb3233267204aa993e78e2cd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

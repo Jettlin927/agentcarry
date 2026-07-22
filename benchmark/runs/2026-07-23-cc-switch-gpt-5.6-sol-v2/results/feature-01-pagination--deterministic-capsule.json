@@ -1,0 +1,44 @@
+{
+  "fixtureId": "feature-01-pagination",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "16eb279b4ac8036e6d6422bde7b353d5ebc9bd43b5e4c8bfa971c1e2ad1f2ef2",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- Expose an async iterator named pages(); each next() should fetch exactly one page. [evidence: f01-user-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- Add cursor pagination without breaking the existing single-page list method. Do not prefetch pages. [evidence: f01-user-1]\n\n## Current state\n- Completed: The response parser now returns items plus nextCursor, and list() still returns only the first page. [evidence: f01-assistant-1]\n- Completed: An eager collectAll() helper was drafted and deleted because it prefetched every page. [evidence: f01-assistant-2]\n- Failed outcome: The source event marks this path as failed, rejected, reverted, or unresolved. [evidence: f01-assistant-1]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result f01-tool-1 — Parser and backward-compatibility tests pass. [evidence: f01-tool-1]\n- Validation: UNKNOWN Source tool result f01-tool-2 — src/client.ts and src/response.ts are modified; no pages() implementation or iterator test exists. [evidence: f01-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: /home/dev/paged-client\n- Git: branch=feature/cursor-pages; head=f0100001; dirty=true\n- File: modified src/client.ts [evidence: none]\n- File: modified src/response.ts [evidence: none]\n- File: referenced test/pages.test.ts [evidence: none]\n",
+      "tokens": 405,
+      "utf8Bytes": 1695
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1756,
+    "promptSha256": "0eaad7937d7ff620f303ea18c2df268def4615aa8820dd4b2359bb82d08b44ae",
+    "promptUtf8Bytes": 1808
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:06:05.116Z",
+    "promptSha256": "0eaad7937d7ff620f303ea18c2df268def4615aa8820dd4b2359bb82d08b44ae",
+    "startedAt": "2026-07-22T21:05:48.158Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "04f61a449a78d5491f7719d17167777597864785bd055482edc1d7f0e4d95516",
+    "text": "# 续接简报\n\n- **目标**：为客户端增加游标分页，同时保持现有 `list()` 的单页返回行为，并且禁止预取后续页面。\n- **关键约束**：\n  - 暴露名为 `pages()` 的异步迭代器。\n  - 每次调用迭代器的 `next()` 必须且只能请求一页。\n  - 不得破坏现有 `list()`。\n  - 不要恢复会一次性抓取全部页面的 `collectAll()` 路径。\n- **当前状态**：\n  - 工作区：`/home/dev/paged-client`\n  - 分支：`feature/cursor-pages`，HEAD `f0100001`，工作区为 dirty。\n  - 已修改：`src/client.ts`、`src/response.ts`。\n  - `pages()` 尚未实现，`test/pages.test.ts` 中也没有对应迭代器测试。\n- **已完成/已有决策**：\n  - 响应解析器现在返回条目及 `nextCursor`。\n  - `list()` 仍只返回第一页，维持向后兼容。\n- **失败尝试**：\n  - 曾草拟 `collectAll()`，但因其会预取全部页面而被删除；不要沿用该方案。\n  - 来源事件将现有路径标记为失败、被拒、已回退或未解决，不能视为整体完成。\n- **验证状态**：\n  - 有工具结果称解析器和向后兼容测试通过，但验证级别为 **UNKNOWN**。\n  - 没有已记录的命令，也没有 `pages()` 实现或迭代器测试可供确认。\n- **待完成**：实现惰性的逐页异步迭代，并随后补充相应测试与验证。\n- **唯一正确的下一步**：在 `src/client.ts` 中暴露 `pages()` 异步迭代器，使每次 `next()` 恰好发起一次页面请求，并使用解析器提供的 `nextCursor` 延续分页。"
+  },
+  "runId": "feature-01-pagination:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "0d98d6f3b4cb4f8f97e1050fccd2970674dbd54b5e4f22e00d2d325d15c18d3f",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

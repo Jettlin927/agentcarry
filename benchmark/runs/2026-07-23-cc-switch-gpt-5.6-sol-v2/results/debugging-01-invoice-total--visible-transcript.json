@@ -1,0 +1,44 @@
+{
+  "fixtureId": "debugging-01-invoice-total",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "83409963c8c903185576db48e8d88e53a9c71471d7c4ff891175421c4fedf711",
+      "text": "## User\n\nFix stale invoice totals without changing the public API; currency values must remain decimal strings.\n\n## Assistant\n\nThe first hypothesis is a stale total cache in InvoiceService.\n\n## Assistant\n\nsrc/invoice/parser.ts now retains negative adjustments; the focused regression test is not written yet.\n\n## User\n\nDo not retry the cache path; prove the parser fix with a regression test next.\n",
+      "tokens": 76,
+      "utf8Bytes": 398
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1427,
+    "promptSha256": "2aecccddbdef290918a3a47ad299413bdbe4c2013ec7223d92c1fec9124c3ac0",
+    "promptUtf8Bytes": 511
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:55:08.299Z",
+    "promptSha256": "2aecccddbdef290918a3a47ad299413bdbe4c2013ec7223d92c1fec9124c3ac0",
+    "startedAt": "2026-07-22T20:54:56.751Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "78b1f004cdbd6b5f9991b02af03fe8b719917207e53082440677d8f8ea54fcd5",
+    "text": "## 续接简报\n\n- **目标**：修复发票总额陈旧问题。\n- **关键约束**：不得更改公共 API；货币值必须继续使用十进制字符串。\n- **当前状态**：`src/invoice/parser.ts` 已修改为保留负数调整项，但尚未编写或运行针对性回归测试。\n- **已确定方向**：通过解析器修复处理负数调整项，并用回归测试证明该修复。\n- **禁止重试的路径**：不要继续调查或修改 `InvoiceService` 的总额缓存；该缓存假设已被明确否决。\n- **已完成工作**：解析器保留负数调整项的代码变更。\n- **待完成工作**：添加聚焦的回归测试，覆盖包含负数调整项的发票，并断言总额正确且所有货币输出仍为十进制字符串。\n- **唯一正确的下一步**：编写该解析器回归测试；暂不进行其他实现改动或缓存相关尝试。"
+  },
+  "runId": "debugging-01-invoice-total:visible-transcript:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "8f06cca2af1e60b7da4ec093b9dcf9f676d7ceb7d289db9e3c2081371c2657e7",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -5,23 +5,23 @@
       "contentType": "text/markdown",
       "sha256": "a16de9279363cfc6003e2cd775825236bbc5093daa4d5f5c5ea39705aad19e7d",
       "text": "## User\n\nRead multi-gigabyte JSONL logs with peak memory below 100 MiB and preserve event order.\n\n## Assistant\n\nThe existing readFile plus split implementation peaks above 2 GiB.\n\n## User\n\nReject pre-indexing for the first read. Use streaming lines and allow an optional later index.\n\n## Assistant\n\nsrc/log/stream-events.ts yields ordered events and stays at 42 MiB on the sample; malformed-line recovery is implemented.\n",
-      "tokens": 94,
+      "tokens": 91,
       "utf8Bytes": 421
     },
-    "fixedOverheadInputTokens": 1349,
-    "fullCallInputTokens": 1443,
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1442,
     "promptSha256": "c3e386b0693a7d7fc254f51a19740edf3e97bd92e03423a3a8ff8c6ba80a8e13",
     "promptUtf8Bytes": 534
   },
   "invocation": {
-    "completedAt": "2026-07-22T19:08:01.999Z",
+    "completedAt": "2026-07-22T20:44:38.004Z",
     "promptSha256": "c3e386b0693a7d7fc254f51a19740edf3e97bd92e03423a3a8ff8c6ba80a8e13",
-    "startedAt": "2026-07-22T19:07:42.975Z"
+    "startedAt": "2026-07-22T20:44:16.520Z"
   },
   "mode": "visible-transcript",
   "output": {
-    "sha256": "358ef20624641a580144e22ea9445f47495c26be9a3ddfa284c639dab3c72747",
-    "text": "## 续接简报\n\n- **目标**：以流式方式读取数 GB 的 JSONL 日志，保持事件顺序，并将峰值内存控制在 **100 MiB 以下**。\n- **关键约束**：\n  - 首次读取不得预建索引。\n  - 必须逐行流式处理。\n  - 后续可选索引应被允许，但不能成为首次读取的前置条件。\n  - 需要处理畸形行，同时不破坏有效事件的顺序。\n- **当前状态**：`src/log/stream-events.ts` 已实现按序产出事件及畸形行恢复；交接记录称其在样例上的峰值内存为 **42 MiB**，尚未独立复核。\n- **已确定方案**：使用流式逐行读取，替代整文件加载与切分。\n- **失败路径**：原有 `readFile + split` 方案峰值内存超过 **2 GiB**，不得回退；首次读取预索引也已明确被拒绝。\n- **已完成**：流式事件产出、顺序保持、畸形行恢复，以及样例内存测量。\n- **待完成/确认**：验证完整验收条件，并确认“后续可选索引”的接口或实现状态；交接中未说明该部分已经完成。\n- **唯一下一步**：审查并验证 `src/log/stream-events.ts` 及相关测试/基准，覆盖多 GB 输入、低于 100 MiB、事件顺序、畸形行恢复、首次读取不预索引，以及后续可选索引契约。"
+    "sha256": "b35dbdc09a328d942b951556da47a2a6f96f8098ca0958508068826613cb3408",
+    "text": "## 续接简报\n\n- **目标**：流式读取数 GB 的 JSONL 日志，保持事件原始顺序，并将峰值内存控制在 **100 MiB 以下**。\n- **关键约束**：\n  - 首次读取不得预先建立索引。\n  - 必须逐行流式处理。\n  - 后续可选择建立索引，但不是首次读取的前置条件。\n  - 需保留畸形行恢复能力。\n- **已确认决策**：弃用整文件 `readFile` 后再 `split` 的方案，采用有序逐行流式读取。\n- **失败路径**：`readFile + split` 峰值内存超过 **2 GiB**，不得回退到该方案。\n- **已完成**：`src/log/stream-events.ts` 已实现有序事件产出和畸形行恢复；交接记录称样例峰值内存为 **42 MiB**。\n- **当前状态**：实现按记录满足核心目标，但交接信息未说明测试覆盖、集成状态或可选后置索引是否已实现。\n- **待处理**：确认现有实现及其验证证据完整覆盖顺序、超大文件内存上限和畸形行恢复。\n- **唯一下一步**：只读审查 `src/log/stream-events.ts`，核对其流式边界处理、顺序保证、错误恢复及内存测试依据；不要修改代码或重新采用 `readFile + split`。"
   },
   "runId": "architecture-01-streaming-log:visible-transcript:initial",
   "schemaVersion": "2.0.0",

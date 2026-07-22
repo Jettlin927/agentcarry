@@ -1,0 +1,242 @@
+{
+  "benchmarkId": "second-36",
+  "metering": {
+    "calibrationPromptSha256": "1e1827cedc5d62b752e92a74765578d89a309a13eff6596120190b250ce53813",
+    "calibrationPromptUtf8Bytes": 113,
+    "method": "target-calibration-delta-v1"
+  },
+  "runs": [
+    {
+      "fixtureId": "architecture-01-streaming-log",
+      "mode": "visible-transcript",
+      "runId": "architecture-01-streaming-log:visible-transcript:initial",
+      "sourceFingerprint": "37d5a57123ebb60fc9d102736ca21c5c98622a7269a6a518335316fe5667f625"
+    },
+    {
+      "fixtureId": "architecture-01-streaming-log",
+      "mode": "deterministic-capsule",
+      "runId": "architecture-01-streaming-log:deterministic-capsule:initial",
+      "sourceFingerprint": "37d5a57123ebb60fc9d102736ca21c5c98622a7269a6a518335316fe5667f625"
+    },
+    {
+      "fixtureId": "architecture-01-streaming-log",
+      "mode": "source-assisted-capsule",
+      "runId": "architecture-01-streaming-log:source-assisted-capsule:initial",
+      "sourceFingerprint": "37d5a57123ebb60fc9d102736ca21c5c98622a7269a6a518335316fe5667f625"
+    },
+    {
+      "fixtureId": "architecture-02-session-index",
+      "mode": "visible-transcript",
+      "runId": "architecture-02-session-index:visible-transcript:initial",
+      "sourceFingerprint": "5ad936ae939e2eb5d688352ddbc9325e850b5a3cbfe0fdfd708e0a5ab116a595"
+    },
+    {
+      "fixtureId": "architecture-02-session-index",
+      "mode": "deterministic-capsule",
+      "runId": "architecture-02-session-index:deterministic-capsule:initial",
+      "sourceFingerprint": "5ad936ae939e2eb5d688352ddbc9325e850b5a3cbfe0fdfd708e0a5ab116a595"
+    },
+    {
+      "fixtureId": "architecture-02-session-index",
+      "mode": "source-assisted-capsule",
+      "runId": "architecture-02-session-index:source-assisted-capsule:initial",
+      "sourceFingerprint": "5ad936ae939e2eb5d688352ddbc9325e850b5a3cbfe0fdfd708e0a5ab116a595"
+    },
+    {
+      "fixtureId": "architecture-03-job-scheduler",
+      "mode": "visible-transcript",
+      "runId": "architecture-03-job-scheduler:visible-transcript:initial",
+      "sourceFingerprint": "693f26d1081c33beba8f28d1b74a593657346478a1679500830e5d4c01e0028a"
+    },
+    {
+      "fixtureId": "architecture-03-job-scheduler",
+      "mode": "deterministic-capsule",
+      "runId": "architecture-03-job-scheduler:deterministic-capsule:initial",
+      "sourceFingerprint": "693f26d1081c33beba8f28d1b74a593657346478a1679500830e5d4c01e0028a"
+    },
+    {
+      "fixtureId": "architecture-03-job-scheduler",
+      "mode": "source-assisted-capsule",
+      "runId": "architecture-03-job-scheduler:source-assisted-capsule:initial",
+      "sourceFingerprint": "693f26d1081c33beba8f28d1b74a593657346478a1679500830e5d4c01e0028a"
+    },
+    {
+      "fixtureId": "debugging-01-invoice-total",
+      "mode": "visible-transcript",
+      "runId": "debugging-01-invoice-total:visible-transcript:initial",
+      "sourceFingerprint": "8f06cca2af1e60b7da4ec093b9dcf9f676d7ceb7d289db9e3c2081371c2657e7"
+    },
+    {
+      "fixtureId": "debugging-01-invoice-total",
+      "mode": "deterministic-capsule",
+      "runId": "debugging-01-invoice-total:deterministic-capsule:initial",
+      "sourceFingerprint": "8f06cca2af1e60b7da4ec093b9dcf9f676d7ceb7d289db9e3c2081371c2657e7"
+    },
+    {
+      "fixtureId": "debugging-01-invoice-total",
+      "mode": "source-assisted-capsule",
+      "runId": "debugging-01-invoice-total:source-assisted-capsule:initial",
+      "sourceFingerprint": "8f06cca2af1e60b7da4ec093b9dcf9f676d7ceb7d289db9e3c2081371c2657e7"
+    },
+    {
+      "fixtureId": "debugging-02-unicode-watcher",
+      "mode": "visible-transcript",
+      "runId": "debugging-02-unicode-watcher:visible-transcript:initial",
+      "sourceFingerprint": "be01c97c050e1cd2383abdec2bf2468ea7b5b0420030bb0a83cfc5376b6a7725"
+    },
+    {
+      "fixtureId": "debugging-02-unicode-watcher",
+      "mode": "deterministic-capsule",
+      "runId": "debugging-02-unicode-watcher:deterministic-capsule:initial",
+      "sourceFingerprint": "be01c97c050e1cd2383abdec2bf2468ea7b5b0420030bb0a83cfc5376b6a7725"
+    },
+    {
+      "fixtureId": "debugging-02-unicode-watcher",
+      "mode": "source-assisted-capsule",
+      "runId": "debugging-02-unicode-watcher:source-assisted-capsule:initial",
+      "sourceFingerprint": "be01c97c050e1cd2383abdec2bf2468ea7b5b0420030bb0a83cfc5376b6a7725"
+    },
+    {
+      "fixtureId": "debugging-03-duplicate-jobs",
+      "mode": "visible-transcript",
+      "runId": "debugging-03-duplicate-jobs:visible-transcript:initial",
+      "sourceFingerprint": "569be092bf2d03da6b24b9ac18edb33f425fb26f7e24f9c84ae7d0e3683750fd"
+    },
+    {
+      "fixtureId": "debugging-03-duplicate-jobs",
+      "mode": "deterministic-capsule",
+      "runId": "debugging-03-duplicate-jobs:deterministic-capsule:initial",
+      "sourceFingerprint": "569be092bf2d03da6b24b9ac18edb33f425fb26f7e24f9c84ae7d0e3683750fd"
+    },
+    {
+      "fixtureId": "debugging-03-duplicate-jobs",
+      "mode": "source-assisted-capsule",
+      "runId": "debugging-03-duplicate-jobs:source-assisted-capsule:initial",
+      "sourceFingerprint": "569be092bf2d03da6b24b9ac18edb33f425fb26f7e24f9c84ae7d0e3683750fd"
+    },
+    {
+      "fixtureId": "feature-01-pagination",
+      "mode": "visible-transcript",
+      "runId": "feature-01-pagination:visible-transcript:initial",
+      "sourceFingerprint": "0d98d6f3b4cb4f8f97e1050fccd2970674dbd54b5e4f22e00d2d325d15c18d3f"
+    },
+    {
+      "fixtureId": "feature-01-pagination",
+      "mode": "deterministic-capsule",
+      "runId": "feature-01-pagination:deterministic-capsule:initial",
+      "sourceFingerprint": "0d98d6f3b4cb4f8f97e1050fccd2970674dbd54b5e4f22e00d2d325d15c18d3f"
+    },
+    {
+      "fixtureId": "feature-01-pagination",
+      "mode": "source-assisted-capsule",
+      "runId": "feature-01-pagination:source-assisted-capsule:initial",
+      "sourceFingerprint": "0d98d6f3b4cb4f8f97e1050fccd2970674dbd54b5e4f22e00d2d325d15c18d3f"
+    },
+    {
+      "fixtureId": "feature-02-deploy-dry-run",
+      "mode": "visible-transcript",
+      "runId": "feature-02-deploy-dry-run:visible-transcript:initial",
+      "sourceFingerprint": "bbc9aec142fb32b3fc9882673c3da0503a066bfbcb3233267204aa993e78e2cd"
+    },
+    {
+      "fixtureId": "feature-02-deploy-dry-run",
+      "mode": "deterministic-capsule",
+      "runId": "feature-02-deploy-dry-run:deterministic-capsule:initial",
+      "sourceFingerprint": "bbc9aec142fb32b3fc9882673c3da0503a066bfbcb3233267204aa993e78e2cd"
+    },
+    {
+      "fixtureId": "feature-02-deploy-dry-run",
+      "mode": "source-assisted-capsule",
+      "runId": "feature-02-deploy-dry-run:source-assisted-capsule:initial",
+      "sourceFingerprint": "bbc9aec142fb32b3fc9882673c3da0503a066bfbcb3233267204aa993e78e2cd"
+    },
+    {
+      "fixtureId": "feature-03-config-errors",
+      "mode": "visible-transcript",
+      "runId": "feature-03-config-errors:visible-transcript:initial",
+      "sourceFingerprint": "ec9cc0c1730a10eef152aec54c9fb8f439f745ea6ec6847c04910ab3ab10fd37"
+    },
+    {
+      "fixtureId": "feature-03-config-errors",
+      "mode": "deterministic-capsule",
+      "runId": "feature-03-config-errors:deterministic-capsule:initial",
+      "sourceFingerprint": "ec9cc0c1730a10eef152aec54c9fb8f439f745ea6ec6847c04910ab3ab10fd37"
+    },
+    {
+      "fixtureId": "feature-03-config-errors",
+      "mode": "source-assisted-capsule",
+      "runId": "feature-03-config-errors:source-assisted-capsule:initial",
+      "sourceFingerprint": "ec9cc0c1730a10eef152aec54c9fb8f439f745ea6ec6847c04910ab3ab10fd37"
+    },
+    {
+      "fixtureId": "refactor-01-http-transport",
+      "mode": "visible-transcript",
+      "runId": "refactor-01-http-transport:visible-transcript:initial",
+      "sourceFingerprint": "886d793ac79031e1d1c75c7b9e38665933f37092df12844fea3bb025c6352865"
+    },
+    {
+      "fixtureId": "refactor-01-http-transport",
+      "mode": "deterministic-capsule",
+      "runId": "refactor-01-http-transport:deterministic-capsule:initial",
+      "sourceFingerprint": "886d793ac79031e1d1c75c7b9e38665933f37092df12844fea3bb025c6352865"
+    },
+    {
+      "fixtureId": "refactor-01-http-transport",
+      "mode": "source-assisted-capsule",
+      "runId": "refactor-01-http-transport:source-assisted-capsule:initial",
+      "sourceFingerprint": "886d793ac79031e1d1c75c7b9e38665933f37092df12844fea3bb025c6352865"
+    },
+    {
+      "fixtureId": "refactor-02-cli-renderers",
+      "mode": "visible-transcript",
+      "runId": "refactor-02-cli-renderers:visible-transcript:initial",
+      "sourceFingerprint": "0b4bb6d3d348e114ba5c656c4dde88d60ef6baf47cbbb1fcdadf74defcc28ba2"
+    },
+    {
+      "fixtureId": "refactor-02-cli-renderers",
+      "mode": "deterministic-capsule",
+      "runId": "refactor-02-cli-renderers:deterministic-capsule:initial",
+      "sourceFingerprint": "0b4bb6d3d348e114ba5c656c4dde88d60ef6baf47cbbb1fcdadf74defcc28ba2"
+    },
+    {
+      "fixtureId": "refactor-02-cli-renderers",
+      "mode": "source-assisted-capsule",
+      "runId": "refactor-02-cli-renderers:source-assisted-capsule:initial",
+      "sourceFingerprint": "0b4bb6d3d348e114ba5c656c4dde88d60ef6baf47cbbb1fcdadf74defcc28ba2"
+    },
+    {
+      "fixtureId": "refactor-03-file-indexer",
+      "mode": "visible-transcript",
+      "runId": "refactor-03-file-indexer:visible-transcript:initial",
+      "sourceFingerprint": "2b86ba6d7a244cab256cc49a42634cfa03d57963cc588c9c3541401b45642636"
+    },
+    {
+      "fixtureId": "refactor-03-file-indexer",
+      "mode": "deterministic-capsule",
+      "runId": "refactor-03-file-indexer:deterministic-capsule:initial",
+      "sourceFingerprint": "2b86ba6d7a244cab256cc49a42634cfa03d57963cc588c9c3541401b45642636"
+    },
+    {
+      "fixtureId": "refactor-03-file-indexer",
+      "mode": "source-assisted-capsule",
+      "runId": "refactor-03-file-indexer:source-assisted-capsule:initial",
+      "sourceFingerprint": "2b86ba6d7a244cab256cc49a42634cfa03d57963cc588c9c3541401b45642636"
+    }
+  ],
+  "schemaVersion": "2.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

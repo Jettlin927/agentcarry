@@ -1,0 +1,44 @@
+{
+  "fixtureId": "architecture-03-job-scheduler",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "7420d7306c3887a3845688ba0fe56e94a0759afaea843b077b8dba4234aa43e2",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- Investigate and resolve the latest source result: Cancelling the second queued job still starts it after the first running job releases a slot. [evidence: a03-tool-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- Schedule jobs with FIFO start order, maximum concurrency four, and cancellation before a queued job starts. [evidence: a03-user-1]\n- Reject polling. Release the next FIFO waiter directly when a running job finishes. [evidence: a03-user-2]\n\n## Current state\n- Completed: A 250 ms polling loop was prototyped to look for free slots. [evidence: a03-assistant-1]\n- Completed: The semaphore queue starts at most four jobs and preserves FIFO in the normal test. [evidence: a03-assistant-2]\n- Failed attempt: Cancelling the second queued job still starts it after the first running job releases a slot. [evidence: a03-tool-2]\n- Failed outcome: The source event marks this path as failed, rejected, reverted, or unresolved. [evidence: a03-tool-2]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result a03-tool-1 — Polling adds 247 ms median start latency and makes fake-timer tests flaky. [evidence: a03-tool-1]\n- Validation: UNKNOWN Source tool result a03-tool-2 — Cancelling the second queued job still starts it after the first running job releases a slot. [evidence: a03-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: /Users/dev/Scheduler Lab\n- Git: branch=architecture/bounded-scheduler; head=a0300003; dirty=true\n- File: modified src/scheduler.ts [evidence: none]\n- File: created test/scheduler-fifo.test.ts [evidence: none]\n- File: created test/scheduler-cancel.test.ts [evidence: none]\n",
+      "tokens": 483,
+      "utf8Bytes": 2017
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1834,
+    "promptSha256": "556271c37c19492dbb4c5ffba034f533f3571ad57db187416dd1684597d1a52e",
+    "promptUtf8Bytes": 2130
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:51:57.366Z",
+    "promptSha256": "556271c37c19492dbb4c5ffba034f533f3571ad57db187416dd1684597d1a52e",
+    "startedAt": "2026-07-22T20:51:39.848Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "40d80a5239a1da6688eb5b251406aaad746b2387965eb1bb436934d53b801eb8",
+    "text": "# 续接简报\n\n- **目标**：实现有界作业调度器，保证启动顺序 FIFO、最大并发数为 4，并支持作业在仍处于队列时取消。\n- **关键约束**：\n  - 禁止轮询；运行中的作业结束后，必须直接唤醒下一个 FIFO 等待者。\n  - 已取消且尚未启动的作业不得占用后续释放的并发槽位。\n- **当前状态**：\n  - 工作区：`/Users/dev/Scheduler Lab`\n  - 分支：`architecture/bounded-scheduler`，HEAD `a0300003`，工作区非干净状态。\n  - 已修改：`src/scheduler.ts`\n  - 已新增：`test/scheduler-fifo.test.ts`、`test/scheduler-cancel.test.ts`\n- **已完成工作**：\n  - 信号量队列在普通测试中可将并发限制为 4，并保持 FIFO 启动顺序。\n  - 曾实现 250 ms 轮询原型。\n- **已确定决策**：采用作业完成时直接释放下一个 FIFO 等待者的机制，不采用轮询。\n- **失败路径（必须避免）**：\n  - 轮询造成约 247 ms 的中位启动延迟，并导致伪计时器测试不稳定，不应继续使用。\n  - 当前取消逻辑有缺陷：取消第二个排队作业后，第一个运行作业释放槽位时，该已取消作业仍会启动。\n- **待完成**：\n  - 修复排队作业取消后仍被启动的问题。\n  - 修复后验证 FIFO、最大并发 4、直接释放及排队取消行为；现有验证结果仍为未知，不能视为已通过。\n- **唯一正确的下一步**：调查并修复 `src/scheduler.ts` 中“已取消的第二个排队作业仍在槽位释放后启动”的取消与队列交接路径，且不得重新引入轮询。"
+  },
+  "runId": "architecture-03-job-scheduler:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "693f26d1081c33beba8f28d1b74a593657346478a1679500830e5d4c01e0028a",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}
