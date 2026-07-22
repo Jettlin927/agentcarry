@@ -20,17 +20,18 @@ provider, or change authentication.
 
 ## Two-minute terminal path
 
-Install the pinned acceptance build directly from the public repository:
+Run the pinned acceptance build directly from the public repository. `npx`
+caches the package without requiring a global install:
 
 ```text
-npm install --global github:Jettlin927/agentcarry#v0.1.0-acceptance.1
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 --version
 ```
 
 Open a repository containing a real, completed Codex task and run:
 
 ```text
-agentcarry doctor
-agentcarry continue --to claude
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 doctor
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 continue --to claude
 ```
 
 Start a timer when you enter the `continue` command. Read the displayed source,
@@ -42,7 +43,7 @@ If automatic source selection is ambiguous, retry once with the displayed
 completed session ID:
 
 ```text
-agentcarry continue --to claude --session <id>
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 continue --to claude --session <id>
 ```
 
 Do not use `--force` unless you understand and explicitly accept every named
@@ -54,7 +55,7 @@ permissions merely to make the acceptance attempt pass.
 Record only:
 
 - Windows or macOS version and architecture;
-- the `agentcarry --version` result plus Node.js, Codex, and Claude Code versions;
+- the pinned `npx ... --version` result plus Node.js, Codex, and Claude Code versions;
 - idle/active source and automatic/explicit selection;
 - whether a target session was created, whether the recorded first action began,
   and the resulting continued/blocked outcome;

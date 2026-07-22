@@ -16,17 +16,17 @@ AgentCarry 不安装这些 Agent、不发起登录、不选择 provider，也不
 
 ## 两分钟终端路径
 
-直接从公开仓库安装固定的验收版本：
+直接从公开仓库运行固定的验收版本；`npx` 会缓存 package，不需要全局安装：
 
 ```text
-npm install --global github:Jettlin927/agentcarry#v0.1.0-acceptance.1
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 --version
 ```
 
 进入一个确实存在已完成 Codex 任务的代码仓库：
 
 ```text
-agentcarry doctor
-agentcarry continue --to claude
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 doctor
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 continue --to claude
 ```
 
 输入 `continue` 命令时开始计时。阅读终端展示的来源 session、第一动作、损失收据和
@@ -36,7 +36,7 @@ agentcarry continue --to claude
 如果自动选择来源时出现歧义，只允许使用终端展示的已完成 session ID 重试一次：
 
 ```text
-agentcarry continue --to claude --session <id>
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 continue --to claude --session <id>
 ```
 
 除非你理解并明确接受每一项 critical loss，否则不要使用 `--force`。不要为了让验收
@@ -47,7 +47,7 @@ agentcarry continue --to claude --session <id>
 只记录：
 
 - Windows 或 macOS 版本与架构；
-- `agentcarry --version` 结果，以及 Node.js、Codex、Claude Code 版本；
+- 固定 `npx ... --version` 的结果，以及 Node.js、Codex、Claude Code 版本；
 - 来源是 idle/active，选择是 automatic/explicit；
 - 是否创建目标 session、是否开始记录中的第一动作，以及 continued/blocked 结果；
 - 精确到秒的 UTC 命令开始时间与结果时间；

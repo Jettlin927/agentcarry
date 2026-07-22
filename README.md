@@ -127,8 +127,7 @@ Non-author Windows and macOS users can install the pinned public acceptance
 build and perform one real handoff with two terminal commands:
 
 ```text
-npm install --global github:Jettlin927/agentcarry#v0.1.0-acceptance.1
-agentcarry continue --to claude
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 continue --to claude
 ```
 
 The auditable, privacy-safe protocol and current cohort report are in

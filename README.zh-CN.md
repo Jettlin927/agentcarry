@@ -102,8 +102,7 @@ Windows provider 冒烟与三平台进程边界各自证明了什么。
 再用一条命令完成真实交接：
 
 ```text
-npm install --global github:Jettlin927/agentcarry#v0.1.0-acceptance.1
-agentcarry continue --to claude
+npx --yes github:Jettlin927/agentcarry#v0.1.0-acceptance.1 continue --to claude
 ```
 
 不收集私密聊天的验收协议和当前 cohort 进度见
