@@ -22,7 +22,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "prepare": "npm run build",
+    "prepare": "npm exec --yes --package=typescript@7.0.2 -- tsc -p tsconfig.build.json",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "check": "npm run typecheck && npm test && npm run build",
