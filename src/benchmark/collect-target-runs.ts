@@ -17,9 +17,13 @@ import {
 } from "./run-source-assisted.js";
 import {
   createTargetCalibrationInvocation,
+  createCanonicalCapsuleMeasurementInvocation,
+  createTargetInvocation,
   createTargetSettings,
+  runCanonicalCapsuleMeasurement,
   runTargetCalibration,
   runTargetContinuation,
+  type CanonicalCapsuleMeasurement,
   type TargetCalibration,
   type TargetSettingSources,
   type TargetSettings,
@@ -75,10 +79,16 @@ type TargetRunner = (
 ) => Promise<TargetRunResult>;
 
 type CalibrationRunner = (model: string) => Promise<TargetCalibration>;
+type CanonicalCapsuleRunner = (
+  artifact: HandoffInputArtifact,
+  model: string,
+  calibration: TargetCalibration
+) => Promise<CanonicalCapsuleMeasurement>;
 
 export interface CollectionDependencies {
   readonly buildSourceAssisted?: SourceAssistedBuilder;
   readonly calibrateTarget?: CalibrationRunner;
+  readonly measureCanonicalCapsule?: CanonicalCapsuleRunner;
   readonly runTarget?: TargetRunner;
   readonly onProgress?: (message: string) => void;
 }
@@ -172,6 +182,10 @@ function assertArtifact(
     || artifact.sourceFingerprint !== expected.sourceFingerprint
     || typeof artifact.content !== "string"
     || artifact.content.length === 0
+    || artifact.contentType !== (expected.mode === "visible-transcript" ? "text/markdown" : "application/json")
+    || artifact.measurements?.utf8Bytes !== Buffer.byteLength(artifact.content, "utf8")
+    || artifact.measurements?.unicodeCodePoints !== [...artifact.content].length
+    || artifact.measurements?.exactTargetInputTokens !== null
   ) {
     throw new Error(`stored input does not match run plan for ${expected.runId}`);
   }
@@ -188,9 +202,21 @@ function assertArtifact(
   }
   if (
     expected.mode === "source-assisted-capsule"
-    && artifact.generation.model !== model
+    ? artifact.generation?.deterministic !== false
+      || artifact.generation.model !== model
+      || !/^[a-f0-9]{64}$/.test(artifact.generation.promptSha256 ?? "")
+      || artifact.generation.tools !== "disabled"
+      || artifact.generation.persistence !== "disabled"
+      || !Number.isInteger(artifact.generation.summarizerInputTokens)
+      || (artifact.generation.summarizerInputTokens ?? -1) < 0
+    : artifact.generation?.deterministic !== true
+      || artifact.generation.model !== null
+      || artifact.generation.promptSha256 !== null
+      || artifact.generation.tools !== "not-applicable"
+      || artifact.generation.persistence !== "not-applicable"
+      || artifact.generation.summarizerInputTokens !== null
   ) {
-    throw new Error(`stored source-assisted model differs for ${expected.runId}`);
+    throw new Error(`stored input generation metadata differs for ${expected.runId}`);
   }
   return artifact;
 }
@@ -199,9 +225,16 @@ function assertTargetResult(
   value: unknown,
   expected: BenchmarkRunPlan["runs"][number],
   plan: BenchmarkRunPlan,
-  calibration: TargetCalibration
+  calibration: TargetCalibration,
+  artifact: HandoffInputArtifact
 ): TargetRunResult {
   const result = value as TargetRunResult;
+  const invocation = createTargetInvocation(artifact, plan.target.model, {
+    settingSources: plan.target.settings.settingSources
+  });
+  const expectedContentType = artifact.mode === "visible-transcript"
+    ? artifact.contentType
+    : "text/markdown";
   if (
     result?.schemaVersion !== "2.0.0"
     || result.runId !== expected.runId
@@ -218,11 +251,15 @@ function assertTargetResult(
       !== result.input.fullCallInputTokens - result.input.fixedOverheadInputTokens
     || typeof result.input.agentCarryPayload.text !== "string"
     || result.input.agentCarryPayload.text.length === 0
+    || result.input.agentCarryPayload.contentType !== expectedContentType
+    || result.input.agentCarryPayload.text !== invocation.payload
+    || result.input.agentCarryPayload.sha256 !== sha256(invocation.payload)
+    || result.input.agentCarryPayload.utf8Bytes !== Buffer.byteLength(invocation.payload, "utf8")
     || typeof result.output?.text !== "string"
     || result.output.text.length === 0
-    || !/^[a-f0-9]{64}$/.test(result.input.promptSha256)
-    || !/^[a-f0-9]{64}$/.test(result.input.agentCarryPayload.sha256)
-    || !/^[a-f0-9]{64}$/.test(result.output.sha256)
+    || result.output.sha256 !== sha256(result.output.text)
+    || result.input.promptSha256 !== sha256(invocation.stdin)
+    || result.input.promptUtf8Bytes !== Buffer.byteLength(invocation.stdin, "utf8")
     || result.input.promptSha256 !== result.invocation?.promptSha256
     || Number.isNaN(Date.parse(result.invocation?.startedAt))
     || Number.isNaN(Date.parse(result.invocation?.completedAt))
@@ -247,6 +284,114 @@ function assertCalibration(value: unknown, plan: BenchmarkRunPlan): TargetCalibr
     throw new Error("stored target calibration does not match the benchmark plan");
   }
   return calibration;
+}
+
+function assertCanonicalMeasurement(
+  value: unknown,
+  artifact: HandoffInputArtifact,
+  plan: BenchmarkRunPlan,
+  calibration: TargetCalibration
+): CanonicalCapsuleMeasurement {
+  const measurement = value as CanonicalCapsuleMeasurement;
+  const invocation = artifact.mode === "visible-transcript"
+    ? undefined
+    : createCanonicalCapsuleMeasurementInvocation(artifact, plan.target.model, {
+        settingSources: plan.target.settings.settingSources
+      });
+  if (
+    artifact.mode === "visible-transcript"
+    || measurement?.schemaVersion !== "2.0.0"
+    || measurement.fixtureId !== artifact.fixtureId
+    || measurement.mode !== artifact.mode
+    || measurement.purpose !== "canonical-work-capsule-baseline"
+    || measurement.sourceFingerprint !== artifact.sourceFingerprint
+    || canonicalJson(measurement.target) !== canonicalJson(plan.target)
+    || !Number.isInteger(measurement.input?.fullCallInputTokens)
+    || !Number.isInteger(measurement.input?.fixedOverheadInputTokens)
+    || !Number.isInteger(measurement.input?.canonicalWorkCapsulePayload?.tokens)
+    || measurement.input.fixedOverheadInputTokens !== calibration.input.exactInputTokens
+    || measurement.input.canonicalWorkCapsulePayload.tokens
+      !== measurement.input.fullCallInputTokens - measurement.input.fixedOverheadInputTokens
+    || measurement.input.canonicalWorkCapsulePayload.tokens < 1
+    || measurement.input.canonicalWorkCapsulePayload.sha256 !== sha256(artifact.content)
+    || measurement.input.canonicalWorkCapsulePayload.utf8Bytes
+      !== Buffer.byteLength(artifact.content, "utf8")
+    || measurement.input.promptSha256 !== sha256(invocation?.stdin ?? "")
+    || measurement.input.promptUtf8Bytes !== Buffer.byteLength(invocation?.stdin ?? "", "utf8")
+    || !/^[a-f0-9]{64}$/.test(measurement.responseSha256)
+    || Number.isNaN(Date.parse(measurement.invocation?.startedAt))
+    || Number.isNaN(Date.parse(measurement.invocation?.completedAt))
+  ) {
+    throw new Error(`stored canonical baseline does not match ${artifact.fixtureId}:${artifact.mode}`);
+  }
+  return measurement;
+}
+
+export function validateCollectedBenchmarkEvidence(
+  fixtures: readonly BenchmarkSourceFixture[],
+  plan: BenchmarkRunPlan,
+  calibrationValue: unknown,
+  inputValues: readonly unknown[],
+  resultValues: readonly unknown[],
+  canonicalMeasurementValues: readonly unknown[]
+): void {
+  const expectedPlan = createBenchmarkRunPlan(fixtures, plan.target?.model ?? "", {
+    provider: plan.target?.provider,
+    settingSources: plan.target?.settings?.settingSources
+  });
+  if (canonicalJson(plan) !== canonicalJson(expectedPlan)) {
+    throw new Error("stored benchmark plan does not match the fixtures, target, or settings");
+  }
+  const calibration = assertCalibration(calibrationValue, plan);
+  const inputsByRunId = new Map<string, HandoffInputArtifact>();
+  for (const value of inputValues) {
+    const candidate = value as Partial<HandoffInputArtifact>;
+    const runId = `${candidate.fixtureId}:${candidate.mode}:initial`;
+    const expected = plan.runs.find((run) => run.runId === runId);
+    if (expected === undefined || inputsByRunId.has(runId)) {
+      throw new Error(`unexpected or duplicate stored input ${runId}`);
+    }
+    inputsByRunId.set(runId, assertArtifact(value, expected, plan.target.model));
+  }
+  const resultsByRunId = new Map<string, unknown>();
+  for (const value of resultValues) {
+    const runId = (value as Partial<TargetRunResult>).runId ?? "undefined";
+    if (!plan.runs.some((run) => run.runId === runId) || resultsByRunId.has(runId)) {
+      throw new Error(`unexpected or duplicate stored result ${runId}`);
+    }
+    resultsByRunId.set(runId, value);
+  }
+  const measurementsByRunId = new Map<string, unknown>();
+  for (const value of canonicalMeasurementValues) {
+    const measurement = value as Partial<CanonicalCapsuleMeasurement>;
+    const runId = `${measurement.fixtureId}:${measurement.mode}:initial`;
+    if (
+      !plan.runs.some((run) => run.runId === runId && run.mode !== "visible-transcript")
+      || measurementsByRunId.has(runId)
+    ) {
+      throw new Error(`unexpected or duplicate canonical baseline ${runId}`);
+    }
+    measurementsByRunId.set(runId, value);
+  }
+  if (
+    inputsByRunId.size !== plan.runs.length
+    || resultsByRunId.size !== plan.runs.length
+    || measurementsByRunId.size !== plan.runs.filter((run) => run.mode !== "visible-transcript").length
+  ) {
+    throw new Error("stored benchmark evidence does not contain the exact planned artifact set");
+  }
+  for (const expected of plan.runs) {
+    const artifact = inputsByRunId.get(expected.runId)!;
+    assertTargetResult(resultsByRunId.get(expected.runId), expected, plan, calibration, artifact);
+    if (expected.mode !== "visible-transcript") {
+      assertCanonicalMeasurement(
+        measurementsByRunId.get(expected.runId),
+        artifact,
+        plan,
+        calibration
+      );
+    }
+  }
 }
 
 function fileStem(fixtureId: string, mode: HandoffMode): string {
@@ -293,10 +438,12 @@ export async function collectTargetRuns(
   const outputRoot = resolve(outputDirectory);
   const inputDirectory = join(outputRoot, "inputs");
   const resultDirectory = join(outputRoot, "results");
+  const canonicalBaselineDirectory = join(outputRoot, "canonical-baselines");
   const targetWorkingDirectory = join(outputRoot, "target-cwd");
   await Promise.all([
     mkdir(inputDirectory, { recursive: true }),
     mkdir(resultDirectory, { recursive: true }),
+    mkdir(canonicalBaselineDirectory, { recursive: true }),
     mkdir(targetWorkingDirectory, { recursive: true })
   ]);
   await ensurePlan(join(outputRoot, "plan.json"), plan);
@@ -333,6 +480,14 @@ export async function collectTargetRuns(
       calibration: targetCalibration,
       workingDirectory: targetWorkingDirectory
     }));
+  const canonicalCapsuleRunner = dependencies.measureCanonicalCapsule
+    ?? (async (artifact, targetModel, targetCalibration) =>
+      await runCanonicalCapsuleMeasurement(artifact, targetModel, {
+        provider: plan.target.provider,
+        settingSources: plan.target.settings.settingSources,
+        calibration: targetCalibration,
+        workingDirectory: targetWorkingDirectory
+      }));
   let completed = 0;
   let skipped = 0;
 
@@ -351,15 +506,29 @@ export async function collectTargetRuns(
       dependencies.onProgress?.(`input ${plannedRun.runId}`);
     }
 
+    if (artifact.mode !== "visible-transcript") {
+      const baselinePath = join(canonicalBaselineDirectory, `${stem}.json`);
+      const storedBaseline = await readJsonIfPresent(baselinePath);
+      if (storedBaseline === undefined) {
+        const baseline = await canonicalCapsuleRunner(artifact, model, calibration);
+        assertCanonicalMeasurement(baseline, artifact, plan, calibration);
+        await writeJsonOnce(baselinePath, baseline);
+        dependencies.onProgress?.(`canonical-baseline ${plannedRun.runId}`);
+      } else {
+        assertCanonicalMeasurement(storedBaseline, artifact, plan, calibration);
+        dependencies.onProgress?.(`skip-canonical-baseline ${plannedRun.runId}`);
+      }
+    }
+
     const storedResult = await readJsonIfPresent(resultPath);
     if (storedResult !== undefined) {
-      assertTargetResult(storedResult, plannedRun, plan, calibration);
+      assertTargetResult(storedResult, plannedRun, plan, calibration, artifact);
       skipped += 1;
       dependencies.onProgress?.(`skip ${plannedRun.runId}`);
       continue;
     }
     const result = await targetRunner(artifact, model, calibration);
-    assertTargetResult(result, plannedRun, plan, calibration);
+    assertTargetResult(result, plannedRun, plan, calibration, artifact);
     await writeJsonOnce(resultPath, result);
     completed += 1;
     dependencies.onProgress?.(`result ${plannedRun.runId}`);

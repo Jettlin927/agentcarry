@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nAdd nested config validation. Environment variables override files, and errors must never include secret values.\n\n## Assistant\n\nSchema parsing and environment precedence are implemented with path-aware validation errors.\n\n## Assistant\n\nLogging the fully resolved config for debugging was attempted and removed because it exposes unrelated secrets.\n\n## User\n\nRedact at the validation-error formatter, not in the parser, and preserve the failing field path.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "feature-03-config-errors",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 465,
+    "utf8Bytes": 465
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "ec9cc0c1730a10eef152aec54c9fb8f439f745ea6ec6847c04910ab3ab10fd37"
+}

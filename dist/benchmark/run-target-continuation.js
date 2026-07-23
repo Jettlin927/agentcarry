@@ -80,6 +80,12 @@ export function createTargetInvocation(artifact, model, options = {}) {
 export function createTargetCalibrationInvocation(model, options = {}) {
     return invocationForPayload("", model, options.settingSources);
 }
+export function createCanonicalCapsuleMeasurementInvocation(artifact, model, options = {}) {
+    if (artifact.mode === "visible-transcript") {
+        throw new Error("canonical Work Capsule measurement requires a capsule mode");
+    }
+    return invocationForPayload(artifact.content, model, options.settingSources);
+}
 async function executeTarget(invocation, runner, now, workingDirectory) {
     const startedAt = now().toISOString();
     const temporaryDirectory = workingDirectory
@@ -195,5 +201,51 @@ export async function runTargetContinuation(artifact, model, options = {}) {
             startedAt,
             completedAt
         }
+    };
+}
+export async function runCanonicalCapsuleMeasurement(artifact, model, options = {}) {
+    if (artifact.mode === "visible-transcript") {
+        throw new Error("canonical Work Capsule measurement requires a capsule mode");
+    }
+    if (options.calibration === undefined) {
+        throw new Error("canonical Work Capsule measurement requires fixed-overhead calibration");
+    }
+    const invocation = createCanonicalCapsuleMeasurementInvocation(artifact, model, options);
+    const expectedTarget = {
+        agent: "claude",
+        model,
+        provider: options.provider ?? "unspecified",
+        settings: invocation.settings
+    };
+    if (canonicalJson(options.calibration.target) !== canonicalJson(expectedTarget)) {
+        throw new Error("canonical Work Capsule calibration does not match the target");
+    }
+    const { envelope, startedAt, completedAt } = await executeTarget(invocation, options.runner ?? defaultProcessRunner, options.now ?? (() => new Date()), options.workingDirectory);
+    const fullCallInputTokens = totalInputTokens(envelope.usage);
+    const fixedOverheadInputTokens = options.calibration.input.exactInputTokens;
+    const payloadTokens = fullCallInputTokens - fixedOverheadInputTokens;
+    if (payloadTokens < 0) {
+        throw new Error("canonical Work Capsule input tokens are lower than calibrated overhead");
+    }
+    return {
+        schemaVersion: "2.0.0",
+        fixtureId: artifact.fixtureId,
+        mode: artifact.mode,
+        purpose: "canonical-work-capsule-baseline",
+        sourceFingerprint: artifact.sourceFingerprint,
+        target: expectedTarget,
+        input: {
+            promptSha256: sha256(invocation.stdin),
+            promptUtf8Bytes: Buffer.byteLength(invocation.stdin, "utf8"),
+            fullCallInputTokens,
+            fixedOverheadInputTokens,
+            canonicalWorkCapsulePayload: {
+                sha256: sha256(artifact.content),
+                utf8Bytes: Buffer.byteLength(artifact.content, "utf8"),
+                tokens: payloadTokens
+            }
+        },
+        responseSha256: sha256(envelope.result ?? ""),
+        invocation: { startedAt, completedAt }
     };
 }

@@ -1,0 +1,44 @@
+{
+  "fixtureId": "debugging-01-invoice-total",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "ef0729c2e6b362a1b3e9f213ccb0e7141d2fdbc286eadf9d2e58b2cabd0508b4",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- 在 test/invoice-total.test.ts 中编写聚焦回归测试，覆盖 negative adjustment row 必须参与 invoice total aggregation 的场景，同时保持 public API 和 decimal-string currency 表示不变。 [evidence: d01-user-1, d01-tool-2, d01-assistant-2, d01-user-2]\n\n## Forbidden before first action\n- 不得重试 cache 路径。 [evidence: d01-user-2]\n\n## Constraints\n- 不得改变 public API。 [evidence: d01-user-1]\n- Currency values 必须继续表示为 decimal strings。 [evidence: d01-user-1]\n\n## Current state\n- Objective: 修复陈旧的 invoice total，同时保持 public API 不变、currency values 继续使用 decimal strings，并通过回归测试证明 parser 修复有效。 [evidence: d01-user-1, d01-user-2]\n- Current request: Do not retry the cache path; prove the parser fix with a regression test next. [evidence: d01-user-2]\n- Completed: 已确认 parser 在 aggregation 前丢弃 negative adjustment rows。 [evidence: d01-tool-2]\n- Completed: 已修改 src/invoice/parser.ts，使其保留 negative adjustments；该修改目前尚未由聚焦回归测试证明。 [evidence: d01-assistant-2, workspace-file-parser]\n- Pending: 为 parser 修复编写聚焦回归测试；当前 test/invoice-total.test.ts 仍未修改。 [evidence: d01-assistant-2, d01-user-2, workspace-file-test]\n- Pending: 运行回归测试并证明 negative adjustment rows 被正确计入 invoice total。 [evidence: d01-user-2]\n- Decision: 放弃 stale total cache 假设，将问题定位到 parser 在 aggregation 前丢弃 negative adjustment rows。 [evidence: d01-assistant-1, d01-tool-1, d01-tool-2, d01-user-2]\n- Decision: Parser 应保留 negative adjustment rows，以便将其纳入 invoice total aggregation。 [evidence: d01-tool-2, d01-assistant-2]\n- Failed attempt: 通过禁用 InvoiceService 的 total cache 解决 failing total test。 [evidence: d01-assistant-1, d01-tool-1]\n- Failed outcome: 禁用 cache 后 failing total test 没有变化。 [evidence: d01-assistant-1, d01-tool-1]\n- Failure reason: 初始 stale total cache 假设未得到实验结果支持。 [evidence: d01-assistant-1, d01-tool-1]\n\n## Later actions\n- 运行新增的聚焦回归测试，确认 parser 修复通过验证。 [evidence: d01-user-2]\n\n## Validations\n- Validation: FAILED 禁用 cache 后的 invoice total test — 禁用 cache 未改变 failing total test，因此 cache 假设未能解释问题。 [evidence: d01-tool-1]\n- Validation: UNKNOWN Parser negative-adjustment 回归验证 — 聚焦回归测试尚未编写，因此当前 parser 修改尚未得到回归测试验证。 [evidence: d01-assistant-2, workspace-file-test]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING SOURCE_CAPTURE_METADATA_UNAVAILABLE: 源材料未提供 session ID、capture timestamps 或 capsule lineage IDs；必填字段使用 unavailable 和 Unix epoch 哨兵值，不代表实际会话或捕获时间。\n- WARNING SESSION_SNAPSHOT_UNAVAILABLE: 未提供原始 session snapshot、byte length、SHA-256 或 capture-consistency 信息。\n- INFO HIDDEN_REASONING_UNAVAILABLE: Hidden reasoning 不在所提供的 source events 中，无法纳入 Work Capsule。\n- INFO PROMPT_CACHE_UNAVAILABLE: 未提供 prompt cache 内容或元数据。\n- WARNING TOOL_STATE_UNAVAILABLE: 仅提供了文本形式的 tool results；原始 commands、cwd、exit codes、执行时间及其他 tool state 均不可用。\n- INFO ATTACHMENTS_UNAVAILABLE: 未提供任何 attachment payload 或 attachment metadata，无法携带或验证附件。\n\n## Workspace\n- Root: C:\\Users\\dev\\账单 示例\n- Git: branch=fix/invoice-total; head=d0100001; dirty=true\n- File: modified src/invoice/parser.ts [evidence: d01-assistant-2, workspace-file-parser]\n- File: referenced test/invoice-total.test.ts [evidence: d01-assistant-2, d01-user-2, workspace-file-test]\n",
+      "tokens": 983,
+      "utf8Bytes": 3907
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 2334,
+    "promptSha256": "36ef6705391206775233c07735d7f515f4578b4f37dd9d26ba5a05b55f2ba6e3",
+    "promptUtf8Bytes": 4020
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:57:43.605Z",
+    "promptSha256": "36ef6705391206775233c07735d7f515f4578b4f37dd9d26ba5a05b55f2ba6e3",
+    "startedAt": "2026-07-22T20:57:29.817Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "4e2203c1124b14f78a51d017480782c509ebbfddc8710297632b9ec8ef2f2b09",
+    "text": "## 续接简报\n\n- **目标**：修复 invoice total 未计入 negative adjustment rows 的问题，并通过聚焦回归测试证明 parser 修复有效。\n- **关键约束**：\n  - 不得改变 public API。\n  - Currency values 必须继续使用 decimal strings。\n  - 明确禁止重试 cache 路径。\n  - 当前仅规划，不执行修改或测试。\n- **当前状态**：\n  - 工作区：`C:\\Users\\dev\\账单 示例`\n  - 分支：`fix/invoice-total`，工作区为 dirty。\n  - `src/invoice/parser.ts` 已修改为保留 negative adjustments，但尚未通过聚焦回归测试验证。\n  - `test/invoice-total.test.ts` 尚未修改。\n- **已完成**：确认根因是 parser 在 aggregation 前丢弃 negative adjustment rows。\n- **既定决策**：parser 必须保留 negative adjustment rows，使其参与 invoice total aggregation。\n- **失败尝试**：禁用 `InvoiceService` total cache 后，失败测试没有变化；stale cache 假设不成立，不得再次尝试。\n- **待完成**：\n  1. 添加聚焦回归测试。\n  2. 随后运行该测试，验证 negative adjustment 被正确计入总额。\n- **验证状态**：parser 修复的回归验证仍为 **UNKNOWN**，不能宣称已通过。\n- **唯一正确的下一步**：在 `test/invoice-total.test.ts` 中编写聚焦回归测试，覆盖 negative adjustment row 必须参与 invoice total aggregation，同时断言 public API 与 decimal-string currency 表示保持不变。"
+  },
+  "runId": "debugging-01-invoice-total:source-assisted-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "8f06cca2af1e60b7da4ec093b9dcf9f676d7ceb7d289db9e3c2081371c2657e7",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

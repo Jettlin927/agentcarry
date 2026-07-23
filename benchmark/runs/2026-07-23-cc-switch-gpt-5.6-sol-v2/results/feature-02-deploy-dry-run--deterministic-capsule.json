@@ -1,0 +1,44 @@
+{
+  "fixtureId": "feature-02-deploy-dry-run",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "97980f75452503c3618546da70bfe5f344ac03c9213747609f431e1a657c2ac7",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- Wire --dry-run into the CLI and assert the executor is never constructed. [evidence: f02-user-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- Add deploy --dry-run. It must make no network requests and write no files, while showing the exact planned operations. [evidence: f02-user-1]\n- Wire --dry-run into the CLI next and assert the executor is never constructed. [evidence: f02-user-2]\n\n## Current state\n- Completed: Planning is separated from execution and the human plan renderer is complete. [evidence: f02-assistant-1]\n- Completed: Mocking the filesystem in the CLI test hid the write and was reverted. [evidence: f02-assistant-2]\n- Failed attempt: The side-effect test fails because dry-run still creates a temporary bundle directory. [evidence: f02-tool-1]\n- Failed outcome: The source event marks this path as failed, rejected, reverted, or unresolved. [evidence: f02-tool-1, f02-assistant-2]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result f02-tool-1 — The side-effect test fails because dry-run still creates a temporary bundle directory. [evidence: f02-tool-1]\n- Validation: UNKNOWN Source tool result f02-tool-2 — Bundle preparation now returns planned paths without creating them; the focused unit test passes. [evidence: f02-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: C:\\Users\\dev\\Deploy Demo\n- Git: branch=feature/deploy-dry-run; head=f0200002; dirty=true\n- File: created src/deploy/plan.ts [evidence: none]\n- File: modified src/deploy/bundle.ts [evidence: none]\n- File: referenced src/cli/deploy.ts [evidence: none]\n",
+      "tokens": 476,
+      "utf8Bytes": 1962
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1827,
+    "promptSha256": "497488b4bdd4135fc859cb51cea5cd7bd93c42909d45df23b1a4f0ad223406ca",
+    "promptUtf8Bytes": 2075
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:09:24.478Z",
+    "promptSha256": "497488b4bdd4135fc859cb51cea5cd7bd93c42909d45df23b1a4f0ad223406ca",
+    "startedAt": "2026-07-22T21:09:08.349Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "573b63bbaa0a1097cda9be61721372da027c98895e4e21c6213d9c9261f15a71",
+    "text": "## 续接简报\n\n- **目标**：为 `deploy` 增加 `--dry-run`，展示将执行的精确操作，同时确保不发起网络请求、不写入任何文件。\n- **关键约束**：\n  - 下一步必须将 `--dry-run` 接入 CLI。\n  - 测试必须断言 dry-run 时 **executor 从未被构造**。\n  - 不得重走已失败并撤销的路径：不要通过 mock CLI 测试中的文件系统来隐藏写入副作用。\n- **当前状态**：\n  - 工作区：`C:\\Users\\dev\\Deploy Demo`\n  - 分支：`feature/deploy-dry-run`，HEAD `f0200002`，工作区有未提交改动。\n  - 已创建 `src/deploy/plan.ts`。\n  - 已修改 `src/deploy/bundle.ts`。\n  - `src/cli/deploy.ts` 是下一步涉及的文件。\n- **已完成工作与决定**：\n  - 规划逻辑已与执行逻辑分离。\n  - 人类可读的计划渲染器已完成。\n  - bundle 准备逻辑现可返回计划路径而不创建目录；对应聚焦单元测试已通过，但整体校验状态仍未知。\n- **失败尝试**：\n  - dry-run 曾仍创建临时 bundle 目录，导致副作用测试失败。\n  - 通过 mock 文件系统掩盖该写入的测试方案已被撤销，不应恢复。\n- **待完成工作**：\n  - CLI 尚未接入 `--dry-run`。\n  - 尚需验证 CLI dry-run 输出精确计划，并在该路径中不构造 executor，从而避免执行层网络及文件副作用。\n- **唯一正确的下一步**：修改 `src/cli/deploy.ts` 接入 `--dry-run`，走现有规划与渲染路径，并添加 CLI 测试明确断言 executor 从未被构造。"
+  },
+  "runId": "feature-02-deploy-dry-run:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "bbc9aec142fb32b3fc9882673c3da0503a066bfbcb3233267204aa993e78e2cd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

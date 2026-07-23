@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nSeparate CLI rendering from command logic. Existing human output must stay compatible; JSON mode must write JSON only to stdout.\n\n## Assistant\n\nCommand handlers now return result objects and the text renderer reproduces existing snapshots.\n\n## Assistant\n\nA global no-color flag fixed the snapshot but broke human color output, so that change was reverted.\n\n## User\n\nRenderers own formatting. Diagnostics go to stderr; do not special-case commands.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "refactor-02-cli-renderers",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 457,
+    "utf8Bytes": 457
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "0b4bb6d3d348e114ba5c656c4dde88d60ef6baf47cbbb1fcdadf74defcc28ba2"
+}

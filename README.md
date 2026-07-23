@@ -200,9 +200,14 @@ correct action. A dry 36-run plan and resumable raw-output collector keep target
 model, settings, response text, and exact input-token categories auditable. See
 [Continuity benchmark](docs/benchmarks/continuity-benchmark.md).
 Benchmark v2 separates the target CLI's full-call input from its calibrated
-fixed harness overhead and gates only the AgentCarry-controlled payload against
-the visible-transcript payload. The published Phase 0 v1 report remains frozen
-with its original metric and schema.
+fixed harness overhead. It reports the visible-transcript comparison, while the
+compression gate compares the compiled continuation brief with the matching
+canonical Work Capsule measured by the same target. The published Phase 0 v1
+report remains frozen with its original metric and schema.
+The self-contained human review workbench records a pass/fail outcome for every
+run and lets the reviewer correct fact verdicts, repeated failed paths, and
+unsupported claims. Those human decisions are enforced by final scoring rather
+than treated as display-only metadata.
 
 ## Security and privacy
 

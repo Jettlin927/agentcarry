@@ -1,0 +1,44 @@
+{
+  "fixtureId": "refactor-01-http-transport",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "15de11ee1ea2fa1ae494365455327f12e5e168d09b6f6019811eaab5dd63a7c7",
+      "text": "## User\n\nExtract HTTP transport from ApiClient without changing public exports or adding dependencies.\n\n## Assistant\n\nI moved request construction into src/http/transport.ts and kept ApiClient as the public facade.\n\n## Assistant\n\nCopying every header in ApiClient was attempted and reverted because it duplicated transport policy.\n\n## User\n\nHeader preservation belongs inside the transport. The streaming response method is still unconverted.\n",
+      "tokens": 77,
+      "utf8Bytes": 443
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1428,
+    "promptSha256": "3fde5485e494433e0f8d0684b81b10d3ef043b3445edefb6aeaaea309133ca24",
+    "promptUtf8Bytes": 556
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:17:42.308Z",
+    "promptSha256": "3fde5485e494433e0f8d0684b81b10d3ef043b3445edefb6aeaaea309133ca24",
+    "startedAt": "2026-07-22T21:17:27.360Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "39cfbb9969a573c6aa7149da0f91503e3cd761e5587ce2f75a34271b42e145c1",
+    "text": "## 续接简报\n\n- **目标**：完成从 `ApiClient` 抽离 HTTP transport，同时保持现有公共导出不变且不新增依赖。\n- **关键约束**：\n  - Header 保留逻辑必须位于 transport 内部。\n  - 不得在 `ApiClient` 中逐项复制 headers。\n  - 必须转换尚未迁移的流式响应方法。\n  - 不改变公共 API/exports，不添加依赖。\n- **当前状态**：请求构造已移至 `src/http/transport.ts`；`ApiClient` 保留为公共 facade。流式响应方法仍未接入 transport。\n- **既定决策**：请求构造及 header 保留均由 transport 负责，`ApiClient` 只负责委托。\n- **失败路径**：曾尝试在 `ApiClient` 中复制每个 header；因重复 transport 策略而已回退，不应重试。\n- **已完成**：建立 `src/http/transport.ts` 并迁移非流式请求构造；保留 `ApiClient` facade。\n- **待完成**：在 transport 内确保 headers 完整保留，并将流式响应方法改为使用该 transport；尚无已记录的验证结果。\n- **唯一下一步**：修改流式响应调用链，使其委托给 `src/http/transport.ts`，并由 transport 在构造流式请求时统一保留 headers，避免在 `ApiClient` 中复制 header 逻辑。"
+  },
+  "runId": "refactor-01-http-transport:visible-transcript:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "886d793ac79031e1d1c75c7b9e38665933f37092df12844fea3bb025c6352865",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

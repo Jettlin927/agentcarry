@@ -1,0 +1,44 @@
+{
+  "fixtureId": "refactor-01-http-transport",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "4860285ea5e8c616f1d1f31101e5ce2cebdaed978783315dc7eca26d474ee57c",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- 在 src/http/transport.ts 的 auth retry 路径中实现 header preservation，确保重试保留 Authorization header。 [evidence: r01-tool-1, r01-user-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- 不得更改 public exports。 [evidence: r01-user-1]\n- 不得新增 dependencies。 [evidence: r01-user-1]\n- Header preservation 必须在 transport 内实现，而不是在 ApiClient 内实现。 [evidence: r01-user-2]\n\n## Current state\n- Objective: 从 ApiClient 提取 HTTP transport，同时不更改 public exports，也不新增 dependencies。 [evidence: r01-user-1]\n- Current request: Header preservation belongs inside the transport. The streaming response method is still unconverted. [evidence: r01-user-2]\n- Completed: Request construction 已移动到 src/http/transport.ts，ApiClient 保持为 public facade。 [evidence: r01-assistant-1]\n- Completed: 当前 workspace 中 src/api-client.ts 已修改，src/http/transport.ts 已创建。 [evidence: r01-tool-2, workspace-current]\n- Completed: src/index.ts 保持 unchanged。 [evidence: r01-tool-2, workspace-current]\n- Pending: 修复 auth retry 丢失 Authorization header 的问题，并将修复保留在 transport 内。 [evidence: r01-tool-1, r01-user-2]\n- Pending: 将尚未转换的 streaming response method 迁移到 transport。 [evidence: r01-user-2]\n- Decision: 将 request construction 放入 src/http/transport.ts，并让 ApiClient 继续作为 public facade。 [evidence: r01-assistant-1]\n- Decision: Auth retry 的 header preservation 属于 transport policy。 [evidence: r01-user-2]\n- Decision: 不在 ApiClient 中复制所有 headers，以避免重复 transport policy。 [evidence: r01-assistant-2, r01-user-2]\n- Failed attempt: 在 ApiClient 中复制每一个 header。 [evidence: r01-assistant-2, r01-user-2]\n- Failed outcome: 该实现已被撤销。 [evidence: r01-assistant-2, r01-user-2]\n- Failure reason: 它会在 ApiClient 中重复 transport policy，而 header preservation 应由 transport 负责。 [evidence: r01-assistant-2, r01-user-2]\n- Open question: 来源未给出尚未转换的 streaming response method 的具体名称和代码位置。 [evidence: r01-user-2]\n\n## Later actions\n- 将仍未转换的 streaming response method 改为使用 transport。 [evidence: r01-user-2]\n- 重新运行 unit tests，并确认 auth retry test 及 streaming response 相关行为通过。 [evidence: r01-tool-1, r01-user-2]\n\n## Validations\n- Validation: PARTIAL Unit tests and auth retry test — Unit tests 通过，但 auth retry test 因重试丢失 Authorization header 而失败。 [evidence: r01-tool-1]\n- Validation: PASSED Public export entry-point diff check — git diff 显示 src/index.ts unchanged；该结果仅证明此文件未改变。 [evidence: r01-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING SOURCE_SESSION_METADATA_UNAVAILABLE: 来源未提供 sessionId 或实际 capture timestamps；source.sessionId 使用 unavailable，必填时间字段使用 1970-01-01T00:00:00Z sentinel，不应视为真实采集时间。\n- WARNING SOURCE_SNAPSHOT_UNAVAILABLE: 未提供 source snapshot、byte length、SHA-256 或 capture consistency 信息。\n- WARNING FILE_CONTENTS_UNAVAILABLE: 仅提供了 workspace 文件状态，没有提供文件内容、diff hunks、行号或 hashes。\n- WARNING TOOL_STATE_UNAVAILABLE: 仅提供 tool-result 摘要；原始 tool state、完整输出、调用参数、测试命令、exit codes 和执行时间不可用。\n- INFO HIDDEN_REASONING_UNAVAILABLE: 源 agent 的隐藏推理不可用，未转入 capsule。\n- INFO PROMPT_CACHES_UNAVAILABLE: 源会话的 prompt caches 不可用，未转入 capsule。\n- INFO ATTACHMENTS_UNAVAILABLE: 来源未提供任何附件或附件内容，因此没有可转交的 attachment。\n\n## Workspace\n- Root: /Users/dev/SDK Refactor\n- Git: branch=refactor/http-transport; head=r0100001; dirty=true\n- File: modified src/api-client.ts [evidence: r01-tool-2, workspace-current]\n- File: created src/http/transport.ts [evidence: r01-assistant-1, r01-tool-2, workspace-current]\n- File: referenced src/index.ts [evidence: r01-tool-2, workspace-current]\n",
+      "tokens": 1058,
+      "utf8Bytes": 4238
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 2409,
+    "promptSha256": "adf6294fd3784bc6cc8aa3c0263d860cb151c5e9b0cd6817ccc9fa120140829b",
+    "promptUtf8Bytes": 4351
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:21:04.264Z",
+    "promptSha256": "adf6294fd3784bc6cc8aa3c0263d860cb151c5e9b0cd6817ccc9fa120140829b",
+    "startedAt": "2026-07-22T21:20:47.604Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "2840a0543c0f409ac66c815029c9665fcad3ac4e06a20b39b033546a85dc02ef",
+    "text": "## 续接简报\n\n- **目标**：继续从 `ApiClient` 提取 HTTP transport，同时保持 `ApiClient` 为 public facade；修复认证重试并迁移剩余的 streaming response method。\n- **关键约束**：\n  - 不得更改 public exports，尤其保持 `src/index.ts` 不变。\n  - 不得新增 dependencies。\n  - Header preservation 必须在 `src/http/transport.ts` 内实现，不能放入 `ApiClient`。\n- **当前状态**：\n  - `src/api-client.ts` 已修改。\n  - `src/http/transport.ts` 已创建，请求构造已迁入其中。\n  - Workspace 当前为 dirty。\n  - `src/index.ts` 已确认未变，但没有新的验证结果。\n- **既定决策**：\n  - Transport 负责请求构造及认证重试策略。\n  - `ApiClient` 继续作为公开 facade。\n  - 认证重试时保留 headers 属于 transport policy。\n- **已失败且不得重走的路径**：\n  - 不要在 `ApiClient` 中复制所有 headers；该尝试已撤销，因为它重复了 transport policy。\n- **已完成**：\n  - 请求构造迁移到 `src/http/transport.ts`。\n  - Public export entry point 保持未修改。\n- **待完成**：\n  1. 修复 auth retry 丢失 `Authorization` header。\n  2. 找出并迁移尚未转换的 streaming response method；交接信息未提供其名称或位置。\n  3. 此后重新运行 unit tests，验证 auth retry 与 streaming response 行为。\n- **既有验证**：普通 unit tests 曾通过，但 auth retry test 因重试丢失 `Authorization` header 而失败；未进行新的验证。\n\n**唯一正确的下一步**：在 `src/http/transport.ts` 的 auth retry 路径中实现 header preservation，确保重试请求保留 `Authorization` header；暂不处理 streaming method，也不要把该逻辑放回 `ApiClient`。"
+  },
+  "runId": "refactor-01-http-transport:source-assisted-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "886d793ac79031e1d1c75c7b9e38665933f37092df12844fea3bb025c6352865",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

@@ -110,6 +110,31 @@ export interface TargetCalibration {
   };
 }
 
+export interface CanonicalCapsuleMeasurement {
+  readonly schemaVersion: "2.0.0";
+  readonly fixtureId: string;
+  readonly mode: Exclude<HandoffInputArtifact["mode"], "visible-transcript">;
+  readonly purpose: "canonical-work-capsule-baseline";
+  readonly sourceFingerprint: string;
+  readonly target: TargetRunResult["target"];
+  readonly input: {
+    readonly promptSha256: string;
+    readonly promptUtf8Bytes: number;
+    readonly fullCallInputTokens: number;
+    readonly fixedOverheadInputTokens: number;
+    readonly canonicalWorkCapsulePayload: {
+      readonly sha256: string;
+      readonly utf8Bytes: number;
+      readonly tokens: number;
+    };
+  };
+  readonly responseSha256: string;
+  readonly invocation: {
+    readonly startedAt: string;
+    readonly completedAt: string;
+  };
+}
+
 interface ClaudeEnvelope {
   readonly result?: string;
   readonly is_error?: boolean;
@@ -183,6 +208,17 @@ export function createTargetCalibrationInvocation(
   options: { readonly settingSources?: TargetSettingSources } = {}
 ): TargetInvocation {
   return invocationForPayload("", model, options.settingSources);
+}
+
+export function createCanonicalCapsuleMeasurementInvocation(
+  artifact: HandoffInputArtifact,
+  model: string,
+  options: { readonly settingSources?: TargetSettingSources } = {}
+): TargetInvocation {
+  if (artifact.mode === "visible-transcript") {
+    throw new Error("canonical Work Capsule measurement requires a capsule mode");
+  }
+  return invocationForPayload(artifact.content, model, options.settingSources);
 }
 
 async function executeTarget(
@@ -342,5 +378,68 @@ export async function runTargetContinuation(
         startedAt,
         completedAt
       }
+  };
+}
+
+export async function runCanonicalCapsuleMeasurement(
+  artifact: HandoffInputArtifact,
+  model: string,
+  options: {
+    readonly runner?: ProcessRunner;
+    readonly now?: () => Date;
+    readonly provider?: string;
+    readonly settingSources?: TargetSettingSources;
+    readonly calibration?: TargetCalibration;
+    readonly workingDirectory?: string;
+  } = {}
+): Promise<CanonicalCapsuleMeasurement> {
+  if (artifact.mode === "visible-transcript") {
+    throw new Error("canonical Work Capsule measurement requires a capsule mode");
+  }
+  if (options.calibration === undefined) {
+    throw new Error("canonical Work Capsule measurement requires fixed-overhead calibration");
+  }
+  const invocation = createCanonicalCapsuleMeasurementInvocation(artifact, model, options);
+  const expectedTarget = {
+    agent: "claude",
+    model,
+    provider: options.provider ?? "unspecified",
+    settings: invocation.settings
+  } as const;
+  if (canonicalJson(options.calibration.target) !== canonicalJson(expectedTarget)) {
+    throw new Error("canonical Work Capsule calibration does not match the target");
+  }
+  const { envelope, startedAt, completedAt } = await executeTarget(
+    invocation,
+    options.runner ?? defaultProcessRunner,
+    options.now ?? (() => new Date()),
+    options.workingDirectory
+  );
+  const fullCallInputTokens = totalInputTokens(envelope.usage);
+  const fixedOverheadInputTokens = options.calibration.input.exactInputTokens;
+  const payloadTokens = fullCallInputTokens - fixedOverheadInputTokens;
+  if (payloadTokens < 0) {
+    throw new Error("canonical Work Capsule input tokens are lower than calibrated overhead");
+  }
+  return {
+    schemaVersion: "2.0.0",
+    fixtureId: artifact.fixtureId,
+    mode: artifact.mode,
+    purpose: "canonical-work-capsule-baseline",
+    sourceFingerprint: artifact.sourceFingerprint,
+    target: expectedTarget,
+    input: {
+      promptSha256: sha256(invocation.stdin),
+      promptUtf8Bytes: Buffer.byteLength(invocation.stdin, "utf8"),
+      fullCallInputTokens,
+      fixedOverheadInputTokens,
+      canonicalWorkCapsulePayload: {
+        sha256: sha256(artifact.content),
+        utf8Bytes: Buffer.byteLength(artifact.content, "utf8"),
+        tokens: payloadTokens
+      }
+    },
+    responseSha256: sha256(envelope.result ?? ""),
+    invocation: { startedAt, completedAt }
   };
 }

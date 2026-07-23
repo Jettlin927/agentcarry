@@ -58,6 +58,8 @@ export function renderReviewHtml(fixtures, inputs, results, advisory) {
             mode: result.mode,
             input: input.content,
             output: result.output.text,
+            repeatedFailedPaths: [...(run.repeatedFailedPaths ?? advisory.defaultRepeatedFailedPaths)],
+            unsupportedClaims: [...(run.unsupportedClaims ?? advisory.defaultUnsupportedClaims)],
             facts
         };
     });
@@ -119,8 +121,11 @@ export function renderReviewHtml(fixtures, inputs, results, advisory) {
     .fact-note { color:var(--muted); font-size:12px; }
     .fact select { width:100%; padding:8px; color:var(--text); border:1px solid var(--line); border-radius:8px; background:#0c1118; }
     .note { width:100%; min-height:70px; margin-top:14px; padding:10px 12px; resize:vertical; color:var(--text); border:1px solid var(--line); border-radius:9px; background:#0c1118; }
+    .finding-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
+    .finding-grid label { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-size:12px; }
+    .finding-grid textarea { width:100%; min-height:82px; padding:10px 12px; resize:vertical; color:var(--text); border:1px solid var(--line); border-radius:9px; background:#0c1118; }
     .footer-actions { display:flex; justify-content:space-between; gap:12px; margin:18px 0 30px; }
-    @media (max-width:900px) { .topbar { flex-wrap:wrap; } .brand { min-width:0; } .progress { order:3; flex-basis:100%; } .comparison { grid-template-columns:1fr; } .runbar { grid-template-columns:auto 1fr auto; } .pill { grid-column:2/4; justify-self:start; } .fact { grid-template-columns:1fr; gap:6px; } pre { max-height:none; } }
+    @media (max-width:900px) { .topbar { flex-wrap:wrap; } .brand { min-width:0; } .progress { order:3; flex-basis:100%; } .comparison,.finding-grid { grid-template-columns:1fr; } .runbar { grid-template-columns:auto 1fr auto; } .pill { grid-column:2/4; justify-self:start; } .fact { grid-template-columns:1fr; gap:6px; } pre { max-height:none; } }
   </style>
 </head>
 <body>
@@ -154,6 +159,10 @@ export function renderReviewHtml(fixtures, inputs, results, advisory) {
     <details class="facts" open>
       <summary>逐项复核依据 <span class="hint">（默认显示 AI 建议，可人工改判）</span></summary>
       <div id="factList"></div>
+      <div class="finding-grid">
+        <label>重复失败路径（每行一条）<textarea id="repeatedFailedPaths" placeholder="没有则留空"></textarea></label>
+        <label>不受支持事实（每行一条）<textarea id="unsupportedClaims" placeholder="没有则留空"></textarea></label>
+      </div>
       <textarea id="note" class="note" placeholder="可选：记录你判定通过或不通过的原因"></textarea>
     </details>
     <div class="footer-actions"><button id="clear" class="ghost">清空本机进度</button><button id="nextPending" class="ghost">跳到下一条未复核 →</button></div>
@@ -163,7 +172,7 @@ export function renderReviewHtml(fixtures, inputs, results, advisory) {
     (function () {
       'use strict';
       var data = JSON.parse(document.getElementById('review-data').textContent);
-      var key = 'agentcarry-review-' + data.benchmarkId + '-v1';
+      var key = 'agentcarry-review-' + data.benchmarkId + '-v2';
       var state = { reviewer: '', humanConfirmed:false, reviews: {} };
       try { state = Object.assign(state, JSON.parse(localStorage.getItem(key) || '{}')); } catch (_) {}
       if (!state.reviews) state.reviews = {};
@@ -186,8 +195,9 @@ export function renderReviewHtml(fixtures, inputs, results, advisory) {
         return result;
       }
       function reviewFor(run) {
-        return state.reviews[run.runId] || { outcome:null, factVerdicts:suggestedFacts(run), note:'' };
+        return state.reviews[run.runId] || { outcome:null, factVerdicts:suggestedFacts(run), repeatedFailedPaths:run.repeatedFailedPaths.slice(), unsupportedClaims:run.unsupportedClaims.slice(), note:'' };
       }
+      function lines(value) { return value.split(/\\r?\\n/).map(function (item) { return item.trim(); }).filter(Boolean); }
       function updateProgress() {
         var done = data.runs.filter(function (run) { return state.reviews[run.runId] && state.reviews[run.runId].outcome; }).length;
         byId('progressText').textContent = done + ' / ' + data.runs.length;
@@ -217,6 +227,8 @@ export function renderReviewHtml(fixtures, inputs, results, advisory) {
         byId('input').textContent = run.input;
         byId('output').textContent = run.output;
         byId('note').value = review.note || '';
+        byId('repeatedFailedPaths').value = (review.repeatedFailedPaths || []).join('\\n');
+        byId('unsupportedClaims').value = (review.unsupportedClaims || []).join('\\n');
         byId('pass').classList.toggle('active', review.outcome === 'pass');
         byId('fail').classList.toggle('active', review.outcome === 'fail');
         byId('status').textContent = review.outcome === 'pass' ? '已判定：通过' : review.outcome === 'fail' ? '已判定：不通过' : '尚未判断';
@@ -242,10 +254,10 @@ export function renderReviewHtml(fixtures, inputs, results, advisory) {
         if (!state.humanConfirmed) { alert('最终报告必须由人工复核。请仅在你本人完成判断后勾选人工确认。'); byId('humanConfirmed').focus(); return; }
         var reviews = data.runs.map(function (run) {
           var review = state.reviews[run.runId];
-          return review ? Object.assign({runId:run.runId}, review) : {runId:run.runId,outcome:null,factVerdicts:suggestedFacts(run),note:''};
+          return review ? Object.assign({runId:run.runId}, review) : {runId:run.runId,outcome:null,factVerdicts:suggestedFacts(run),repeatedFailedPaths:run.repeatedFailedPaths.slice(),unsupportedClaims:run.unsupportedClaims.slice(),note:''};
         });
         var complete = reviews.every(function (review) { return review.outcome === 'pass' || review.outcome === 'fail'; });
-        var payload = { schemaVersion:'1.0.0', benchmarkId:data.benchmarkId, reviewerKind:'human', humanReviewer:state.reviewer, humanConfirmed:true, exportedAt:new Date().toISOString(), complete:complete, reviews:reviews };
+        var payload = { schemaVersion:'2.0.0', benchmarkId:data.benchmarkId, reviewerKind:'human', humanReviewer:state.reviewer, humanConfirmed:true, exportedAt:new Date().toISOString(), complete:complete, reviews:reviews };
         var blob = new Blob([JSON.stringify(payload, null, 2) + '\\n'], {type:'application/json'});
         var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'agentcarry-' + data.benchmarkId + '-human-review.json'; link.click(); URL.revokeObjectURL(link.href);
       }
@@ -258,6 +270,8 @@ export function renderReviewHtml(fixtures, inputs, results, advisory) {
       byId('reviewer').addEventListener('change', save);
       byId('humanConfirmed').addEventListener('change', save);
       byId('note').addEventListener('change', function () { var run = current(); var review = reviewFor(run); review.note = byId('note').value.trim(); state.reviews[run.runId] = review; save(); });
+      byId('repeatedFailedPaths').addEventListener('change', function () { var run = current(); var review = reviewFor(run); review.repeatedFailedPaths = lines(byId('repeatedFailedPaths').value); state.reviews[run.runId] = review; save(); });
+      byId('unsupportedClaims').addEventListener('change', function () { var run = current(); var review = reviewFor(run); review.unsupportedClaims = lines(byId('unsupportedClaims').value); state.reviews[run.runId] = review; save(); });
       byId('previous').addEventListener('click', function () { move(-1); });
       byId('next').addEventListener('click', function () { move(1); });
       byId('pass').addEventListener('click', function () { decide('pass'); });

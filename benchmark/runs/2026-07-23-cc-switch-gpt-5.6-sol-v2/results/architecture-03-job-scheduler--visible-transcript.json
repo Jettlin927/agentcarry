@@ -1,0 +1,44 @@
+{
+  "fixtureId": "architecture-03-job-scheduler",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "4c8918522b7c22637234fddf537df1dadd408c3c88e87a697c56a4869840b397",
+      "text": "## User\n\nSchedule jobs with FIFO start order, maximum concurrency four, and cancellation before a queued job starts.\n\n## Assistant\n\nA 250 ms polling loop was prototyped to look for free slots.\n\n## User\n\nReject polling. Release the next FIFO waiter directly when a running job finishes.\n\n## Assistant\n\nThe semaphore queue starts at most four jobs and preserves FIFO in the normal test.\n",
+      "tokens": 77,
+      "utf8Bytes": 385
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1428,
+    "promptSha256": "f06a7376d25cd2bc75d511c0f042f7d6bab8491a6ee733bfe59cbf09ee4b0a3b",
+    "promptUtf8Bytes": 498
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:51:23.957Z",
+    "promptSha256": "f06a7376d25cd2bc75d511c0f042f7d6bab8491a6ee733bfe59cbf09ee4b0a3b",
+    "startedAt": "2026-07-22T20:51:07.323Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "ea45918757bae04972412acd943a2f5eaeb9e3e58fbff2bdb3114ef943631aba",
+    "text": "## 续接简报\n\n- **目标**：实现作业调度器，按 FIFO 顺序启动作业，最大并发数为 4，并允许排队中的作业在启动前取消。\n- **关键约束**：禁止轮询；运行作业结束时必须直接唤醒下一个仍有效的 FIFO 等待者。\n- **当前状态**：已采用信号量队列；目前仅确认在“正常测试”中最多启动 4 个作业并保持 FIFO。\n- **已定决策**：使用完成事件直接释放等待者，不使用定时检查空闲槽位。\n- **失败路径**：250 ms 轮询空闲槽位的原型已被明确否决，不应恢复或变相采用。\n- **已完成**：基础并发上限和正常场景下的 FIFO 行为。\n- **待完成**：排队作业启动前取消的处理及验证；尚无信息证明取消与作业完成并发发生时的行为已覆盖。\n- **唯一下一步**：补齐并验证排队取消路径，确保被取消的等待者不会启动，并且槽位释放后直接唤醒下一个有效的 FIFO 等待者，同时继续满足最大并发 4。"
+  },
+  "runId": "architecture-03-job-scheduler:visible-transcript:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "693f26d1081c33beba8f28d1b74a593657346478a1679500830e5d4c01e0028a",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

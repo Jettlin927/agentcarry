@@ -40,23 +40,32 @@
         "fullCallInput",
         "fixedOverhead",
         "agentCarryPayload",
-        "visibleTranscriptPayloadBaseline"
+        "visibleTranscriptPayloadBaseline",
+        "canonicalWorkCapsulePayloadBaseline"
       ],
       "properties": {
         "method": { "const": "target-calibration-delta-v1" },
         "fullCallInput": { "type": "integer", "minimum": 0 },
         "fixedOverhead": { "type": "integer", "minimum": 0 },
         "agentCarryPayload": { "type": "integer", "minimum": 0 },
-        "visibleTranscriptPayloadBaseline": { "type": "integer", "minimum": 1 }
+        "visibleTranscriptPayloadBaseline": { "type": "integer", "minimum": 1 },
+        "canonicalWorkCapsulePayloadBaseline": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1 },
+            { "type": "null" }
+          ]
+        }
       }
     },
     "review": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["humanReviewer", "reviewedAt"],
+      "required": ["humanReviewer", "reviewedAt", "outcome", "note"],
       "properties": {
         "humanReviewer": { "$ref": "#/$defs/nonEmptyString" },
         "reviewedAt": { "type": "string", "format": "date-time" },
+        "outcome": { "enum": ["pass", "fail"] },
+        "note": { "type": "string" },
         "llmJudge": {
           "type": "object",
           "additionalProperties": false,
@@ -99,6 +108,34 @@
       "uniqueItems": true
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "mode": { "const": "visible-transcript" } },
+        "required": ["mode"]
+      },
+      "then": {
+        "properties": {
+          "tokens": {
+            "type": "object",
+            "properties": {
+              "canonicalWorkCapsulePayloadBaseline": { "type": "null" }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "tokens": {
+            "type": "object",
+            "properties": {
+              "canonicalWorkCapsulePayloadBaseline": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "nonEmptyString": { "type": "string", "minLength": 1 },
     "factAssessment": {

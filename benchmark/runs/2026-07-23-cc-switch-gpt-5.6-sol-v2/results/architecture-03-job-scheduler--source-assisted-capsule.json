@@ -1,0 +1,44 @@
+{
+  "fixtureId": "architecture-03-job-scheduler",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "f4cf5e89e9c11313743ca894c516ea7ef82401808fc9b69116ea637491c4f625",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- 检查 src/scheduler.ts 中排队作业的取消路径和槽位释放路径，定位被取消的第二个等待者为何仍会启动。 [evidence: a03-tool-2, ws-file-scheduler]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- 作业必须按 FIFO 顺序开始执行。 [evidence: a03-user-1]\n- 同时运行的作业最多为四个。 [evidence: a03-user-1]\n- 排队但尚未启动的作业必须能够被取消。 [evidence: a03-user-1]\n- 不得使用轮询；运行作业完成后应直接释放下一个 FIFO 等待者。 [evidence: a03-user-2]\n\n## Current state\n- Objective: 实现作业调度器：按 FIFO 顺序启动作业、最大并发数为四，并允许排队作业在启动前取消；运行作业结束时直接释放下一个 FIFO 等待者，不使用轮询。 [evidence: a03-user-1, a03-user-2]\n- Current request: Reject polling. Release the next FIFO waiter directly when a running job finishes. [evidence: a03-user-2]\n- Completed: 信号量队列在正常测试中已被报告为最多同时启动四个作业并保持 FIFO 顺序。 [evidence: a03-assistant-2]\n- Pending: 修复排队取消缺陷：当前第二个排队作业被取消后仍会在槽位释放时启动。 [evidence: a03-user-1, a03-tool-2]\n- Pending: 修复后重新验证取消行为，同时确认 FIFO 和最大并发四的既有行为未回归。 [evidence: a03-user-1, a03-assistant-2, a03-tool-2]\n- Decision: 拒绝 250 ms 轮询方案。 [evidence: a03-user-2, a03-tool-1]\n- Decision: 槽位释放应直接唤醒下一个 FIFO 等待者。 [evidence: a03-user-2]\n- Failed attempt: 使用 250 ms 轮询循环寻找空闲槽位。 [evidence: a03-assistant-1, a03-tool-1, a03-user-2]\n- Failed outcome: 该方案产生了 247 ms 的中位启动延迟，并导致 fake-timer 测试不稳定，随后被用户拒绝。 [evidence: a03-assistant-1, a03-tool-1, a03-user-2]\n- Failure reason: 轮询引入额外启动延迟和测试抖动。 [evidence: a03-assistant-1, a03-tool-1, a03-user-2]\n- Failed attempt: 使用信号量队列处理 FIFO 和最大并发限制。 [evidence: a03-assistant-2, a03-tool-2]\n- Failed outcome: 正常测试中的 FIFO 和并发限制被报告为通过，但第二个排队作业被取消后，仍会在第一个运行作业释放槽位时启动。 [evidence: a03-assistant-2, a03-tool-2]\n- Open question: 当前取消 API、等待节点数据结构以及槽位释放实现的具体形式是什么？所供资料不包含文件内容或差异。 [evidence: none]\n- Open question: 应使用什么项目命令运行 scheduler 测试？所供资料没有命令历史或项目配置内容。 [evidence: none]\n\n## Later actions\n- 修改队列释放逻辑，使已取消的等待者被移除或跳过，并直接选择下一个有效的 FIFO 等待者而不引入轮询。 [evidence: a03-user-1, a03-user-2, a03-tool-2]\n- 运行取消场景验证，确认排队作业在启动前取消后不会执行。 [evidence: a03-user-1, a03-tool-2, ws-file-cancel-test]\n- 重新运行正常调度验证，确认 FIFO 启动顺序和最大并发四仍然成立。 [evidence: a03-user-1, a03-assistant-2, ws-file-fifo-test]\n\n## Validations\n- Validation: FAILED 250 ms 轮询方案评估 — 轮询增加了 247 ms 中位启动延迟，并使 fake-timer 测试不稳定。 [evidence: a03-tool-1]\n- Validation: PASSED 信号量队列正常调度测试 — 已有报告称该测试保持 FIFO，并将最大并发限制为四。 [evidence: a03-assistant-2]\n- Validation: FAILED 排队作业取消测试 — 取消第二个排队作业后，该作业仍在第一个运行作业释放槽位时启动。 [evidence: a03-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING CAPTURE_METADATA_UNAVAILABLE: 源会话 ID、源捕获时间、工作区捕获时间和快照元数据均未提供；schema 必填的未知会话使用 unavailable，未知时间使用 Unix epoch 哨兵值。\n- CRITICAL FILE_CONTENT_UNAVAILABLE: 仅提供了文件路径和状态，未提供文件内容、diff、行号或实现细节。\n- WARNING COMMAND_HISTORY_UNAVAILABLE: 未提供执行过的命令、工作目录、退出码或执行时间，因此 commands 为空。\n- WARNING VALIDATION_DETAIL_UNAVAILABLE: 验证仅有事件摘要；完整测试输出、测试命令、执行时间和对应 git head 均不可用。\n- INFO HIDDEN_REASONING_UNAVAILABLE: 源只包含可见消息和工具结果，隐藏推理不可用且未被重建。\n- INFO PROMPT_CACHE_UNAVAILABLE: 未提供 prompt cache 或其恢复信息。\n- WARNING TOOL_STATE_UNAVAILABLE: 除可见的工具结果摘要外，工具调用参数、运行状态和内部状态均不可用。\n- INFO ATTACHMENTS_UNAVAILABLE: 未提供任何附件内容或附件定位信息，可能存在的附件上下文无法恢复。\n- INFO LINEAGE_METADATA_UNAVAILABLE: 未提供先前 capsule 或传递 hop；capsule ID 仅根据事件前缀构造，并将当前 capsule 视为根 capsule。\n\n## Workspace\n- Root: /Users/dev/Scheduler Lab\n- Git: branch=architecture/bounded-scheduler; head=a0300003; dirty=true\n- File: modified src/scheduler.ts [evidence: ws-file-scheduler]\n- File: created test/scheduler-fifo.test.ts [evidence: ws-file-fifo-test]\n- File: created test/scheduler-cancel.test.ts [evidence: ws-file-cancel-test]\n",
+      "tokens": 1472,
+      "utf8Bytes": 5347
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 2823,
+    "promptSha256": "56623ab3df2bdf8e8d2d82457fdc8218ef29bb0905d0877a97cb1134c36cf9fb",
+    "promptUtf8Bytes": 5460
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:54:56.747Z",
+    "promptSha256": "56623ab3df2bdf8e8d2d82457fdc8218ef29bb0905d0877a97cb1134c36cf9fb",
+    "startedAt": "2026-07-22T20:54:39.489Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "dab68e18ffcf6fd682ffc52116e22044f1e6c409bde8b7d79906bd08a8f75a09",
+    "text": "## 续接简报\n\n- **目标**：修复作业调度器，使作业按 FIFO 启动、最大并发数为 4，并允许尚未启动的排队作业取消；运行作业结束后直接释放下一个有效等待者，不使用轮询。\n- **关键约束**：\n  - 严格保持 FIFO 启动顺序。\n  - 同时运行的作业不得超过 4 个。\n  - 排队作业必须能在启动前取消，取消后绝不能执行。\n  - 槽位释放时直接唤醒下一个有效等待者，不得轮询。\n- **当前状态**：\n  - 工作区位于 `/Users/dev/Scheduler Lab`，分支 `architecture/bounded-scheduler`，HEAD `a0300003`，工作区非干净状态。\n  - `src/scheduler.ts` 已修改。\n  - 已新增 `test/scheduler-fifo.test.ts` 和 `test/scheduler-cancel.test.ts`。\n- **已完成工作**：信号量队列方案在已有正常调度测试报告中保持了 FIFO，并将最大并发限制为 4。\n- **既定决策**：拒绝 250 ms 轮询；作业结束时应直接将槽位交给下一个未取消的 FIFO 等待者。\n- **已失败路径，必须避免**：\n  - 250 ms 轮询造成约 247 ms 中位启动延迟，并使 fake-timer 测试不稳定。\n  - 当前信号量队列的取消处理有缺陷：第二个排队作业取消后，仍会在槽位释放时启动。\n- **待完成工作**：\n  - 定位取消状态、等待节点与槽位释放之间的缺陷。\n  - 修改释放逻辑，使取消的等待者被移除或跳过，并直接选择下一个有效 FIFO 等待者。\n  - 随后验证取消场景，并回归 FIFO 与最大并发 4。\n- **未知信息**：现有取消 API、等待节点结构、释放实现以及项目测试命令均未随交接提供，不能推测。\n- **唯一正确的下一步**：以只读方式检查 `src/scheduler.ts` 中排队作业的取消路径和槽位释放路径，确定为何被取消的第二个等待者仍会被启动；此时不要修改代码，也不要重走轮询方案。"
+  },
+  "runId": "architecture-03-job-scheduler:source-assisted-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "693f26d1081c33beba8f28d1b74a593657346478a1679500830e5d4c01e0028a",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

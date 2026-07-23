@@ -84,27 +84,35 @@ For every target result:
 fullCallInput = input_tokens + cache_creation_input_tokens + cache_read_input_tokens
 fixedOverhead = calibration.fullCallInput
 agentCarryPayload = fullCallInput - fixedOverhead
-payloadRatio = agentCarryPayload / visibleTranscriptPayloadBaseline
+visibleTranscriptPayloadRatio = agentCarryPayload / visibleTranscriptPayloadBaseline
+canonicalCompressionRatio = agentCarryPayload / canonicalWorkCapsulePayloadBaseline
 ```
 
-The raw result stores the first three values and the exact payload. The
-assessment stores all four inputs plus the metering method
+The raw result stores the first three values and the exact payload. For each of
+the 24 capsule runs, the collector also sends the original canonical JSON
+Capsule through the same calibrated target harness and stores that measurement
+under `canonical-baselines/`. These calls measure input usage only and are not
+part of the 36 continuation results. The assessment stores both comparison
+baselines plus the metering method
 `target-calibration-delta-v1`; the scorer rejects missing, negative, or
 arithmetically inconsistent measurements. `fixedOverhead` covers the target
 CLI's system/harness and the fixed benchmark wrapper. `agentCarryPayload` is the
 model-reported differential caused by the actual handoff payload.
 
 The visible-transcript run for each fixture supplies
-`visibleTranscriptPayloadBaseline`. Benchmark v2's compression gate is
-therefore explicitly:
+`visibleTranscriptPayloadBaseline`; its ratio remains a transparent advisory
+comparison. Each capsule mode supplies its own exact
+`canonicalWorkCapsulePayloadBaseline`. Benchmark v2's compression gate is:
 
 ```text
-agentCarryPayload / visibleTranscriptPayloadBaseline <= 0.40
+agentCarryPayload / canonicalWorkCapsulePayloadBaseline <= 0.40
 ```
 
 The aggregate report publishes mean full-call input, fixed overhead,
-AgentCarry payload, and payload ratio separately. All 36 reports must share the
-same calibration overhead and visible baseline references.
+AgentCarry payload, visible-transcript ratio, canonical Capsule baseline, and
+canonical compression ratio separately. All 36 reports must share the same
+calibration overhead and visible baseline references; every capsule report must
+also have its matching canonical measurement.
 
 The committed [Phase 0 v1 report](../../benchmark/runs/2026-07-21-cc-switch-gpt-5.6-sol/final/REPORT.md),
 raw target results, assessments, scores, and v1 schema are historical artifacts.
@@ -141,7 +149,9 @@ npm run --silent benchmark:score -- <fixture.json> <assessment.json> --format ma
 - the target does not repeat a recorded failed path;
 - the next action is correct;
 - unsupported claims and hallucinations are no worse than baseline;
-- AgentCarry payload uses no more than 40% of the visible-transcript payload.
+- the human reviewer passes every Capsule continuation in the mode;
+- the compiled continuation brief uses no more than 40% of its canonical Work
+  Capsule payload.
 
 Results must be published even if a gate fails.
 
@@ -160,9 +170,10 @@ npm run --silent benchmark:report -- <result-set.json> --format json
 ```
 
 The report prints PASS or FAIL for fidelity, critical constraints, correct next
-action, repeated failed paths, unsupported claims, payload ratio, each capsule
-mode, and the overall Benchmark v2 gate. It also reports full-call input and
-fixed overhead without using either value in the compression gate.
+action, the per-run human outcome, repeated failed paths, unsupported claims,
+canonical compression, each capsule mode, and the overall Benchmark v2 gate.
+It reports the visible ratio, full-call input, and fixed overhead without using
+them in the compression gate.
 
 ## Reproducible target collection
 
@@ -183,9 +194,10 @@ npm run --silent benchmark:collect -- benchmark/fixtures --model <exact-model> -
 Every target run is a fresh Claude Code print session with one fixed system
 prompt, no tools, no persistence, no slash commands, an empty strict MCP set,
 plan permission mode, one turn, and no setting sources. One preceding
-empty-payload call calibrates fixed overhead; it is not a continuation result.
-The runner records the raw response plus full-call, fixed-overhead, and payload
-input tokens. It writes
+empty-payload call calibrates fixed overhead. The collector also makes one
+input-metering call for each canonical Capsule. Neither kind is a continuation
+result. The runner records the raw response plus full-call, fixed-overhead,
+payload, and canonical-baseline input tokens. It writes
 each generated input before its target call and creates each initial result with
 exclusive-write semantics. A failed later call leaves earlier evidence intact;
 re-running the same plan skips validated results and never overwrites them.
@@ -198,7 +210,8 @@ remain separate steps.
 
 Generate the self-contained browser workbench. It shows the exact handoff input
 and target output side by side, keeps pass/fail decisions in browser-local
-storage, allows fact-level corrections, and exports the review as JSON:
+storage, allows fact-level corrections and human overrides for repeated failed
+paths and unsupported claims, and exports the review as JSON:
 
 ```shell
 npm run --silent benchmark:review -- html benchmark/fixtures <run-directory> \
@@ -230,10 +243,12 @@ npm run --silent benchmark:review -- finalize benchmark/fixtures <run-directory>
   --human-confirmed
 ```
 
-Finalization refuses to overwrite an existing output directory. It validates
-all 12 fixtures, 36 target results, 36 advisory entries, 36 completed browser
-decisions, every fact ID and verdict, reviewer metadata, and aggregate integrity
-before publishing `assessments/`, `scores/`, `human-review.json`,
+Finalization refuses to overwrite an existing output directory. Before review
+materialization it recomputes the plan, calibration, prompt, payload, output,
+byte-count, and canonical-baseline integrity of the raw evidence. It then
+validates all 12 fixtures, 36 target results, 36 advisory entries, 36 completed
+browser decisions, every fact ID and verdict, both human-owned risk lists,
+reviewer metadata, and aggregate integrity before publishing `assessments/`,
 `human-confirmation.json`, `result-set.json`, `report.json`, and `REPORT.md`.
 
 ### Explicit routed-provider mode

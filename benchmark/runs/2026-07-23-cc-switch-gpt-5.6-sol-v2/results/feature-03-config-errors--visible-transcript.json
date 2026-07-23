@@ -1,0 +1,44 @@
+{
+  "fixtureId": "feature-03-config-errors",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "5a28e9a1d69c62af5c81f3f2d0be239e15a76b19a49e0e25133a73301bdd22c3",
+      "text": "## User\n\nAdd nested config validation. Environment variables override files, and errors must never include secret values.\n\n## Assistant\n\nSchema parsing and environment precedence are implemented with path-aware validation errors.\n\n## Assistant\n\nLogging the fully resolved config for debugging was attempted and removed because it exposes unrelated secrets.\n\n## User\n\nRedact at the validation-error formatter, not in the parser, and preserve the failing field path.\n",
+      "tokens": 79,
+      "utf8Bytes": 465
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1430,
+    "promptSha256": "6f88d8c7a1d7d1da6ac2d59435ab89037b0f7c2571911e228c03034f2edcdbd2",
+    "promptUtf8Bytes": 578
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:13:59.603Z",
+    "promptSha256": "6f88d8c7a1d7d1da6ac2d59435ab89037b0f7c2571911e228c03034f2edcdbd2",
+    "startedAt": "2026-07-22T21:13:45.399Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "9b528e481586016d91c2b3ed9397365dc3d574e7ef8fa935c539bf4d45be9171",
+    "text": "## 续作简报\n\n- **目标**：完善嵌套配置校验，确保环境变量优先于配置文件，并保证任何校验错误都不会包含秘密值。\n- **关键约束**：\n  - 脱敏必须发生在**校验错误格式化器**中，不能放进解析器。\n  - 脱敏后必须保留失败字段的完整嵌套路径。\n  - 不得记录或输出完整解析后的配置。\n  - 仅依据当前交接信息继续，不假定具体文件、函数或测试状态。\n- **当前状态 / 已完成**：\n  - Schema 解析已实现。\n  - 环境变量覆盖文件配置的优先级已实现。\n  - 校验错误已能感知并携带字段路径。\n- **已确定决策**：解析器继续保留原始校验语义，由错误格式化层负责移除潜在秘密值，同时保留字段路径及安全的错误上下文。\n- **失败尝试**：曾尝试为调试记录完整解析配置，但因会泄露无关秘密而已移除；不得恢复该方案。\n- **待完成**：\n  - 在校验错误格式化器中实施秘密值脱敏。\n  - 覆盖嵌套字段、环境变量覆盖后的无效值，以及错误输出不含秘密值且路径不丢失的测试。\n  - 尚无新的验证结果。\n- **唯一正确的下一步**：定位现有的路径感知校验错误格式化器及其测试，在该边界设计并实施“保留失败字段路径、删除秘密值”的格式化行为，而不修改解析器。"
+  },
+  "runId": "feature-03-config-errors:visible-transcript:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "ec9cc0c1730a10eef152aec54c9fb8f439f745ea6ec6847c04910ab3ab10fd37",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

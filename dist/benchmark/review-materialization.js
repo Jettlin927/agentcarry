@@ -1,4 +1,5 @@
 import { aggregateBenchmark } from "./aggregate-report.js";
+import { canonicalJson } from "./build-handoff-input.js";
 import { categoryWeights, scoreAssessment } from "./score-assessment.js";
 const modes = [
     "visible-transcript",
@@ -90,7 +91,7 @@ function factAssessments(facts, run) {
             : { factId: fact.id, verdict: exception.verdict, note: exception.note };
     });
 }
-function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, advisory, confirmation) {
+function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, canonicalWorkCapsulePayloadBaseline, advisory, confirmation, humanOutcome, humanNote) {
     return {
         schemaVersion: "2.0.0",
         runId: result.runId,
@@ -107,11 +108,14 @@ function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, a
             fullCallInput: result.input.fullCallInputTokens,
             fixedOverhead: result.input.fixedOverheadInputTokens,
             agentCarryPayload: result.input.agentCarryPayload.tokens,
-            visibleTranscriptPayloadBaseline
+            visibleTranscriptPayloadBaseline,
+            canonicalWorkCapsulePayloadBaseline
         },
         review: {
             humanReviewer: confirmation.humanReviewer,
             reviewedAt: confirmation.reviewedAt,
+            outcome: humanOutcome,
+            note: humanNote,
             llmJudge: { model: advisory.reviewer.name, advisoryOnly: true }
         },
         categories: {
@@ -126,6 +130,39 @@ function assessmentFor(fixture, result, run, visibleTranscriptPayloadBaseline, a
         unsupportedClaims: [...(run.unsupportedClaims ?? advisory.defaultUnsupportedClaims)]
     };
 }
+function canonicalBaselineTokens(resultsByRunId, measurements) {
+    const baselines = new Map();
+    for (const measurement of measurements) {
+        const runId = `${measurement.fixtureId}:${measurement.mode}:initial`;
+        const result = resultsByRunId.get(runId);
+        const tokens = measurement.input?.canonicalWorkCapsulePayload?.tokens;
+        if (result === undefined
+            || result.mode === "visible-transcript"
+            || baselines.has(runId)
+            || measurement.schemaVersion !== "2.0.0"
+            || measurement.purpose !== "canonical-work-capsule-baseline"
+            || measurement.sourceFingerprint !== result.sourceFingerprint
+            || canonicalJson(measurement.target) !== canonicalJson(result.target)
+            || !Number.isInteger(tokens)
+            || tokens < 1
+            || measurement.input.fixedOverheadInputTokens !== result.input.fixedOverheadInputTokens
+            || measurement.input.fullCallInputTokens
+                - measurement.input.fixedOverheadInputTokens !== tokens) {
+            throw new Error(`invalid or duplicate canonical Work Capsule baseline ${runId}`);
+        }
+        baselines.set(runId, tokens);
+    }
+    const expected = [...resultsByRunId.values()].filter((result) => result.mode !== "visible-transcript");
+    if (baselines.size !== expected.length) {
+        throw new Error(`benchmark review requires ${expected.length} canonical Work Capsule baselines`);
+    }
+    for (const result of expected) {
+        if (!baselines.has(result.runId)) {
+            throw new Error(`missing canonical Work Capsule baseline ${result.runId}`);
+        }
+    }
+    return baselines;
+}
 function validateConfirmation(confirmation) {
     if (confirmation.confirmed !== true
         || confirmation.humanReviewer.trim().length === 0
@@ -134,9 +171,10 @@ function validateConfirmation(confirmation) {
         throw new Error("finalization requires an explicit human reviewer, timestamp, and confirmation source");
     }
 }
-export function finalizeBenchmarkReview(fixtures, results, advisory, confirmation) {
+export function finalizeBenchmarkReview(fixtures, results, canonicalMeasurements, advisory, confirmation, humanReviews = undefined) {
     validateConfirmation(confirmation);
     const validated = validateReviewInputs(fixtures, results, advisory);
+    const canonicalBaselines = canonicalBaselineTokens(validated.resultsByRunId, canonicalMeasurements);
     const fixtureById = new Map(validated.fixtures.map((fixture) => [fixture.id, fixture]));
     const visiblePayloadBaselines = new Map(validated.fixtures.map((fixture) => {
         const runId = `${fixture.id}:visible-transcript:initial`;
@@ -144,7 +182,10 @@ export function finalizeBenchmarkReview(fixtures, results, advisory, confirmatio
     }));
     const assessments = [...validated.resultsByRunId.values()]
         .sort((left, right) => compareText(left.runId, right.runId))
-        .map((result) => assessmentFor(fixtureById.get(result.fixtureId), result, validated.advisoryByRunId.get(result.runId), visiblePayloadBaselines.get(result.fixtureId), advisory, confirmation));
+        .map((result) => {
+        const humanReview = humanReviews?.get(result.runId);
+        return assessmentFor(fixtureById.get(result.fixtureId), result, validated.advisoryByRunId.get(result.runId), visiblePayloadBaselines.get(result.fixtureId), result.mode === "visible-transcript" ? null : canonicalBaselines.get(result.runId), advisory, confirmation, humanReview?.outcome ?? "pass", humanReview?.note ?? "Human reviewer confirmed the advisory verdicts.");
+    });
     const scores = assessments.map((assessment) => scoreAssessment(fixtureById.get(assessment.fixtureId), assessment));
     const resultSet = {
         schemaVersion: "2.0.0",
@@ -169,12 +210,17 @@ export function finalizeBenchmarkReview(fixtures, results, advisory, confirmatio
         }
     };
 }
-function humanAdjustedAdvisory(fixtures, results, advisory, humanReview) {
+function validFindingList(value) {
+    return Array.isArray(value)
+        && value.every((item) => typeof item === "string" && item.trim().length > 0)
+        && new Set(value).size === value.length;
+}
+function humanAdjustedReview(fixtures, results, advisory, humanReview) {
     const validated = validateReviewInputs(fixtures, results, advisory);
     if (humanReview.reviewerKind !== "human" || humanReview.humanConfirmed !== true) {
         throw new Error("finalization requires explicit human attestation");
     }
-    if (humanReview.schemaVersion !== "1.0.0"
+    if (humanReview.schemaVersion !== "2.0.0"
         || humanReview.benchmarkId !== advisory.benchmarkId
         || humanReview.complete !== true
         || humanReview.humanReviewer.trim().length === 0
@@ -188,7 +234,9 @@ function humanAdjustedAdvisory(fixtures, results, advisory, humanReview) {
             || reviews.has(review.runId)
             || (review.outcome !== "pass" && review.outcome !== "fail")
             || Number.isNaN(Date.parse(review.reviewedAt))
-            || typeof review.note !== "string") {
+            || typeof review.note !== "string"
+            || !validFindingList(review.repeatedFailedPaths)
+            || !validFindingList(review.unsupportedClaims)) {
             throw new Error(`invalid or duplicate human review ${review.runId}`);
         }
         const fixture = validated.fixtures.find((candidate) => candidate.id === result.fixtureId);
@@ -206,38 +254,47 @@ function humanAdjustedAdvisory(fixtures, results, advisory, humanReview) {
         throw new Error(`human review export requires ${validated.resultsByRunId.size} completed runs`);
     }
     return {
-        ...advisory,
-        runs: advisory.runs.map((run) => {
-            const review = reviews.get(run.runId);
-            const result = validated.resultsByRunId.get(run.runId);
-            const fixture = validated.fixtures.find((candidate) => candidate.id === result.fixtureId);
-            const exceptions = Object.fromEntries(allFacts(fixture).flatMap((fact) => {
-                const verdict = review.factVerdicts[fact.id];
-                if (verdict === "preserved") {
-                    return [];
-                }
-                const original = run.exceptions[fact.id];
-                const note = review.note.trim().length > 0
-                    ? review.note.trim()
-                    : original?.verdict === verdict
-                        ? original.note
-                        : `Human reviewer selected ${verdict} after comparing the exact input and output.`;
-                return [[fact.id, { verdict, note }]];
-            }));
-            return { ...run, exceptions };
-        })
+        reviews,
+        advisory: {
+            ...advisory,
+            runs: advisory.runs.map((run) => {
+                const review = reviews.get(run.runId);
+                const result = validated.resultsByRunId.get(run.runId);
+                const fixture = validated.fixtures.find((candidate) => candidate.id === result.fixtureId);
+                const exceptions = Object.fromEntries(allFacts(fixture).flatMap((fact) => {
+                    const verdict = review.factVerdicts[fact.id];
+                    if (verdict === "preserved") {
+                        return [];
+                    }
+                    const original = run.exceptions[fact.id];
+                    const note = review.note.trim().length > 0
+                        ? review.note.trim()
+                        : original?.verdict === verdict
+                            ? original.note
+                            : `Human reviewer selected ${verdict} after comparing the exact input and output.`;
+                    return [[fact.id, { verdict, note }]];
+                }));
+                return {
+                    ...run,
+                    exceptions,
+                    repeatedFailedPaths: [...review.repeatedFailedPaths],
+                    unsupportedClaims: [...review.unsupportedClaims]
+                };
+            })
+        }
     };
 }
-export function finalizeBenchmarkReviewFromExport(fixtures, results, advisory, humanReview, confirmationSource) {
+export function finalizeBenchmarkReviewFromExport(fixtures, results, canonicalMeasurements, advisory, humanReview, confirmationSource) {
     if (confirmationSource.trim().length === 0) {
         throw new Error("finalization requires an auditable confirmation source");
     }
-    const materialized = finalizeBenchmarkReview(fixtures, results, humanAdjustedAdvisory(fixtures, results, advisory, humanReview), {
+    const adjusted = humanAdjustedReview(fixtures, results, advisory, humanReview);
+    const materialized = finalizeBenchmarkReview(fixtures, results, canonicalMeasurements, adjusted.advisory, {
         confirmed: true,
         humanReviewer: humanReview.humanReviewer,
         reviewedAt: humanReview.exportedAt,
         confirmationSource
-    });
+    }, adjusted.reviews);
     return { ...materialized, humanReview };
 }
 function markdownCell(value) {

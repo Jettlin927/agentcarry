@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nStop duplicate invoice jobs while preserving the queue schema and at-most-once side effects.\n\n## Assistant\n\nThe initial hypothesis is that the broker delivers the same message twice after a network retry.\n\n## Assistant\n\nsrc/worker/lease.ts now stores the marker before handler dispatch; the deterministic fake-clock test is still missing.\n\n## User\n\nDo not change queue payloads. Add the fake-clock regression before touching retry policy.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "debugging-03-duplicate-jobs",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 448,
+    "utf8Bytes": 448
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "569be092bf2d03da6b24b9ac18edb33f425fb26f7e24f9c84ae7d0e3683750fd"
+}

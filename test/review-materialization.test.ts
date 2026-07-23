@@ -14,7 +14,11 @@ import {
   renderReviewHtml,
   type ReviewInputArtifact
 } from "../src/benchmark/render-review-html.js";
-import { targetSettings, type TargetRunResult } from "../src/benchmark/run-target-continuation.js";
+import {
+  targetSettings,
+  type CanonicalCapsuleMeasurement,
+  type TargetRunResult
+} from "../src/benchmark/run-target-continuation.js";
 
 const fixtureDirectory = fileURLToPath(new URL("../benchmark/fixtures/", import.meta.url));
 const fixtures = readdirSync(fixtureDirectory)
@@ -71,6 +75,32 @@ function result(
 }
 
 const results = fixtures.flatMap((fixture) => modes.map((mode) => result(fixture, mode)));
+const canonicalBaselines: CanonicalCapsuleMeasurement[] = results.flatMap((entry) =>
+  entry.mode === "visible-transcript" ? [] : [{
+    schemaVersion: "2.0.0" as const,
+    fixtureId: entry.fixtureId,
+    mode: entry.mode,
+    purpose: "canonical-work-capsule-baseline" as const,
+    sourceFingerprint: entry.sourceFingerprint,
+    target: entry.target,
+    input: {
+      promptSha256: "e".repeat(64),
+      promptUtf8Bytes: 100,
+      fullCallInputTokens: 2_000,
+      fixedOverheadInputTokens: 1_000,
+      canonicalWorkCapsulePayload: {
+        sha256: "f".repeat(64),
+        utf8Bytes: 500,
+        tokens: 1_000
+      }
+    },
+    responseSha256: "a".repeat(64),
+    invocation: {
+      startedAt: "2026-07-21T00:00:00Z",
+      completedAt: "2026-07-21T00:00:01Z"
+    }
+  }]
+);
 const inputs: ReviewInputArtifact[] = fixtures.flatMap((fixture) => modes.map((mode) => ({
   fixtureId: fixture.id,
   mode,
@@ -106,7 +136,7 @@ const confirmation = {
 
 function humanReviewExport(): HumanReviewExport {
   return {
-    schemaVersion: "1.0.0",
+    schemaVersion: "2.0.0",
     benchmarkId: "second-36",
     reviewerKind: "human",
     humanReviewer: "human-reviewer",
@@ -127,6 +157,8 @@ function humanReviewExport(): HumanReviewExport {
         runId: entry.runId,
         outcome: "pass" as const,
         factVerdicts: Object.fromEntries(facts.map((fact) => [fact.id, "preserved"])),
+        repeatedFailedPaths: [],
+        unsupportedClaims: [],
         note: "Compared the exact input and output.",
         reviewedAt: "2026-07-21T01:59:00Z"
       };
@@ -136,7 +168,13 @@ function humanReviewExport(): HumanReviewExport {
 
 describe("benchmark review materialization", () => {
   it("materializes all assessments, deterministic scores, and the aggregate report", () => {
-    const materialized = finalizeBenchmarkReview(fixtures, results, advisory(), confirmation);
+    const materialized = finalizeBenchmarkReview(
+      fixtures,
+      results,
+      canonicalBaselines,
+      advisory(),
+      confirmation
+    );
 
     expect(materialized.assessments).toHaveLength(36);
     expect(materialized.scores).toHaveLength(36);
@@ -149,9 +187,17 @@ describe("benchmark review materialization", () => {
     expect(materialized.assessments[0]?.review).toEqual({
       humanReviewer: "human-reviewer",
       reviewedAt: "2026-07-21T02:00:00Z",
+      outcome: "pass",
+      note: "Human reviewer confirmed the advisory verdicts.",
       llmJudge: { model: "test-advisory-model", advisoryOnly: true }
     });
     expect(materialized.confirmation.confirmationSource).toContain("issuecomment-1");
+    expect(materialized.assessments.find(
+      (assessment) => assessment.mode === "visible-transcript"
+    )?.tokens.canonicalWorkCapsulePayloadBaseline).toBeNull();
+    expect(materialized.assessments.find(
+      (assessment) => assessment.mode === "deterministic-capsule"
+    )?.tokens.canonicalWorkCapsulePayloadBaseline).toBe(1_000);
   });
 
   it("applies explicit exceptions and rejects unknown fact ids", () => {
@@ -171,7 +217,13 @@ describe("benchmark review materialization", () => {
         : run)
     };
 
-    const materialized = finalizeBenchmarkReview(fixtures, results, withException, confirmation);
+    const materialized = finalizeBenchmarkReview(
+      fixtures,
+      results,
+      canonicalBaselines,
+      withException,
+      confirmation
+    );
     const assessment = materialized.assessments.find((entry) => entry.runId === runId)!;
     expect(assessment.categories.nextAction).toEqual([{
       factId: nextActionId,
@@ -190,7 +242,13 @@ describe("benchmark review materialization", () => {
           }
         : run)
     };
-    expect(() => finalizeBenchmarkReview(fixtures, results, invalid, confirmation)).toThrow(
+    expect(() => finalizeBenchmarkReview(
+      fixtures,
+      results,
+      canonicalBaselines,
+      invalid,
+      confirmation
+    )).toThrow(
       "unknown fact id unknown"
     );
   });
@@ -212,10 +270,16 @@ describe("benchmark review materialization", () => {
     expect(html).toContain("输出 · Agent 回答");
     expect(html).toContain("通过 · 足以继续工作");
     expect(html).toContain("不通过 · 可能导致错误续接");
+    expect(html).toContain("重复失败路径（每行一条）");
+    expect(html).toContain("不受支持事实（每行一条）");
+    expect(html).toContain("repeatedFailedPaths");
+    expect(html).toContain("unsupportedClaims");
     expect(html).toContain("我是人工复核人，本次判断由我本人完成");
     expect(html).toContain("导出复核结果");
     expect(html).toContain("localStorage");
     expect(html).toContain("Handoff input for architecture-01-streaming-log:visible-transcript");
+    const scripts = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)];
+    expect(() => new Function(scripts.at(-1)?.[1] ?? "")).not.toThrow();
 
     const hostileInputs = inputs.map((input, index) => index === 0
       ? { ...input, content: "</script><script>alert('unsafe')</script>" }
@@ -244,6 +308,7 @@ describe("benchmark review materialization", () => {
     const materialized = finalizeBenchmarkReviewFromExport(
       fixtures,
       results,
+      canonicalBaselines,
       advisory(),
       corrected,
       "https://github.com/example/repo/issues/5#issuecomment-2"
@@ -261,6 +326,7 @@ describe("benchmark review materialization", () => {
     expect(() => finalizeBenchmarkReviewFromExport(
       fixtures,
       results,
+      canonicalBaselines,
       advisory(),
       { ...humanReview, complete: false } as unknown as HumanReviewExport,
       "https://github.com/example/repo/issues/5#issuecomment-3"
@@ -269,6 +335,7 @@ describe("benchmark review materialization", () => {
     expect(() => finalizeBenchmarkReviewFromExport(
       fixtures,
       results,
+      canonicalBaselines,
       advisory(),
       {
         ...humanReview,
@@ -277,5 +344,49 @@ describe("benchmark review materialization", () => {
       } as unknown as HumanReviewExport,
       "https://github.com/example/repo/issues/5#issuecomment-4"
     )).toThrow("explicit human attestation");
+  });
+
+  it("uses the human run outcome and risk-list corrections in final scoring", () => {
+    const humanReview = humanReviewExport();
+    const failedRun = humanReview.reviews.find((review) =>
+      review.runId.endsWith(":deterministic-capsule:initial")
+    )!;
+    const corrected = {
+      ...humanReview,
+      reviews: humanReview.reviews.map((review) => review.runId === failedRun.runId
+        ? {
+            ...review,
+            outcome: "fail",
+            repeatedFailedPaths: ["Re-runs the rejected polling loop."],
+            unsupportedClaims: ["Claims a deployment completed without evidence."]
+          }
+        : {
+            ...review,
+            repeatedFailedPaths: [],
+            unsupportedClaims: []
+          })
+    } as unknown as HumanReviewExport;
+
+    const materialized = finalizeBenchmarkReviewFromExport(
+      fixtures,
+      results,
+      canonicalBaselines,
+      advisory(),
+      corrected,
+      "https://github.com/example/repo/issues/5#issuecomment-5"
+    );
+    const failedScore = materialized.scores.find((score) => score.runId === failedRun.runId)!;
+    const deterministicGate = materialized.report.capsuleGates.find(
+      (gate) => gate.mode === "deterministic-capsule"
+    )!;
+
+    expect(failedScore.humanOutcome).toBe("fail");
+    expect(failedScore.repeatedFailedPaths).toEqual(["Re-runs the rejected polling loop."]);
+    expect(failedScore.unsupportedClaims).toEqual([
+      "Claims a deployment completed without evidence."
+    ]);
+    expect(failedScore.gates.humanOutcomePassed).toBe(false);
+    expect(deterministicGate.humanOutcomesPassed).toBe(false);
+    expect(deterministicGate.passed).toBe(false);
   });
 });

@@ -1,0 +1,27 @@
+{
+  "input": {
+    "exactInputTokens": 1351,
+    "promptSha256": "1e1827cedc5d62b752e92a74765578d89a309a13eff6596120190b250ce53813",
+    "promptUtf8Bytes": 113
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:44:16.516Z",
+    "startedAt": "2026-07-22T20:44:02.502Z"
+  },
+  "schemaVersion": "2.0.0",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

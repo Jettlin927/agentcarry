@@ -49,7 +49,11 @@ function assertComplete(resultSet, expectedFixtureIds) {
         if (report.tokens.fixedOverhead !== fixedOverhead) {
             throw new Error(`fixed target overhead differs in run ${report.runId}`);
         }
-        if (report.reviewer.trim().length === 0 || Number.isNaN(Date.parse(report.reviewedAt))) {
+        if (report.reviewer.trim().length === 0
+            || Number.isNaN(Date.parse(report.reviewedAt))
+            || (report.humanOutcome !== "pass" && report.humanOutcome !== "fail")
+            || typeof report.humanNote !== "string"
+            || report.gates.humanOutcomePassed !== (report.humanOutcome === "pass")) {
             throw new Error(`run ${report.runId} requires an identifiable human review and timestamp`);
         }
         if (runIds.has(report.runId)) {
@@ -119,12 +123,19 @@ function assertReruns(resultSet, initialRunIds) {
     }
 }
 function summarize(mode, reports) {
+    const canonicalBaselines = reports.flatMap((report) => report.tokens.canonicalWorkCapsulePayloadBaseline === null
+        ? []
+        : [report.tokens.canonicalWorkCapsulePayloadBaseline]);
+    const canonicalRatios = reports.flatMap((report) => report.tokens.canonicalCompressionRatio === null
+        ? []
+        : [report.tokens.canonicalCompressionRatio]);
     return {
         mode,
         runs: reports.length,
         meanFidelity: round(reports.reduce((sum, report) => sum + report.fidelityScore, 0) / reports.length, 2),
         criticalConstraintPasses: reports.filter((report) => report.gates.criticalConstraints100Percent).length,
         correctNextActionRuns: reports.filter((report) => report.gates.correctNextAction).length,
+        humanPassRuns: reports.filter((report) => report.gates.humanOutcomePassed).length,
         repeatedFailedPathRuns: reports.filter((report) => report.repeatedFailedPaths.length > 0).length,
         repeatedFailedPaths: reports.reduce((sum, report) => sum + report.repeatedFailedPaths.length, 0),
         unsupportedClaimRuns: reports.filter((report) => report.unsupportedClaims.length > 0).length,
@@ -133,8 +144,14 @@ function summarize(mode, reports) {
         meanFixedOverheadTokens: round(reports.reduce((sum, report) => sum + report.tokens.fixedOverhead, 0) / reports.length, 2),
         meanAgentCarryPayloadTokens: round(reports.reduce((sum, report) => sum + report.tokens.agentCarryPayload, 0) / reports.length, 2),
         meanVisibleTranscriptPayloadBaselineTokens: round(reports.reduce((sum, report) => sum + report.tokens.visibleTranscriptPayloadBaseline, 0) / reports.length, 2),
-        meanPayloadRatio: round(reports.reduce((sum, report) => sum + report.tokens.payloadRatio, 0) / reports.length, 4),
-        payloadRatioAtMost40PercentRuns: reports.filter((report) => report.gates.payloadRatioAtMost40Percent).length
+        meanVisibleTranscriptPayloadRatio: round(reports.reduce((sum, report) => sum + report.tokens.visibleTranscriptPayloadRatio, 0) / reports.length, 4),
+        meanCanonicalWorkCapsulePayloadBaselineTokens: canonicalBaselines.length === 0
+            ? null
+            : round(canonicalBaselines.reduce((sum, value) => sum + value, 0) / canonicalBaselines.length, 2),
+        meanCanonicalCompressionRatio: canonicalRatios.length === 0
+            ? null
+            : round(canonicalRatios.reduce((sum, value) => sum + value, 0) / canonicalRatios.length, 4),
+        canonicalCompressionAtMost40PercentRuns: reports.filter((report) => report.gates.canonicalCompressionAtMost40Percent === true).length
     };
 }
 function capsuleGates(mode, fixtureIds, reports) {
@@ -150,7 +167,8 @@ function capsuleGates(mode, fixtureIds, reports) {
         correctNextAction: comparisons.every(({ capsule }) => capsule.gates.correctNextAction),
         noRepeatedFailedPaths: comparisons.every(({ capsule }) => capsule.repeatedFailedPaths.length === 0),
         unsupportedClaimsNoWorseThanBaseline: comparisons.every(({ capsule, baseline }) => capsule.unsupportedClaims.length <= baseline.unsupportedClaims.length),
-        payloadRatioAtMost40Percent: comparisons.every(({ capsule }) => capsule.gates.payloadRatioAtMost40Percent)
+        canonicalCompressionAtMost40Percent: comparisons.every(({ capsule }) => capsule.gates.canonicalCompressionAtMost40Percent === true),
+        humanOutcomesPassed: comparisons.every(({ capsule }) => capsule.gates.humanOutcomePassed)
     };
     return {
         mode,
@@ -185,8 +203,9 @@ function mark(value) {
     return value ? "PASS" : "FAIL";
 }
 export function renderAggregateMarkdown(report) {
-    const modeRows = report.modes.map((mode) => `| ${mode.mode} | ${mode.runs} | ${mode.meanFidelity.toFixed(2)} | ${mode.criticalConstraintPasses}/12 | ${mode.correctNextActionRuns}/12 | ${mode.repeatedFailedPathRuns}/${mode.repeatedFailedPaths} | ${mode.unsupportedClaimRuns}/${mode.unsupportedClaims} | ${mode.meanFullCallInputTokens.toFixed(2)} | ${mode.meanFixedOverheadTokens.toFixed(2)} | ${mode.meanAgentCarryPayloadTokens.toFixed(2)} | ${mode.meanVisibleTranscriptPayloadBaselineTokens.toFixed(2)} | ${mode.meanPayloadRatio.toFixed(4)} |`).join("\n");
-    const gateRows = report.capsuleGates.map((gate) => `| ${gate.mode} | ${gate.meanFidelityDelta >= 0 ? "+" : ""}${gate.meanFidelityDelta.toFixed(2)} | ${mark(gate.fidelityNoWorseThanBaseline)} | ${mark(gate.criticalConstraints100Percent)} | ${mark(gate.correctNextAction)} | ${mark(gate.noRepeatedFailedPaths)} | ${gate.unsupportedClaimDelta >= 0 ? "+" : ""}${gate.unsupportedClaimDelta} | ${mark(gate.unsupportedClaimsNoWorseThanBaseline)} | ${mark(gate.payloadRatioAtMost40Percent)} | ${mark(gate.passed)} |`).join("\n");
+    const formatOptional = (value, digits) => value === null ? "N/A" : value.toFixed(digits);
+    const modeRows = report.modes.map((mode) => `| ${mode.mode} | ${mode.runs} | ${mode.meanFidelity.toFixed(2)} | ${mode.criticalConstraintPasses}/12 | ${mode.correctNextActionRuns}/12 | ${mode.humanPassRuns}/12 | ${mode.repeatedFailedPathRuns}/${mode.repeatedFailedPaths} | ${mode.unsupportedClaimRuns}/${mode.unsupportedClaims} | ${mode.meanFullCallInputTokens.toFixed(2)} | ${mode.meanFixedOverheadTokens.toFixed(2)} | ${mode.meanAgentCarryPayloadTokens.toFixed(2)} | ${mode.meanVisibleTranscriptPayloadBaselineTokens.toFixed(2)} | ${mode.meanVisibleTranscriptPayloadRatio.toFixed(4)} | ${formatOptional(mode.meanCanonicalWorkCapsulePayloadBaselineTokens, 2)} | ${formatOptional(mode.meanCanonicalCompressionRatio, 4)} |`).join("\n");
+    const gateRows = report.capsuleGates.map((gate) => `| ${gate.mode} | ${gate.meanFidelityDelta >= 0 ? "+" : ""}${gate.meanFidelityDelta.toFixed(2)} | ${mark(gate.fidelityNoWorseThanBaseline)} | ${mark(gate.criticalConstraints100Percent)} | ${mark(gate.correctNextAction)} | ${mark(gate.humanOutcomesPassed)} | ${mark(gate.noRepeatedFailedPaths)} | ${gate.unsupportedClaimDelta >= 0 ? "+" : ""}${gate.unsupportedClaimDelta} | ${mark(gate.unsupportedClaimsNoWorseThanBaseline)} | ${mark(gate.canonicalCompressionAtMost40Percent)} | ${mark(gate.passed)} |`).join("\n");
     const reruns = report.reruns.length === 0
         ? "None."
         : report.reruns.map((rerun) => `- ${rerun.rerunRunId} reran ${rerun.originalRunId}: ${rerun.reason} Resolution: ${rerun.resolution}`).join("\n");
@@ -198,16 +217,16 @@ export function renderAggregateMarkdown(report) {
 - Target settings: \`${canonicalJsonValue(report.target.settings)}\`
 - Benchmark v2: **${mark(report.benchmarkV2Passed)}**
 
-| Mode | Runs | Mean fidelity | Critical constraints | Correct next action | Repeated runs/items | Unsupported runs/items | Mean full call | Mean fixed overhead | Mean AgentCarry payload | Mean visible payload baseline | Mean payload ratio |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Mode | Runs | Mean fidelity | Critical constraints | Correct next action | Human pass | Repeated runs/items | Unsupported runs/items | Mean full call | Mean fixed overhead | Mean AgentCarry payload | Mean visible payload baseline | Mean visible ratio | Mean canonical Capsule baseline | Mean canonical compression |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 ${modeRows}
 
 ## Capsule gates
 
 Each comparison must pass fixture by fixture, not only on the aggregate mean.
 
-| Mode | Mean fidelity delta | Every fidelity >= baseline | Critical 100% | Next action | No repeated path | Unsupported delta | Every unsupported <= baseline | Payload <= 40% | All gates |
-| --- | ---: | --- | --- | --- | --- | ---: | --- | --- | --- |
+| Mode | Mean fidelity delta | Every fidelity >= baseline | Critical 100% | Next action | Human passed all | No repeated path | Unsupported delta | Every unsupported <= baseline | Brief <= 40% canonical Capsule | All gates |
+| --- | ---: | --- | --- | --- | --- | --- | ---: | --- | --- | --- |
 ${gateRows}
 
 ## Reruns and disputes

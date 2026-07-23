@@ -1,0 +1,44 @@
+{
+  "fixtureId": "architecture-01-streaming-log",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "a16de9279363cfc6003e2cd775825236bbc5093daa4d5f5c5ea39705aad19e7d",
+      "text": "## User\n\nRead multi-gigabyte JSONL logs with peak memory below 100 MiB and preserve event order.\n\n## Assistant\n\nThe existing readFile plus split implementation peaks above 2 GiB.\n\n## User\n\nReject pre-indexing for the first read. Use streaming lines and allow an optional later index.\n\n## Assistant\n\nsrc/log/stream-events.ts yields ordered events and stays at 42 MiB on the sample; malformed-line recovery is implemented.\n",
+      "tokens": 94,
+      "utf8Bytes": 421
+    },
+    "fixedOverheadInputTokens": 1349,
+    "fullCallInputTokens": 1443,
+    "promptSha256": "c3e386b0693a7d7fc254f51a19740edf3e97bd92e03423a3a8ff8c6ba80a8e13",
+    "promptUtf8Bytes": 534
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T19:08:01.999Z",
+    "promptSha256": "c3e386b0693a7d7fc254f51a19740edf3e97bd92e03423a3a8ff8c6ba80a8e13",
+    "startedAt": "2026-07-22T19:07:42.975Z"
+  },
+  "mode": "visible-transcript",
+  "output": {
+    "sha256": "358ef20624641a580144e22ea9445f47495c26be9a3ddfa284c639dab3c72747",
+    "text": "## 续接简报\n\n- **目标**：以流式方式读取数 GB 的 JSONL 日志，保持事件顺序，并将峰值内存控制在 **100 MiB 以下**。\n- **关键约束**：\n  - 首次读取不得预建索引。\n  - 必须逐行流式处理。\n  - 后续可选索引应被允许，但不能成为首次读取的前置条件。\n  - 需要处理畸形行，同时不破坏有效事件的顺序。\n- **当前状态**：`src/log/stream-events.ts` 已实现按序产出事件及畸形行恢复；交接记录称其在样例上的峰值内存为 **42 MiB**，尚未独立复核。\n- **已确定方案**：使用流式逐行读取，替代整文件加载与切分。\n- **失败路径**：原有 `readFile + split` 方案峰值内存超过 **2 GiB**，不得回退；首次读取预索引也已明确被拒绝。\n- **已完成**：流式事件产出、顺序保持、畸形行恢复，以及样例内存测量。\n- **待完成/确认**：验证完整验收条件，并确认“后续可选索引”的接口或实现状态；交接中未说明该部分已经完成。\n- **唯一下一步**：审查并验证 `src/log/stream-events.ts` 及相关测试/基准，覆盖多 GB 输入、低于 100 MiB、事件顺序、畸形行恢复、首次读取不预索引，以及后续可选索引契约。"
+  },
+  "runId": "architecture-01-streaming-log:visible-transcript:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "37d5a57123ebb60fc9d102736ca21c5c98622a7269a6a518335316fe5667f625",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

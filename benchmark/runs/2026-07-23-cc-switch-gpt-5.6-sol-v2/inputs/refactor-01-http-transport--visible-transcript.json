@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nExtract HTTP transport from ApiClient without changing public exports or adding dependencies.\n\n## Assistant\n\nI moved request construction into src/http/transport.ts and kept ApiClient as the public facade.\n\n## Assistant\n\nCopying every header in ApiClient was attempted and reverted because it duplicated transport policy.\n\n## User\n\nHeader preservation belongs inside the transport. The streaming response method is still unconverted.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "refactor-01-http-transport",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 443,
+    "utf8Bytes": 443
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "886d793ac79031e1d1c75c7b9e38665933f37092df12844fea3bb025c6352865"
+}

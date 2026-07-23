@@ -14,11 +14,14 @@
     "fullCallInput": 1400,
     "fixedOverhead": 1000,
     "agentCarryPayload": 400,
-    "visibleTranscriptPayloadBaseline": 1000
+    "visibleTranscriptPayloadBaseline": 1000,
+    "canonicalWorkCapsulePayloadBaseline": 1000
   },
   "review": {
     "humanReviewer": "benchmark-reviewer",
-    "reviewedAt": "2026-07-21T00:00:00Z"
+    "reviewedAt": "2026-07-21T00:00:00Z",
+    "outcome": "pass",
+    "note": "The exact input and output were reviewed."
   },
   "categories": {
     "criticalConstraints": [

@@ -32,14 +32,17 @@ describe("scoreAssessment", () => {
       fixedOverhead: 1000,
       agentCarryPayload: 400,
       visibleTranscriptPayloadBaseline: 1000,
-      payloadRatio: 0.4
+      visibleTranscriptPayloadRatio: 0.4,
+      canonicalWorkCapsulePayloadBaseline: 1000,
+      canonicalCompressionRatio: 0.4
     });
     expect(report.criticalConstraintMisses).toEqual([]);
     expect(report.gates).toEqual({
       criticalConstraints100Percent: true,
       correctNextAction: true,
       noRepeatedFailedPath: true,
-      payloadRatioAtMost40Percent: true
+      humanOutcomePassed: true,
+      canonicalCompressionAtMost40Percent: true
     });
   });
 
@@ -54,9 +57,9 @@ describe("scoreAssessment", () => {
       }
     });
 
-    expect(boundary.gates.payloadRatioAtMost40Percent).toBe(true);
-    expect(above.tokens.payloadRatio).toBe(0.401);
-    expect(above.gates.payloadRatioAtMost40Percent).toBe(false);
+    expect(boundary.gates.canonicalCompressionAtMost40Percent).toBe(true);
+    expect(above.tokens.canonicalCompressionRatio).toBe(0.401);
+    expect(above.gates.canonicalCompressionAtMost40Percent).toBe(false);
 
     const roundedDown = scoreAssessment(fixture, {
       ...perfect,
@@ -65,11 +68,26 @@ describe("scoreAssessment", () => {
         fullCallInput: 101_000 + 40_001,
         fixedOverhead: 101_000,
         agentCarryPayload: 40_001,
-        visibleTranscriptPayloadBaseline: 100_000
+        visibleTranscriptPayloadBaseline: 100_000,
+        canonicalWorkCapsulePayloadBaseline: 100_000
       }
     });
-    expect(roundedDown.tokens.payloadRatio).toBe(0.4);
-    expect(roundedDown.gates.payloadRatioAtMost40Percent).toBe(false);
+    expect(roundedDown.tokens.canonicalCompressionRatio).toBe(0.4);
+    expect(roundedDown.gates.canonicalCompressionAtMost40Percent).toBe(false);
+  });
+
+  it("reports visible compression only as an advisory comparison", () => {
+    const report = scoreAssessment(fixture, {
+      ...perfect,
+      tokens: {
+        ...perfect.tokens,
+        visibleTranscriptPayloadBaseline: 100
+      }
+    });
+
+    expect(report.tokens.visibleTranscriptPayloadRatio).toBe(4);
+    expect(report.tokens.canonicalCompressionRatio).toBe(0.4);
+    expect(report.gates.canonicalCompressionAtMost40Percent).toBe(true);
   });
 
   it("rejects missing or internally inconsistent calibration metering", () => {
@@ -88,6 +106,15 @@ describe("scoreAssessment", () => {
         method: undefined
       }
     } as unknown as ContinuationAssessment)).toThrow("requires target-calibration-delta-v1");
+  });
+
+  it("rejects an assessment without an explicit human outcome", () => {
+    expect(() => scoreAssessment(fixture, {
+      ...perfect,
+      review: { ...perfect.review, outcome: undefined }
+    } as unknown as ContinuationAssessment)).toThrow(
+      "requires an explicit human pass or fail outcome"
+    );
   });
 
   it("requires every Benchmark v2 token field in the assessment schema", () => {
@@ -111,6 +138,22 @@ describe("scoreAssessment", () => {
     expect(validate.errors).toEqual(expect.arrayContaining([
       expect.objectContaining({ instancePath: "/tokens", keyword: "required" })
     ]));
+
+    const visible = {
+      ...perfect,
+      mode: "visible-transcript",
+      tokens: {
+        ...perfect.tokens,
+        fullCallInput: 2_000,
+        agentCarryPayload: 1_000,
+        canonicalWorkCapsulePayloadBaseline: null
+      }
+    };
+    expect(validate(visible), JSON.stringify(validate.errors)).toBe(true);
+    expect(validate({
+      ...visible,
+      tokens: { ...visible.tokens, canonicalWorkCapsulePayloadBaseline: 1_000 }
+    })).toBe(false);
   });
 
   it("keeps the published Phase 0 v1 report and raw token fields frozen", () => {
@@ -180,9 +223,10 @@ describe("scoreAssessment", () => {
 
     expect(markdown).toContain("- Fidelity: 100.00 / 100.00");
     expect(markdown).toContain("- Provider route: example-provider");
+    expect(markdown).toContain("- Human outcome: PASS");
     expect(markdown).toContain("| criticalConstraints | 30.00 | 30.00 |");
     expect(markdown).toContain("- Fixed target overhead tokens: 1000");
-    expect(markdown).toContain("- PASS payload ratio at most 40%");
+    expect(markdown).toContain("- PASS canonical Work Capsule compression at most 40%");
   });
 
   it("renders deterministic JSON regardless of settings key insertion order", () => {

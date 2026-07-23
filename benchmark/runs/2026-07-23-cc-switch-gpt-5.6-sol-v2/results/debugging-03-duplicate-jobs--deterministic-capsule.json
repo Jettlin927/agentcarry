@@ -1,0 +1,44 @@
+{
+  "fixtureId": "debugging-03-duplicate-jobs",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "824719edaa64bb1d218ba29dfe8389d85532c37fc53cddcfe49fe3c57c5bbd30",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- Add the fake-clock regression. [evidence: d03-user-2]\n\n## Forbidden before first action\n- Touch retry policy. [evidence: d03-user-2]\n\n## Constraints\n- Stop duplicate invoice jobs while preserving the queue schema and at-most-once side effects. [evidence: d03-user-1]\n- Do not change queue payloads. Add the fake-clock regression before touching retry policy. [evidence: d03-user-2]\n\n## Current state\n- Completed: The initial hypothesis is that the broker delivers the same message twice after a network retry. [evidence: d03-assistant-1]\n- Completed: src/worker/lease.ts now stores the marker before handler dispatch; the deterministic fake-clock test is still missing. [evidence: d03-assistant-2]\n- Failed outcome: The source event marks this path as failed, rejected, reverted, or unresolved. [evidence: d03-assistant-2]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result d03-tool-1 — Broker logs show one delivery; the worker starts the same leased job twice. [evidence: d03-tool-1]\n- Validation: UNKNOWN Source tool result d03-tool-2 — A slow clock test expires the lease before the first handler stores its started marker. [evidence: d03-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: /home/dev/invoice-worker\n- Git: branch=fix/lease-race; head=d0300003; dirty=true\n- File: modified src/worker/lease.ts [evidence: none]\n- File: referenced test/lease-race.test.ts [evidence: none]\n",
+      "tokens": 431,
+      "utf8Bytes": 1782
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1782,
+    "promptSha256": "e0e92b76c751e10a93ba7952b3ad7e7d4a3efa83687d58d5b535fb4dafe58855",
+    "promptUtf8Bytes": 1895
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:02:19.374Z",
+    "promptSha256": "e0e92b76c751e10a93ba7952b3ad7e7d4a3efa83687d58d5b535fb4dafe58855",
+    "startedAt": "2026-07-22T21:02:01.299Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "3e2095b2795533555c5b2cdd8423f151d62b16b20bea60acafc65de408c709c6",
+    "text": "## 续接简报\n\n- **目标**：阻止同一租约任务重复启动，避免重复发票作业，同时保持现有队列 schema、队列 payload 不变，并维持副作用至多执行一次。\n- **关键约束**：\n  - 第一项工作必须是添加确定性的 fake-clock 回归测试。\n  - 在该测试添加前，**禁止修改重试策略**。\n  - 不得更改队列 payload。\n  - 不得沿用“broker 网络重试导致重复投递”的路径：现有日志仅显示一次投递，实际是 worker 将同一 leased job 启动了两次。\n- **当前状态**：\n  - 工作区：`/home/dev/invoice-worker`\n  - 分支：`fix/lease-race`，HEAD：`d0300003`，工作区为 dirty。\n  - `src/worker/lease.ts` 已有未提交修改，据称将 started marker 提前到 handler dispatch 之前。\n  - 该修改被来源标记为失败、回退或尚未解决，不能视为已验证修复。\n- **已确认线索**：\n  - broker 日志显示只有一次消息投递，但 worker 两次启动相同租约任务；验证状态仍为 **UNKNOWN**。\n  - slow-clock 场景会在首个 handler 存储 started marker 前使 lease 过期；验证状态仍为 **UNKNOWN**。\n- **已完成工作**：\n  - 已形成初始 broker 重投假设，但现有证据不支持该方向。\n  - 已修改 `src/worker/lease.ts` 的 marker 写入时序，但缺少确定性回归测试及有效验证。\n- **失败路径**：\n  - 不要继续按 broker 重复投递排查。\n  - 不要把当前 `lease.ts` 修改当作已完成或已验证。\n  - 不要提前调整 retry policy，也不要修改 queue schema/payload。\n- **待办**：\n  - 添加可稳定复现 lease 过期与重复启动竞态的 fake-clock 测试。\n  - 之后才可基于测试结果评估现有 `lease.ts` 修改；没有证据支持其他后续动作。\n- **唯一正确的下一步**：在 `test/lease-race.test.ts` 中添加确定性的 fake-clock 回归测试，覆盖“首个 handler 写入 started marker 前 lease 已过期，从而同一 leased job 被再次启动”的场景；此时不要触碰重试策略。"
+  },
+  "runId": "debugging-03-duplicate-jobs:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "569be092bf2d03da6b24b9ac18edb33f425fb26f7e24f9c84ae7d0e3683750fd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

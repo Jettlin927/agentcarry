@@ -1,0 +1,44 @@
+{
+  "fixtureId": "architecture-01-streaming-log",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "e01024aa3791658864cc89b0a73c3b7a3f2eda91a94109a2659ccd25fd3f52be",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- 检查 test/backpressure.test.ts 与 src/log/stream-events.ts，定位 slow-consumer backpressure test 挂起的原因。 [evidence: a01-tool-2, workspace-file-backpressure-test, workspace-file-stream-events]\n\n## Forbidden before first action\n- 不得在首次读取路径加入预索引，包括以 SQLite 导入替代 streaming lines；可选索引只能位于后续路径。 [evidence: a01-user-2, a01-tool-1]\n\n## Constraints\n- 处理多 GiB JSONL 日志时，峰值内存必须低于 100 MiB。 [evidence: a01-user-1]\n- 输出必须保留事件原始顺序。 [evidence: a01-user-1]\n- 首次读取必须使用流式逐行处理，不得先建立索引。 [evidence: a01-user-2]\n- 可以在首次读取之后提供可选索引。 [evidence: a01-user-2]\n\n## Current state\n- Objective: 以流式逐行方式读取数 GiB 的 JSONL 日志，将峰值内存保持在 100 MiB 以下，同时维持事件顺序；首次读取不得依赖预索引。 [evidence: a01-user-1, a01-user-2]\n- Current request: Reject pre-indexing for the first read. Use streaming lines and allow an optional later index. [evidence: a01-user-2]\n- Completed: 已创建 src/log/stream-events.ts；现有报告称其可以按顺序 yield 事件，并在样本上将内存维持在 42 MiB。 [evidence: a01-assistant-2, workspace-file-stream-events]\n- Completed: src/log/stream-events.ts 已实现 malformed-line recovery。 [evidence: a01-assistant-2, workspace-file-stream-events]\n- Completed: 流式实现的吞吐量已达到目标。 [evidence: a01-tool-2]\n- Pending: slow-consumer backpressure test 仍会挂起，需要定位并修复 backpressure 行为。 [evidence: a01-tool-2]\n- Decision: 拒绝使用预索引作为首次读取路径，改用 streaming lines。 [evidence: a01-user-2]\n- Decision: 索引只能作为首次流式读取之后的可选能力。 [evidence: a01-user-2]\n- Failed attempt: 使用 readFile 读取完整文件后再执行 split。 [evidence: a01-assistant-1, a01-user-1]\n- Failed outcome: 峰值内存超过 2 GiB，不满足低于 100 MiB 的要求。 [evidence: a01-assistant-1, a01-user-1]\n- Failed attempt: 在首次读取前将日志导入 SQLite。 [evidence: a01-tool-1, a01-user-2]\n- Failed outcome: 首个事件可用前需要 48 秒，且用户明确拒绝首次读取预索引。 [evidence: a01-tool-1, a01-user-2]\n- Failed attempt: 运行 slow-consumer backpressure test。 [evidence: a01-tool-2]\n- Failed outcome: 测试挂起。 [evidence: a01-tool-2]\n- Failure reason: 所提供事件没有说明挂起原因。 [evidence: a01-tool-2]\n- Open question: slow-consumer backpressure test 挂起的具体原因尚不明确。 [evidence: a01-tool-2]\n\n## Later actions\n- 修复已定位的 backpressure 问题，同时保持流式逐行读取、事件顺序和低内存约束。 [evidence: a01-tool-2, a01-user-1, a01-user-2]\n- 重新验证 slow-consumer backpressure，并确认吞吐量、事件顺序和峰值内存目标仍然满足。 [evidence: a01-tool-2, a01-user-1, a01-assistant-2]\n\n## Validations\n- Validation: PASSED 样本事件顺序与峰值内存 — 现有报告称 src/log/stream-events.ts 按顺序 yield 事件，并在样本上保持 42 MiB 峰值内存。 [evidence: a01-assistant-2]\n- Validation: PASSED 吞吐量目标 — 工具结果报告吞吐量达到目标，但未提供具体数值或执行命令。 [evidence: a01-tool-2]\n- Validation: FAILED Slow-consumer backpressure — slow-consumer backpressure test 挂起。 [evidence: a01-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING SESSION_METADATA_UNAVAILABLE: 来源未提供 sessionId 或精确捕获时间；sessionId 使用 unavailable，占位时间仅满足 schema，不能视为原始会话时间。\n- WARNING FILE_CONTENTS_UNAVAILABLE: 工作区仅提供文件路径和状态，未提供文件内容或 SHA-256，因此无法核验实现细节及当前行号。\n- WARNING COMMAND_DETAILS_UNAVAILABLE: 未提供任何已执行命令、退出码或执行时间；验证结果只能按事件摘要记录。\n- INFO HIDDEN_REASONING_UNAVAILABLE: 来源代理的隐藏推理不可用，未纳入 Capsule。\n- INFO PROMPT_CACHE_UNAVAILABLE: 来源会话的 prompt cache 不可用。\n- WARNING TOOL_STATE_UNAVAILABLE: 除给定 tool-result 文本外，工具调用参数、运行状态和完整输出均不可用。\n- INFO ATTACHMENTS_UNAVAILABLE: 未提供可转交的附件内容或附件可用性元数据。\n\n## Workspace\n- Root: /home/dev/event-reader\n- Git: branch=perf/stream-jsonl; head=a0100001; dirty=true\n- File: created src/log/stream-events.ts [evidence: workspace-file-stream-events, a01-assistant-2]\n- File: modified src/log/read-events.ts [evidence: workspace-file-read-events]\n- File: created test/backpressure.test.ts [evidence: workspace-file-backpressure-test, a01-tool-2]\n",
+      "tokens": 1326,
+      "utf8Bytes": 4872
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 2677,
+    "promptSha256": "38cb4965f400fcbb5fb9e991fc73969d7f04ba4816a4dc91f4f2ed1a578bdb95",
+    "promptUtf8Bytes": 4985
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:47:28.729Z",
+    "promptSha256": "38cb4965f400fcbb5fb9e991fc73969d7f04ba4816a4dc91f4f2ed1a578bdb95",
+    "startedAt": "2026-07-22T20:47:12.068Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "6a82a765b850bda9cc4ccf1ed6b884ba2a4c642f95d1cd927b260a3d9ebbf3d5",
+    "text": "## 续接简报\n\n- **目标**：流式逐行读取数 GiB 的 JSONL 日志，保持事件原始顺序，并将峰值内存控制在 **100 MiB 以下**。\n- **关键约束**：\n  - 首次读取必须直接使用 streaming lines，**不得预先建立索引或导入 SQLite**。\n  - 可选索引只能在首次流式读取完成后提供。\n  - 修复不得破坏低内存、事件顺序、malformed-line recovery 或现有吞吐量。\n- **当前状态**：\n  - `src/log/stream-events.ts` 已创建；现有报告称样本峰值内存为 **42 MiB**，事件顺序正确。\n  - malformed-line recovery 已实现。\n  - 吞吐量目标据报告已通过，但缺少具体命令和数值。\n  - `test/backpressure.test.ts` 的 slow-consumer backpressure 测试仍会挂起，原因未知。\n  - 工作区位于 `/home/dev/event-reader`，分支 `perf/stream-jsonl`，工作树为 dirty。\n- **既定决策**：拒绝首次读取预索引；首次路径仅采用流式逐行处理，索引只能是后续可选能力。\n- **已失败路径，必须避免**：\n  - `readFile` 整体读取后 `split`：峰值内存超过 **2 GiB**。\n  - 首次读取前导入 SQLite：首事件等待约 **48 秒**，且违反明确约束。\n  - slow-consumer backpressure 测试：执行时挂起，尚无已确认原因。\n- **待完成**：\n  1. 定位测试挂起的具体原因。\n  2. 修复 backpressure，同时维持流式、顺序和低内存约束。\n  3. 之后重新验证 backpressure、吞吐量、顺序和峰值内存；当前不能宣称这些已重新验证。\n- **唯一正确的下一步**：只读检查 `test/backpressure.test.ts` 与 `src/log/stream-events.ts`，追踪 slow consumer 场景下生产、消费、暂停/恢复及结束信号的交互，以确定挂起原因；此时不得修改实现，也不得引入任何首次读取预索引方案。"
+  },
+  "runId": "architecture-01-streaming-log:source-assisted-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "37d5a57123ebb60fc9d102736ca21c5c98622a7269a6a518335316fe5667f625",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

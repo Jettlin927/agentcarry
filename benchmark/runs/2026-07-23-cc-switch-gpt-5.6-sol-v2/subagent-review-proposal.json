@@ -1,0 +1,2230 @@
+{
+  "schemaVersion": "1.0.0",
+  "benchmarkId": "2026-07-23-cc-switch-gpt-5.6-sol-v2",
+  "status": "ai-review-proposal-only",
+  "reviewer": {
+    "kind": "ai",
+    "name": "Codex independent review subagent",
+    "advisoryOnly": true,
+    "humanConfirmed": false,
+    "reviewedAt": "2026-07-23T14:16:28.965Z"
+  },
+  "scope": {
+    "formalRunDirectory": "benchmark/runs/2026-07-23-cc-switch-gpt-5.6-sol-v2",
+    "included": [
+      "benchmark/fixtures/*.json",
+      "inputs/*.json",
+      "results/*.json"
+    ],
+    "excluded": [
+      "pre-decision/**",
+      "rejected/**",
+      "canonical-baselines/**",
+      "advisory-verdicts.json"
+    ],
+    "method": "Each verdict was decided from the exact target input and target output against fixture groundTruth. The existing advisory was not read until after this proposal was materialized.",
+    "outcomeMeaning": "pass means the received input and produced output are sufficient for another coding Agent to continue correctly; fail means a material omission, contradiction, unsupported claim, or wrong next action makes continuation unreliable."
+  },
+  "advisoryOnly": true,
+  "humanConfirmed": false,
+  "runs": [
+    {
+      "runId": "architecture-01-streaming-log:visible-transcript:initial",
+      "fixtureId": "architecture-01-streaming-log",
+      "mode": "visible-transcript",
+      "outcome": "fail",
+      "inputArtifact": "inputs/architecture-01-streaming-log--visible-transcript.json",
+      "resultArtifact": "results/architecture-01-streaming-log--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "a01-constraint-memory",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Peak memory must remain below 100 MiB."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a01-constraint-order",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve source event order."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "a01-objective",
+          "verdict": "partial",
+          "note": "输出保留了流式、顺序与内存目标，但没有说明 slow-consumer backpressure 已挂起这一当前阻塞状态。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a01-failed-sqlite",
+          "verdict": "partial",
+          "note": "输出保留了首次读取不得预索引的结论，却遗漏 SQLite 预导入及首事件等待 48 秒的失败证据。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a01-decision-stream",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Stream lines on first read; a later index may remain optional."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "a01-progress",
+          "verdict": "partial",
+          "note": "输出保留了顺序、42 MiB 与 malformed-line recovery，但遗漏吞吐已通过和 slow-consumer backpressure 挂起。"
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "a01-workspace",
+          "verdict": "partial",
+          "note": "输出只提到 stream-events.ts，未保留旧 reader 已修改及 backpressure 测试已创建。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "a01-next",
+          "verdict": "partial",
+          "note": "输出要求审查背压路径，但把下一步限制为只读审查，没有保留“诊断并修复挂起测试”的完整动作。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：约束和流式方案尚可恢复，但当前唯一失败测试被输入裁剪掉，输出因此没有把修复 backpressure 作为完整下一步，不能可靠继续。"
+    },
+    {
+      "runId": "architecture-01-streaming-log:deterministic-capsule:initial",
+      "fixtureId": "architecture-01-streaming-log",
+      "mode": "deterministic-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/architecture-01-streaming-log--deterministic-capsule.json",
+      "resultArtifact": "results/architecture-01-streaming-log--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "a01-constraint-memory",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Peak memory must remain below 100 MiB."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a01-constraint-order",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve source event order."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "a01-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Replace whole-file JSONL loading with an ordered bounded-memory stream; backpressure is still broken."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a01-failed-sqlite",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Mandatory SQLite pre-indexing was rejected because time-to-first-event was 48 seconds."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a01-decision-stream",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Stream lines on first read; a later index may remain optional."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "a01-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Ordered parsing, memory target, throughput, and malformed recovery pass; slow-consumer backpressure hangs."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "a01-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The streaming reader and backpressure test are new; the old reader is modified."
+        },
+        {
+          "category": "nextAction",
+          "factId": "a01-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Diagnose and fix the hanging slow-consumer backpressure test without buffering the full log."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：完整保留内存、顺序、流式决策、SQLite/readFile 失败路径、backpressure 挂起和定位修复下一步。"
+    },
+    {
+      "runId": "architecture-01-streaming-log:source-assisted-capsule:initial",
+      "fixtureId": "architecture-01-streaming-log",
+      "mode": "source-assisted-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/architecture-01-streaming-log--source-assisted-capsule.json",
+      "resultArtifact": "results/architecture-01-streaming-log--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "a01-constraint-memory",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Peak memory must remain below 100 MiB."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a01-constraint-order",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve source event order."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "a01-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Replace whole-file JSONL loading with an ordered bounded-memory stream; backpressure is still broken."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a01-failed-sqlite",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Mandatory SQLite pre-indexing was rejected because time-to-first-event was 48 seconds."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a01-decision-stream",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Stream lines on first read; a later index may remain optional."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "a01-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Ordered parsing, memory target, throughput, and malformed recovery pass; slow-consumer backpressure hangs."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "a01-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The streaming reader and backpressure test are new; the old reader is modified."
+        },
+        {
+          "category": "nextAction",
+          "factId": "a01-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Diagnose and fix the hanging slow-consumer backpressure test without buffering the full log."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：完整说明当前 backpressure 失败、既有通过项、禁止路径和分阶段定位/修复/复验动作。"
+    },
+    {
+      "runId": "architecture-02-session-index:visible-transcript:initial",
+      "fixtureId": "architecture-02-session-index",
+      "mode": "visible-transcript",
+      "outcome": "fail",
+      "inputArtifact": "inputs/architecture-02-session-index--visible-transcript.json",
+      "resultArtifact": "results/architecture-02-session-index--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "a02-constraint-offline",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The index must work fully offline."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a02-constraint-native",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not require native dependencies on supported platforms."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "a02-objective",
+          "verdict": "partial",
+          "note": "输出保留了便携离线索引目标与 JSONL 现状，但完全遗漏 compaction 尚未实现。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a02-failed-sqlite",
+          "verdict": "partial",
+          "note": "输出说明 SQLite driver 需要 Windows 原生二进制，但遗漏干净 Windows 安装实际编译失败。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a02-decision-jsonl",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Use append-only JSONL until 10,000-session startup exceeds two seconds."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "a02-progress",
+          "verdict": "partial",
+          "note": "输出保留 640 ms 与追加加载，却遗漏文件无限增长、compaction 和 crash-safe replacement 待办。"
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "a02-workspace",
+          "verdict": "partial",
+          "note": "输出只保留 jsonl-store.ts，未保留 startup test 已创建及 compact.ts 缺失。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "a02-next",
+          "verdict": "contradicted",
+          "note": "Ground truth 要求先设计 crash-safe compaction 测试；输出改为做跨平台追加/重启验证，并暂不修改存储设计。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：可见输入缺少更新膨胀事实，输出选择了错误的下一步，无法继续核心未完成工作。"
+    },
+    {
+      "runId": "architecture-02-session-index:deterministic-capsule:initial",
+      "fixtureId": "architecture-02-session-index",
+      "mode": "deterministic-capsule",
+      "outcome": "fail",
+      "inputArtifact": "inputs/architecture-02-session-index--deterministic-capsule.json",
+      "resultArtifact": "results/architecture-02-session-index--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "a02-constraint-offline",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The index must work fully offline."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a02-constraint-native",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not require native dependencies on supported platforms."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "a02-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Provide a portable local session index; JSONL meets startup goals, compaction is missing."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a02-failed-sqlite",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The SQLite driver was rejected after a clean Windows native build failure."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a02-decision-jsonl",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Use append-only JSONL until 10,000-session startup exceeds two seconds."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "a02-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Append and startup loading meet the measured threshold; crash-safe compaction remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "a02-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：jsonl-store.ts and its startup test are new; compact.ts is absent."
+        },
+        {
+          "category": "nextAction",
+          "factId": "a02-next",
+          "verdict": "contradicted",
+          "note": "Ground truth 要求先设计 crash-safe compaction 测试再实现；输出直接要求实现压缩及崩溃安全替换。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：事实基本完整，但跳过测试设计，直接实施 compaction，违反明确的下一动作顺序。"
+    },
+    {
+      "runId": "architecture-02-session-index:source-assisted-capsule:initial",
+      "fixtureId": "architecture-02-session-index",
+      "mode": "source-assisted-capsule",
+      "outcome": "fail",
+      "inputArtifact": "inputs/architecture-02-session-index--source-assisted-capsule.json",
+      "resultArtifact": "results/architecture-02-session-index--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "a02-constraint-offline",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The index must work fully offline."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a02-constraint-native",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not require native dependencies on supported platforms."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "a02-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Provide a portable local session index; JSONL meets startup goals, compaction is missing."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a02-failed-sqlite",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The SQLite driver was rejected after a clean Windows native build failure."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a02-decision-jsonl",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Use append-only JSONL until 10,000-session startup exceeds two seconds."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "a02-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Append and startup loading meet the measured threshold; crash-safe compaction remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "a02-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：jsonl-store.ts and its startup test are new; compact.ts is absent."
+        },
+        {
+          "category": "nextAction",
+          "factId": "a02-next",
+          "verdict": "contradicted",
+          "note": "输出明确把实现 src/index/compact.ts 作为第一步，Ground truth 明确要求实现前先设计 crash-safe compaction 测试。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：高保真保留了背景和风险，但首个动作仍与测试优先的 Ground truth 相反。"
+    },
+    {
+      "runId": "architecture-03-job-scheduler:visible-transcript:initial",
+      "fixtureId": "architecture-03-job-scheduler",
+      "mode": "visible-transcript",
+      "outcome": "pass",
+      "inputArtifact": "inputs/architecture-03-job-scheduler--visible-transcript.json",
+      "resultArtifact": "results/architecture-03-job-scheduler--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "a03-constraint-limit",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Never run more than four jobs concurrently."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a03-constraint-order",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve FIFO start order among non-cancelled jobs."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a03-constraint-cancel",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：A queued job can be cancelled before it starts."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "a03-objective",
+          "verdict": "partial",
+          "note": "输出保留 FIFO/并发/取消目标及正常测试通过，但只说取消尚待完成，没有保留现有取消测试的具体失败。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a03-failed-polling",
+          "verdict": "partial",
+          "note": "输出保留 250 ms polling 被拒绝，却遗漏 247 ms 中位延迟和 fake-timer 抖动的证据。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a03-decision-release",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：A completed job directly releases the next FIFO waiter."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "a03-progress",
+          "verdict": "partial",
+          "note": "输出保留 FIFO 和并发已完成、取消待修，但没有说明取消 waiter 未正确移除的具体故障。"
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "a03-workspace",
+          "verdict": "missing",
+          "note": "输出没有保留 scheduler.ts、FIFO test 和 cancellation test 的工作区文件状态。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "a03-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Fix queued-waiter removal so cancellation test passes without weakening FIFO or concurrency four."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：尽管缺少工具与工作区细节，输出仍给出正确取消修复方向，并明确保持 FIFO、并发四和无 polling。"
+    },
+    {
+      "runId": "architecture-03-job-scheduler:deterministic-capsule:initial",
+      "fixtureId": "architecture-03-job-scheduler",
+      "mode": "deterministic-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/architecture-03-job-scheduler--deterministic-capsule.json",
+      "resultArtifact": "results/architecture-03-job-scheduler--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "a03-constraint-limit",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Never run more than four jobs concurrently."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a03-constraint-order",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve FIFO start order among non-cancelled jobs."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a03-constraint-cancel",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：A queued job can be cancelled before it starts."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "a03-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Implement a bounded FIFO scheduler; concurrency and normal FIFO pass, queued cancellation fails."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a03-failed-polling",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Polling was rejected because of start latency and flaky timing tests."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a03-decision-release",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：A completed job directly releases the next FIFO waiter."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "a03-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Semaphore concurrency and normal FIFO pass; cancelled waiters are not removed correctly."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "a03-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：scheduler.ts is modified and separate FIFO and cancellation tests are new."
+        },
+        {
+          "category": "nextAction",
+          "factId": "a03-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Fix queued-waiter removal so cancellation test passes without weakening FIFO or concurrency four."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：约束、polling 失败、取消复现、文件状态与修复取消 waiter 的下一步均完整。"
+    },
+    {
+      "runId": "architecture-03-job-scheduler:source-assisted-capsule:initial",
+      "fixtureId": "architecture-03-job-scheduler",
+      "mode": "source-assisted-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/architecture-03-job-scheduler--source-assisted-capsule.json",
+      "resultArtifact": "results/architecture-03-job-scheduler--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "a03-constraint-limit",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Never run more than four jobs concurrently."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a03-constraint-order",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve FIFO start order among non-cancelled jobs."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "a03-constraint-cancel",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：A queued job can be cancelled before it starts."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "a03-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Implement a bounded FIFO scheduler; concurrency and normal FIFO pass, queued cancellation fails."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a03-failed-polling",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Polling was rejected because of start latency and flaky timing tests."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "a03-decision-release",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：A completed job directly releases the next FIFO waiter."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "a03-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Semaphore concurrency and normal FIFO pass; cancelled waiters are not removed correctly."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "a03-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：scheduler.ts is modified and separate FIFO and cancellation tests are new."
+        },
+        {
+          "category": "nextAction",
+          "factId": "a03-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Fix queued-waiter removal so cancellation test passes without weakening FIFO or concurrency four."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：完整保留取消故障，先定位再修改并回归 FIFO/并发的动作可安全续接。"
+    },
+    {
+      "runId": "debugging-01-invoice-total:visible-transcript:initial",
+      "fixtureId": "debugging-01-invoice-total",
+      "mode": "visible-transcript",
+      "outcome": "pass",
+      "inputArtifact": "inputs/debugging-01-invoice-total--visible-transcript.json",
+      "resultArtifact": "results/debugging-01-invoice-total--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "d01-constraint-api",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep the public API unchanged."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "d01-constraint-currency",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep currency values as decimal strings."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "d01-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Fix stale invoice totals; the parser change is present but unverified."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d01-failed-cache",
+          "verdict": "partial",
+          "note": "输出保留 cache 假设被否决和禁止重试，但因输入无 tool result，遗漏“禁用 cache 后测试仍失败”的证据。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d01-decision-parser",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Negative adjustment rows are the identified cause."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "d01-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Parser retention is implemented; the focused regression test remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "d01-workspace",
+          "verdict": "partial",
+          "note": "输出保留 parser.ts 已修改，但未保留 fix/invoice-total 分支信息。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "d01-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Write and run the focused negative-adjustment regression test."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：保留两项关键约束、parser 根因方向、禁止 cache 和先写回归测试，足以正确继续。"
+    },
+    {
+      "runId": "debugging-01-invoice-total:deterministic-capsule:initial",
+      "fixtureId": "debugging-01-invoice-total",
+      "mode": "deterministic-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/debugging-01-invoice-total--deterministic-capsule.json",
+      "resultArtifact": "results/debugging-01-invoice-total--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "d01-constraint-api",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep the public API unchanged."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "d01-constraint-currency",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep currency values as decimal strings."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "d01-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Fix stale invoice totals; the parser change is present but unverified."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d01-failed-cache",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The cache hypothesis was rejected because disabling it did not fix the test."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d01-decision-parser",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Negative adjustment rows are the identified cause."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "d01-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Parser retention is implemented; the focused regression test remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "d01-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：src/invoice/parser.ts is modified on fix/invoice-total."
+        },
+        {
+          "category": "nextAction",
+          "factId": "d01-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Write and run the focused negative-adjustment regression test."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：根因、失败假设、工作区、未验证状态和聚焦回归测试下一步均完整。"
+    },
+    {
+      "runId": "debugging-01-invoice-total:source-assisted-capsule:initial",
+      "fixtureId": "debugging-01-invoice-total",
+      "mode": "source-assisted-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/debugging-01-invoice-total--source-assisted-capsule.json",
+      "resultArtifact": "results/debugging-01-invoice-total--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "d01-constraint-api",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep the public API unchanged."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "d01-constraint-currency",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep currency values as decimal strings."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "d01-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Fix stale invoice totals; the parser change is present but unverified."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d01-failed-cache",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The cache hypothesis was rejected because disabling it did not fix the test."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d01-decision-parser",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Negative adjustment rows are the identified cause."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "d01-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Parser retention is implemented; the focused regression test remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "d01-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：src/invoice/parser.ts is modified on fix/invoice-total."
+        },
+        {
+          "category": "nextAction",
+          "factId": "d01-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Write and run the focused negative-adjustment regression test."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：完整保留 cache 反证、negative adjustment 根因、文件状态及测试优先动作。"
+    },
+    {
+      "runId": "debugging-02-unicode-watcher:visible-transcript:initial",
+      "fixtureId": "debugging-02-unicode-watcher",
+      "mode": "visible-transcript",
+      "outcome": "pass",
+      "inputArtifact": "inputs/debugging-02-unicode-watcher--visible-transcript.json",
+      "resultArtifact": "results/debugging-02-unicode-watcher--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "d02-constraint-deps",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not add a watcher dependency."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "d02-constraint-posix",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep POSIX path comparison case-sensitive."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "d02-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Restore Windows reloads for Chinese paths; comparison code is changed and integration coverage is incomplete."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d02-failed-utf8",
+          "verdict": "partial",
+          "note": "输出正确避免 UTF-8 假设，但可见输入没有“解码路径完全一致”的工具证据，因此只保留了较弱的未获验证/已转向判断。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d02-decision-case",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Use case-insensitive path comparison only on Windows."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "d02-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Windows-aware comparison and unit tests are complete; real watcher integration remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "d02-workspace",
+          "verdict": "partial",
+          "note": "输出保留 watch-path.ts 修改和 Windows integration test 待完成，但未保留新测试文件及分支的精确状态。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "d02-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Finish and run the Windows watcher integration test using the Chinese path."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：无新依赖、POSIX 大小写敏感、Windows-only 比较与真实中文路径集成测试下一步都明确。"
+    },
+    {
+      "runId": "debugging-02-unicode-watcher:deterministic-capsule:initial",
+      "fixtureId": "debugging-02-unicode-watcher",
+      "mode": "deterministic-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/debugging-02-unicode-watcher--deterministic-capsule.json",
+      "resultArtifact": "results/debugging-02-unicode-watcher--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "d02-constraint-deps",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not add a watcher dependency."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "d02-constraint-posix",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep POSIX path comparison case-sensitive."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "d02-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Restore Windows reloads for Chinese paths; comparison code is changed and integration coverage is incomplete."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d02-failed-utf8",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：UTF-8 corruption was rejected because the decoded path matched exactly."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d02-decision-case",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Use case-insensitive path comparison only on Windows."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "d02-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Windows-aware comparison and unit tests are complete; real watcher integration remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "d02-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：src/watch-path.ts is modified and test/watch-windows.test.ts is new."
+        },
+        {
+          "category": "nextAction",
+          "factId": "d02-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Finish and run the Windows watcher integration test using the Chinese path."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：UTF-8 反证、盘符大小写根因、平台约束、文件状态和测试下一步全部保留。"
+    },
+    {
+      "runId": "debugging-02-unicode-watcher:source-assisted-capsule:initial",
+      "fixtureId": "debugging-02-unicode-watcher",
+      "mode": "source-assisted-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/debugging-02-unicode-watcher--source-assisted-capsule.json",
+      "resultArtifact": "results/debugging-02-unicode-watcher--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "d02-constraint-deps",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not add a watcher dependency."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "d02-constraint-posix",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep POSIX path comparison case-sensitive."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "d02-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Restore Windows reloads for Chinese paths; comparison code is changed and integration coverage is incomplete."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d02-failed-utf8",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：UTF-8 corruption was rejected because the decoded path matched exactly."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d02-decision-case",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Use case-insensitive path comparison only on Windows."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "d02-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Windows-aware comparison and unit tests are complete; real watcher integration remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "d02-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：src/watch-path.ts is modified and test/watch-windows.test.ts is new."
+        },
+        {
+          "category": "nextAction",
+          "factId": "d02-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Finish and run the Windows watcher integration test using the Chinese path."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：完整保留根因证据，并谨慎先检查新测试内容再补全、运行和回归 POSIX 行为。"
+    },
+    {
+      "runId": "debugging-03-duplicate-jobs:visible-transcript:initial",
+      "fixtureId": "debugging-03-duplicate-jobs",
+      "mode": "visible-transcript",
+      "outcome": "pass",
+      "inputArtifact": "inputs/debugging-03-duplicate-jobs--visible-transcript.json",
+      "resultArtifact": "results/debugging-03-duplicate-jobs--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "d03-constraint-schema",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve the queue schema and payloads."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "d03-constraint-effects",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Side effects must remain at-most-once."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "d03-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Stop duplicate jobs; a lease-ordering fix is present but lacks its deterministic regression."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d03-failed-broker",
+          "verdict": "partial",
+          "note": "输出把 broker 重投描述为尚未验证并要求避免，但因缺失日志工具结果，没有保留“一次投递”的直接反证。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d03-decision-lease",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Persist the started marker before handler dispatch."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "d03-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Lease ordering is changed; the fake-clock regression remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "d03-workspace",
+          "verdict": "partial",
+          "note": "输出保留 lease.ts 修改，但未保留 fix/lease-race 分支。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "d03-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add and run a deterministic fake-clock regression for early lease expiry."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：queue schema、at-most-once、marker-before-dispatch 以及 fake-clock regression 必须先于 retry policy 均被保留。"
+    },
+    {
+      "runId": "debugging-03-duplicate-jobs:deterministic-capsule:initial",
+      "fixtureId": "debugging-03-duplicate-jobs",
+      "mode": "deterministic-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/debugging-03-duplicate-jobs--deterministic-capsule.json",
+      "resultArtifact": "results/debugging-03-duplicate-jobs--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "d03-constraint-schema",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve the queue schema and payloads."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "d03-constraint-effects",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Side effects must remain at-most-once."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "d03-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Stop duplicate jobs; a lease-ordering fix is present but lacks its deterministic regression."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d03-failed-broker",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Duplicate broker delivery was rejected because logs show only one delivery."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d03-decision-lease",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Persist the started marker before handler dispatch."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "d03-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Lease ordering is changed; the fake-clock regression remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "d03-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：src/worker/lease.ts is the dirty implementation file."
+        },
+        {
+          "category": "nextAction",
+          "factId": "d03-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add and run a deterministic fake-clock regression for early lease expiry."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：虽忠实带出 deterministic heuristic 的保守警告，但根因、时序竞态、限制和先写 fake-clock regression 均正确。"
+    },
+    {
+      "runId": "debugging-03-duplicate-jobs:source-assisted-capsule:initial",
+      "fixtureId": "debugging-03-duplicate-jobs",
+      "mode": "source-assisted-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/debugging-03-duplicate-jobs--source-assisted-capsule.json",
+      "resultArtifact": "results/debugging-03-duplicate-jobs--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "d03-constraint-schema",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve the queue schema and payloads."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "d03-constraint-effects",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Side effects must remain at-most-once."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "d03-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Stop duplicate jobs; a lease-ordering fix is present but lacks its deterministic regression."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d03-failed-broker",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Duplicate broker delivery was rejected because logs show only one delivery."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "d03-decision-lease",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Persist the started marker before handler dispatch."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "d03-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Lease ordering is changed; the fake-clock regression remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "d03-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：src/worker/lease.ts is the dirty implementation file."
+        },
+        {
+          "category": "nextAction",
+          "factId": "d03-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add and run a deterministic fake-clock regression for early lease expiry."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：一次投递/两次启动、lease race、文件状态及测试优先顺序完整且没有过度声称验证通过。"
+    },
+    {
+      "runId": "feature-01-pagination:visible-transcript:initial",
+      "fixtureId": "feature-01-pagination",
+      "mode": "visible-transcript",
+      "outcome": "fail",
+      "inputArtifact": "inputs/feature-01-pagination--visible-transcript.json",
+      "resultArtifact": "results/feature-01-pagination--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "f01-constraint-compat",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep the existing single-page list method compatible."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "f01-constraint-prefetch",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not prefetch pages; one iterator step fetches one page."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "f01-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add cursor pagination; response parsing is done and the async iterator is missing."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f01-failed-eager",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Eager collectAll was deleted because it violated the no-prefetch constraint."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f01-decision-iterator",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The new interface is an async iterator named pages()."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "f01-progress",
+          "verdict": "partial",
+          "note": "输出保留 parser/list 已完成和 pages()/tests 待办，但未明确保留 parser 与 compatibility tests 已通过。"
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "f01-workspace",
+          "verdict": "missing",
+          "note": "输出没有保留 client.ts、response.ts 和 pages.test.ts 的精确工作区状态。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "f01-next",
+          "verdict": "contradicted",
+          "note": "Ground truth 要求先写 one-page-per-next 测试再实现 pages()；输出把设计/实现 pages() 作为唯一下一步。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：API 与 no-prefetch 约束保真，但跳过明确的测试优先动作。"
+    },
+    {
+      "runId": "feature-01-pagination:deterministic-capsule:initial",
+      "fixtureId": "feature-01-pagination",
+      "mode": "deterministic-capsule",
+      "outcome": "fail",
+      "inputArtifact": "inputs/feature-01-pagination--deterministic-capsule.json",
+      "resultArtifact": "results/feature-01-pagination--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "f01-constraint-compat",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep the existing single-page list method compatible."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "f01-constraint-prefetch",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not prefetch pages; one iterator step fetches one page."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "f01-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add cursor pagination; response parsing is done and the async iterator is missing."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f01-failed-eager",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Eager collectAll was deleted because it violated the no-prefetch constraint."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f01-decision-iterator",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The new interface is an async iterator named pages()."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "f01-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Cursor parsing and list compatibility pass; pages() and its tests remain pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "f01-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：client.ts and response.ts are modified; pages.test.ts is unchanged."
+        },
+        {
+          "category": "nextAction",
+          "factId": "f01-next",
+          "verdict": "contradicted",
+          "note": "输出明确先实现 pages()；Ground truth 明确先写 one-page-per-next iterator test。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：上下文完整，但把实现放在测试之前，下一动作错误。"
+    },
+    {
+      "runId": "feature-01-pagination:source-assisted-capsule:initial",
+      "fixtureId": "feature-01-pagination",
+      "mode": "source-assisted-capsule",
+      "outcome": "fail",
+      "inputArtifact": "inputs/feature-01-pagination--source-assisted-capsule.json",
+      "resultArtifact": "results/feature-01-pagination--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "f01-constraint-compat",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Keep the existing single-page list method compatible."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "f01-constraint-prefetch",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not prefetch pages; one iterator step fetches one page."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "f01-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add cursor pagination; response parsing is done and the async iterator is missing."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f01-failed-eager",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Eager collectAll was deleted because it violated the no-prefetch constraint."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f01-decision-iterator",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The new interface is an async iterator named pages()."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "f01-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Cursor parsing and list compatibility pass; pages() and its tests remain pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "f01-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：client.ts and response.ts are modified; pages.test.ts is unchanged."
+        },
+        {
+          "category": "nextAction",
+          "factId": "f01-next",
+          "verdict": "contradicted",
+          "note": "输出将实现 pages() 设为第一步、测试列为随后动作；Ground truth 的顺序正相反。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：事实高保真，但仍违反测试先行的明确顺序。"
+    },
+    {
+      "runId": "feature-02-deploy-dry-run:visible-transcript:initial",
+      "fixtureId": "feature-02-deploy-dry-run",
+      "mode": "visible-transcript",
+      "outcome": "fail",
+      "inputArtifact": "inputs/feature-02-deploy-dry-run--visible-transcript.json",
+      "resultArtifact": "results/feature-02-deploy-dry-run--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "f02-constraint-network",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Dry-run makes no network requests."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "f02-constraint-files",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Dry-run writes no files or directories."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "f02-objective",
+          "verdict": "partial",
+          "note": "输出保留 planning/renderer 和 CLI 未接线，但可见输入缺少 bundle preparation 已无副作用这一当前状态。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f02-failed-mock",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Filesystem mocking in the CLI test was rejected because it hid real writes."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f02-decision-plan",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Planning must be pure and separate from executor construction."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "f02-progress",
+          "verdict": "partial",
+          "note": "输出保留 plan rendering 完成及 CLI 待办，却遗漏 pure bundle preparation 及其通过测试。"
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "f02-workspace",
+          "verdict": "missing",
+          "note": "输出没有保留 plan.ts、bundle.ts 与未修改 cli/deploy.ts 的工作区状态。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "f02-next",
+          "verdict": "contradicted",
+          "note": "Ground truth 要求先添加证明 executor 从未构造的 CLI dry-run 测试，再接线 flag；输出先修改 CLI，再补测试。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：零副作用约束明确，但没有遵循测试先行的唯一下一步。"
+    },
+    {
+      "runId": "feature-02-deploy-dry-run:deterministic-capsule:initial",
+      "fixtureId": "feature-02-deploy-dry-run",
+      "mode": "deterministic-capsule",
+      "outcome": "fail",
+      "inputArtifact": "inputs/feature-02-deploy-dry-run--deterministic-capsule.json",
+      "resultArtifact": "results/feature-02-deploy-dry-run--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "f02-constraint-network",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Dry-run makes no network requests."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "f02-constraint-files",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Dry-run writes no files or directories."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "f02-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add deploy --dry-run; planning and side-effect-free bundle preparation exist, CLI wiring does not."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f02-failed-mock",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Filesystem mocking in the CLI test was rejected because it hid real writes."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f02-decision-plan",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Planning must be pure and separate from executor construction."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "f02-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Plan rendering and pure bundle preparation pass; CLI flag wiring and executor-construction assertion remain."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "f02-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：plan.ts is new, bundle.ts is modified, and cli/deploy.ts is unchanged."
+        },
+        {
+          "category": "nextAction",
+          "factId": "f02-next",
+          "verdict": "contradicted",
+          "note": "输出要求修改 CLI 并添加测试，语序和行动均以实现先行；Ground truth 要求测试先于接线。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：现状和失败路径完整，但首个动作顺序错误。"
+    },
+    {
+      "runId": "feature-02-deploy-dry-run:source-assisted-capsule:initial",
+      "fixtureId": "feature-02-deploy-dry-run",
+      "mode": "source-assisted-capsule",
+      "outcome": "fail",
+      "inputArtifact": "inputs/feature-02-deploy-dry-run--source-assisted-capsule.json",
+      "resultArtifact": "results/feature-02-deploy-dry-run--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "f02-constraint-network",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Dry-run makes no network requests."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "f02-constraint-files",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Dry-run writes no files or directories."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "f02-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add deploy --dry-run; planning and side-effect-free bundle preparation exist, CLI wiring does not."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f02-failed-mock",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Filesystem mocking in the CLI test was rejected because it hid real writes."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f02-decision-plan",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Planning must be pure and separate from executor construction."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "f02-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Plan rendering and pure bundle preparation pass; CLI flag wiring and executor-construction assertion remain."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "f02-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：plan.ts is new, bundle.ts is modified, and cli/deploy.ts is unchanged."
+        },
+        {
+          "category": "nextAction",
+          "factId": "f02-next",
+          "verdict": "contradicted",
+          "note": "输出把修改 cli/deploy.ts 作为第一步，把 executor 构造断言列为随后动作；Ground truth 要求测试先行。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [
+        "输出声称必须“计划获准并退出计划模式后”才能修改 CLI；AgentCarry 输入没有此审批状态或产品约束。"
+      ],
+      "note": "FAIL：信息最完整，但实现/测试顺序相反，且额外引入输入未提供的计划审批前提。"
+    },
+    {
+      "runId": "feature-03-config-errors:visible-transcript:initial",
+      "fixtureId": "feature-03-config-errors",
+      "mode": "visible-transcript",
+      "outcome": "fail",
+      "inputArtifact": "inputs/feature-03-config-errors--visible-transcript.json",
+      "resultArtifact": "results/feature-03-config-errors--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "f03-constraint-secrets",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Validation errors must never include secret values."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "f03-constraint-precedence",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Environment values override file values."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "f03-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add safe nested config validation; parsing and precedence are done, secret-safe formatting is missing."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f03-failed-full-log",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Logging the resolved config was rejected because it exposes secrets."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f03-decision-formatter",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Redaction belongs in the error formatter and must preserve the field path."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "f03-progress",
+          "verdict": "partial",
+          "note": "输出保留 parsing/precedence 已实现和 formatter 待办，但遗漏 precedence tests 已通过及当前错误会回显 token。"
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "f03-workspace",
+          "verdict": "missing",
+          "note": "输出主动不保留文件状态，缺失 parse.ts、precedence.ts 和 format-error.ts。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "f03-next",
+          "verdict": "contradicted",
+          "note": "Ground truth 要求先写 nested-secret error regression，再实现 formatter；输出要求直接定位并实施 formatter redaction。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：安全边界正确，但跳过明确的回归测试优先顺序。"
+    },
+    {
+      "runId": "feature-03-config-errors:deterministic-capsule:initial",
+      "fixtureId": "feature-03-config-errors",
+      "mode": "deterministic-capsule",
+      "outcome": "fail",
+      "inputArtifact": "inputs/feature-03-config-errors--deterministic-capsule.json",
+      "resultArtifact": "results/feature-03-config-errors--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "f03-constraint-secrets",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Validation errors must never include secret values."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "f03-constraint-precedence",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Environment values override file values."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "f03-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add safe nested config validation; parsing and precedence are done, secret-safe formatting is missing."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f03-failed-full-log",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Logging the resolved config was rejected because it exposes secrets."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f03-decision-formatter",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Redaction belongs in the error formatter and must preserve the field path."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "f03-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Nested parsing and precedence tests pass; the safe formatter and its regression test remain."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "f03-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：parse.ts and precedence.ts are dirty; format-error.ts is absent."
+        },
+        {
+          "category": "nextAction",
+          "factId": "f03-next",
+          "verdict": "contradicted",
+          "note": "输出直接要求实现 formatter redaction，没有先写 nested-secret regression。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：事实、风险和文件状态完整，但首个动作违反测试先行。"
+    },
+    {
+      "runId": "feature-03-config-errors:source-assisted-capsule:initial",
+      "fixtureId": "feature-03-config-errors",
+      "mode": "source-assisted-capsule",
+      "outcome": "fail",
+      "inputArtifact": "inputs/feature-03-config-errors--source-assisted-capsule.json",
+      "resultArtifact": "results/feature-03-config-errors--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "f03-constraint-secrets",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Validation errors must never include secret values."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "f03-constraint-precedence",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Environment values override file values."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "f03-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add safe nested config validation; parsing and precedence are done, secret-safe formatting is missing."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f03-failed-full-log",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Logging the resolved config was rejected because it exposes secrets."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "f03-decision-formatter",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Redaction belongs in the error formatter and must preserve the field path."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "f03-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Nested parsing and precedence tests pass; the safe formatter and its regression test remain."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "f03-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：parse.ts and precedence.ts are dirty; format-error.ts is absent."
+        },
+        {
+          "category": "nextAction",
+          "factId": "f03-next",
+          "verdict": "contradicted",
+          "note": "输出将修改 format-error.ts 设为第一步，Ground truth 要求先写能复现 nested secret 泄漏的测试。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：完整保留 secret 风险及 formatter 边界，但下一动作顺序仍然错误。"
+    },
+    {
+      "runId": "refactor-01-http-transport:visible-transcript:initial",
+      "fixtureId": "refactor-01-http-transport",
+      "mode": "visible-transcript",
+      "outcome": "fail",
+      "inputArtifact": "inputs/refactor-01-http-transport--visible-transcript.json",
+      "resultArtifact": "results/refactor-01-http-transport--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "r01-constraint-exports",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not change public exports."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "r01-constraint-deps",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not add dependencies."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "r01-objective",
+          "verdict": "partial",
+          "note": "输出保留普通请求已迁移及 streaming 未完成，但可见输入没有 auth retry 失败，因而未保留该核心当前故障。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r01-failed-facade-headers",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Copying headers in ApiClient was reverted because transport policy belongs in the transport."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "r01-progress",
+          "verdict": "partial",
+          "note": "输出要求同时处理 header 与 streaming，没有保留“先修 header 并验证，再迁移 streaming”的顺序。"
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "r01-workspace",
+          "verdict": "partial",
+          "note": "输出保留 api-client/transport 角色，但未保留两者 dirty 及 index.ts unchanged 的精确状态。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "r01-next",
+          "verdict": "contradicted",
+          "note": "Ground truth 要求先修 transport 内 header preservation 并重跑 auth retry test；输出把 streaming 迁移放在首位并与 header 修复合并。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：架构边界正确，但缺失 auth retry 失败并选择了错误的首个动作。"
+    },
+    {
+      "runId": "refactor-01-http-transport:deterministic-capsule:initial",
+      "fixtureId": "refactor-01-http-transport",
+      "mode": "deterministic-capsule",
+      "outcome": "fail",
+      "inputArtifact": "inputs/refactor-01-http-transport--deterministic-capsule.json",
+      "resultArtifact": "results/refactor-01-http-transport--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "r01-constraint-exports",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not change public exports."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "r01-constraint-deps",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not add dependencies."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "r01-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Extract transport behavior from ApiClient; normal requests moved, auth retry and streaming remain incomplete."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r01-failed-facade-headers",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Copying headers in ApiClient was reverted because transport policy belongs in the transport."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "r01-progress",
+          "verdict": "partial",
+          "note": "输出保留两项待办，却没有保留先修 header/retry、后迁移 streaming 的顺序。"
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "r01-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：api-client.ts and the new transport.ts are dirty while index.ts remains unchanged."
+        },
+        {
+          "category": "nextAction",
+          "factId": "r01-next",
+          "verdict": "contradicted",
+          "note": "输出要求同时转换 streaming 和修 header；Ground truth 要求先修 header 并重跑 auth retry test。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：故障证据完整，但下一步扩大为同时迁移 streaming，未先闭环 auth retry。"
+    },
+    {
+      "runId": "refactor-01-http-transport:source-assisted-capsule:initial",
+      "fixtureId": "refactor-01-http-transport",
+      "mode": "source-assisted-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/refactor-01-http-transport--source-assisted-capsule.json",
+      "resultArtifact": "results/refactor-01-http-transport--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "r01-constraint-exports",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not change public exports."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "r01-constraint-deps",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not add dependencies."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "r01-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Extract transport behavior from ApiClient; normal requests moved, auth retry and streaming remain incomplete."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r01-failed-facade-headers",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Copying headers in ApiClient was reverted because transport policy belongs in the transport."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "r01-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Request construction is extracted; preserve headers on retry, then convert streaming."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "r01-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：api-client.ts and the new transport.ts are dirty while index.ts remains unchanged."
+        },
+        {
+          "category": "nextAction",
+          "factId": "r01-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Fix header preservation inside transport and rerun the auth retry test."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：准确把 transport 内 header preservation 和 auth retry test 置于 streaming 迁移之前。"
+    },
+    {
+      "runId": "refactor-02-cli-renderers:visible-transcript:initial",
+      "fixtureId": "refactor-02-cli-renderers",
+      "mode": "visible-transcript",
+      "outcome": "fail",
+      "inputArtifact": "inputs/refactor-02-cli-renderers--visible-transcript.json",
+      "resultArtifact": "results/refactor-02-cli-renderers--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "r02-constraint-human",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve existing human-readable output."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "r02-constraint-json",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：JSON mode writes JSON only to stdout and diagnostics to stderr."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "r02-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Separate command results from rendering; text mode passes while JSON diagnostic routing is incomplete."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r02-failed-global-color",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：A global no-color flag was reverted because it broke human output."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r02-decision-renderers",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Formatting belongs in renderers, with no command-specific branches."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "r02-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Result-returning handlers and text snapshots are complete; JSON stderr routing still needs a test and fix."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "r02-workspace",
+          "verdict": "missing",
+          "note": "输出没有保留 commands.ts、text-renderer.ts 与 json-renderer.ts 的工作区状态。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "r02-next",
+          "verdict": "contradicted",
+          "note": "Ground truth 要求先添加 JSON diagnostic-routing test，再修复实现；输出直接要求修改中央渲染/分发路径。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：输出流约束和失败路径清楚，但跳过诊断路由测试这一首个动作。"
+    },
+    {
+      "runId": "refactor-02-cli-renderers:deterministic-capsule:initial",
+      "fixtureId": "refactor-02-cli-renderers",
+      "mode": "deterministic-capsule",
+      "outcome": "fail",
+      "inputArtifact": "inputs/refactor-02-cli-renderers--deterministic-capsule.json",
+      "resultArtifact": "results/refactor-02-cli-renderers--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "r02-constraint-human",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve existing human-readable output."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "r02-constraint-json",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：JSON mode writes JSON only to stdout and diagnostics to stderr."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "r02-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Separate command results from rendering; text mode passes while JSON diagnostic routing is incomplete."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r02-failed-global-color",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：A global no-color flag was reverted because it broke human output."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r02-decision-renderers",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Formatting belongs in renderers, with no command-specific branches."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "r02-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Result-returning handlers and text snapshots are complete; JSON stderr routing still needs a test and fix."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "r02-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：commands.ts is modified and both renderer files are new."
+        },
+        {
+          "category": "nextAction",
+          "factId": "r02-next",
+          "verdict": "contradicted",
+          "note": "输出直接要求在 renderer 边界实现路由，未先添加 JSON diagnostic-routing test。"
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "FAIL：事实完整，但未遵循测试先行。"
+    },
+    {
+      "runId": "refactor-02-cli-renderers:source-assisted-capsule:initial",
+      "fixtureId": "refactor-02-cli-renderers",
+      "mode": "source-assisted-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/refactor-02-cli-renderers--source-assisted-capsule.json",
+      "resultArtifact": "results/refactor-02-cli-renderers--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "r02-constraint-human",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve existing human-readable output."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "r02-constraint-json",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：JSON mode writes JSON only to stdout and diagnostics to stderr."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "r02-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Separate command results from rendering; text mode passes while JSON diagnostic routing is incomplete."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r02-failed-global-color",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：A global no-color flag was reverted because it broke human output."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r02-decision-renderers",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Formatting belongs in renderers, with no command-specific branches."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "r02-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Result-returning handlers and text snapshots are complete; JSON stderr routing still needs a test and fix."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "r02-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：commands.ts is modified and both renderer files are new."
+        },
+        {
+          "category": "nextAction",
+          "factId": "r02-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Add the JSON diagnostic-routing test, then remove ANSI and diagnostic text from stdout in the JSON renderer path."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：明确先写诊断路由测试，禁止此时改实现，并保留 human color/JSON stdout/stderr 全部约束。"
+    },
+    {
+      "runId": "refactor-03-file-indexer:visible-transcript:initial",
+      "fixtureId": "refactor-03-file-indexer",
+      "mode": "visible-transcript",
+      "outcome": "pass",
+      "inputArtifact": "inputs/refactor-03-file-indexer--visible-transcript.json",
+      "resultArtifact": "results/refactor-03-file-indexer--visible-transcript.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "r03-constraint-platforms",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve Windows, macOS, and Linux behavior."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "r03-constraint-streaming",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not load all file contents into memory."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "r03-objective",
+          "verdict": "partial",
+          "note": "输出保留 traversal/hash 已迁移与 ignore 待办，但因缺少 tool result，未保留 cycle handling 已完成。"
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r03-failed-realpath",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Rewriting every presented path through realpath was rejected because it changed Windows junction paths."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r03-decision-identity",
+          "verdict": "partial",
+          "note": "输出保留禁止全路径 realpath，却没有保留“仅以 visited directory identity 做 cycle detection”的既定实现。"
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "r03-progress",
+          "verdict": "partial",
+          "note": "输出保留流式 traversal/hash，但遗漏 symlink-cycle handling 及其通过测试。"
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "r03-workspace",
+          "verdict": "partial",
+          "note": "输出只保留 local-indexer.ts，未保留 interface 修改和 symlink test 新建。"
+        },
+        {
+          "category": "nextAction",
+          "factId": "r03-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Implement and test ignore-file parsing inside local-indexer.ts."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：尽管历史修复细节缺失，跨平台、流式、local-only ignore 和禁止 realpath 均足以约束正确实现。"
+    },
+    {
+      "runId": "refactor-03-file-indexer:deterministic-capsule:initial",
+      "fixtureId": "refactor-03-file-indexer",
+      "mode": "deterministic-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/refactor-03-file-indexer--deterministic-capsule.json",
+      "resultArtifact": "results/refactor-03-file-indexer--deterministic-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "r03-constraint-platforms",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve Windows, macOS, and Linux behavior."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "r03-constraint-streaming",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not load all file contents into memory."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "r03-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Extract local indexing behind one interface; traversal, hashing, and cycle handling are done, ignore parsing is not."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r03-failed-realpath",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Rewriting every presented path through realpath was rejected because it changed Windows junction paths."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r03-decision-identity",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Use visited directory identity only for cycle detection."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "r03-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Streaming traversal and symlink-cycle handling pass; ignore-file support remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "r03-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The local indexer and symlink regression are new; the index interface is modified."
+        },
+        {
+          "category": "nextAction",
+          "factId": "r03-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Implement and test ignore-file parsing inside local-indexer.ts."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：完整保留目录身份策略、realpath 失败、文件状态、流式/跨平台约束及 ignore 实现动作。"
+    },
+    {
+      "runId": "refactor-03-file-indexer:source-assisted-capsule:initial",
+      "fixtureId": "refactor-03-file-indexer",
+      "mode": "source-assisted-capsule",
+      "outcome": "pass",
+      "inputArtifact": "inputs/refactor-03-file-indexer--source-assisted-capsule.json",
+      "resultArtifact": "results/refactor-03-file-indexer--source-assisted-capsule.json",
+      "factVerdicts": [
+        {
+          "category": "criticalConstraints",
+          "factId": "r03-constraint-platforms",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Preserve Windows, macOS, and Linux behavior."
+        },
+        {
+          "category": "criticalConstraints",
+          "factId": "r03-constraint-streaming",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Do not load all file contents into memory."
+        },
+        {
+          "category": "objectiveAndState",
+          "factId": "r03-objective",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Extract local indexing behind one interface; traversal, hashing, and cycle handling are done, ignore parsing is not."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r03-failed-realpath",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Rewriting every presented path through realpath was rejected because it changed Windows junction paths."
+        },
+        {
+          "category": "decisionsAndFailedAttempts",
+          "factId": "r03-decision-identity",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Use visited directory identity only for cycle detection."
+        },
+        {
+          "category": "completedAndPending",
+          "factId": "r03-progress",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Streaming traversal and symlink-cycle handling pass; ignore-file support remains pending."
+        },
+        {
+          "category": "workspaceEvidence",
+          "factId": "r03-workspace",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：The local indexer and symlink regression are new; the index interface is modified."
+        },
+        {
+          "category": "nextAction",
+          "factId": "r03-next",
+          "verdict": "preserved",
+          "note": "目标输出直接保留了该 Ground truth 事实的核心语义：Implement and test ignore-file parsing inside local-indexer.ts."
+        }
+      ],
+      "repeatedFailedPaths": [],
+      "unsupportedClaims": [],
+      "note": "PASS：完整保留 symlink cycle 修复与跨平台呈现路径，并给出实现、测试和回归顺序。"
+    }
+  ]
+}

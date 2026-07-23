@@ -1,0 +1,21 @@
+{
+  "content": "## User\n\nFix missed config reloads on Windows Chinese paths without adding a watcher dependency.\n\n## Assistant\n\nI suspect UTF-8 decoding corrupts the watched path.\n\n## Assistant\n\nsrc/watch-path.ts now uses Windows-aware comparison; unit tests pass, but the real watcher integration test is pending.\n\n## User\n\nKeep POSIX comparison case-sensitive and add the Windows integration test next.\n",
+  "contentType": "text/markdown",
+  "fixtureId": "debugging-02-unicode-watcher",
+  "generation": {
+    "deterministic": true,
+    "model": null,
+    "persistence": "not-applicable",
+    "promptSha256": null,
+    "summarizerInputTokens": null,
+    "tools": "not-applicable"
+  },
+  "measurements": {
+    "exactTargetInputTokens": null,
+    "unicodeCodePoints": 389,
+    "utf8Bytes": 389
+  },
+  "mode": "visible-transcript",
+  "schemaVersion": "1.0.0",
+  "sourceFingerprint": "be01c97c050e1cd2383abdec2bf2468ea7b5b0420030bb0a83cfc5376b6a7725"
+}

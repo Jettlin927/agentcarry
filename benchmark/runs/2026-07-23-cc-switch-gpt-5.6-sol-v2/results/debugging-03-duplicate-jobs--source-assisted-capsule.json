@@ -1,0 +1,44 @@
+{
+  "fixtureId": "debugging-03-duplicate-jobs",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "fa05023e81ffa39fce5618ea0eebbc9982da210c521bc886bc417c1ee5b091ba",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- 在 `test/lease-race.test.ts` 中添加确定性的 fake-clock regression，覆盖 lease 在第一个 handler 写入 started marker 前到期、同一 leased job 被启动两次的竞态。 [evidence: d03-tool-1, d03-tool-2, d03-assistant-2, d03-user-2, workspace-current]\n\n## Forbidden before first action\n- 在 fake-clock regression 添加完成前，不得修改 retry policy。 [evidence: d03-user-2]\n\n## Constraints\n- 不得更改 queue payloads 或 queue schema。 [evidence: d03-user-1, d03-user-2]\n- 修复必须保持 at-most-once side effects。 [evidence: d03-user-1]\n- 必须先添加 fake-clock regression，再触碰 retry policy。 [evidence: d03-user-2]\n\n## Current state\n- Objective: 停止重复执行 invoice jobs，同时保持现有 queue schema，并维持 at-most-once side effects。 [evidence: d03-user-1, d03-user-2]\n- Current request: Do not change queue payloads. Add the fake-clock regression before touching retry policy. [evidence: d03-user-2]\n- Completed: 已确认 broker 只投递一次，而 worker 会对同一个 leased job 启动两次。 [evidence: d03-tool-1]\n- Completed: slow-clock 检查已复现 lease 在第一个 handler 存储 started marker 之前到期的竞态。 [evidence: d03-tool-2]\n- Completed: `src/worker/lease.ts` 当前处于 modified 状态；assistant 报告其中已改为在 handler dispatch 之前存储 marker。 [evidence: d03-assistant-2, workspace-current]\n- Pending: 确定性的 fake-clock regression 仍未添加；当前 workspace 显示 `test/lease-race.test.ts` unchanged。 [evidence: d03-assistant-2, workspace-current]\n- Pending: 尚未建立 fake-clock regression 对 lease-race 修复以及 at-most-once side effects 的验证结果。 [evidence: d03-user-1, d03-user-2, d03-assistant-2]\n- Decision: 不再将 broker 网络重试导致重复投递作为当前根因；现有证据指向 worker 对同一个 leased job 启动了两次。 [evidence: d03-assistant-1, d03-tool-1]\n- Decision: started marker 应在 handler dispatch 之前存储，以关闭 lease 到期与 marker 写入之间的竞态窗口。 [evidence: d03-tool-2, d03-assistant-2]\n- Decision: retry policy 的任何处理均推迟到 fake-clock regression 添加完成之后。 [evidence: d03-user-2]\n- Failed attempt: 将重复 invoice job 归因于 broker 在网络重试后重复投递同一消息。 [evidence: d03-assistant-1, d03-tool-1]\n- Failed outcome: 该初始假设被现有 broker logs 否定。 [evidence: d03-assistant-1, d03-tool-1]\n- Failure reason: Broker logs 只显示一次 delivery，而 worker 对同一个 leased job 启动了两次。 [evidence: d03-assistant-1, d03-tool-1]\n- Open question: 当前 workspace 仅确认 `src/worker/lease.ts` modified；尚未通过文件内容或 diff 独立确认 marker-before-dispatch 修改与 assistant 报告完全一致。 [evidence: d03-assistant-2, workspace-current]\n- Open question: 完成 regression 后是否仍需调整 retry policy，现有来源尚未确定。 [evidence: d03-user-2]\n\n## Later actions\n- 运行新增 regression 及相关现有测试，验证 marker-before-dispatch 修改可阻止重复启动，并确认 at-most-once side effects；不得臆造未提供的具体测试命令。 [evidence: d03-user-1, d03-tool-2, d03-assistant-2, d03-user-2]\n- 只有在 regression 添加并完成验证后，才评估是否确实需要调整 retry policy，同时继续保持 queue payloads 不变。 [evidence: d03-user-1, d03-user-2]\n\n## Validations\n- Validation: PASSED Broker delivery-count investigation — Broker logs 显示一次 delivery，并将重复执行定位到 worker 对同一个 leased job 的两次启动。 [evidence: d03-tool-1]\n- Validation: FAILED Slow-clock lease-race reproduction — 检查暴露了失败行为：lease 会在第一个 handler 存储 started marker 之前到期。 [evidence: d03-tool-2]\n- Validation: UNKNOWN Deterministic fake-clock regression — 该 regression 仍缺失，且 `test/lease-race.test.ts` 在当前 workspace 中 unchanged，因此没有可报告的执行结果。 [evidence: d03-assistant-2, workspace-current]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING SOURCE_CAPTURE_METADATA_UNAVAILABLE: 来源未提供 session ID 或精确 capture timestamp；source.sessionId 使用明确的 unavailable 标记，capture timestamps 使用 Unix epoch 占位值，不应视为真实采集时间。\n- WARNING SOURCE_SNAPSHOT_UNAVAILABLE: 未提供原始 session snapshot、byte length、SHA-256 或采集期间变化信息。\n- INFO HIDDEN_REASONING_UNAVAILABLE: 隐藏 reasoning 未包含在 supplied events 中，无法恢复或转移。\n- INFO PROMPT_CACHE_UNAVAILABLE: 未提供 prompt cache 内容或状态，无法恢复。\n- WARNING TOOL_STATE_UNAVAILABLE: 仅提供了工具结果摘要；原始调用参数、命令、输出、时间戳和工具内部状态均不可用。\n- INFO ATTACHMENTS_UNAVAILABLE: 未提供附件清单、附件内容或可用性元数据，无法恢复任何不可用附件。\n- WARNING FILE_CONTENTS_UNAVAILABLE: Workspace 只提供文件状态，没有文件内容、diff 或 SHA-256，因此无法独立验证具体实现。\n- WARNING COMMAND_HISTORY_UNAVAILABLE: 来源未提供已执行命令，因此 commands 保持为空，且未臆造测试命令。\n\n## Workspace\n- Root: /home/dev/invoice-worker\n- Git: branch=fix/lease-race; head=d0300003; dirty=true\n- File: modified src/worker/lease.ts [evidence: d03-assistant-2, workspace-current]\n- File: referenced test/lease-race.test.ts [evidence: workspace-current]\n",
+      "tokens": 1434,
+      "utf8Bytes": 5603
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 2785,
+    "promptSha256": "2aa9cab119fe24460f7132e9499951ad19e3555864730379832e302ffb21609c",
+    "promptUtf8Bytes": 5716
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:05:12.277Z",
+    "promptSha256": "2aa9cab119fe24460f7132e9499951ad19e3555864730379832e302ffb21609c",
+    "startedAt": "2026-07-22T21:04:54.815Z"
+  },
+  "mode": "source-assisted-capsule",
+  "output": {
+    "sha256": "e2ee55ead65515e44801663970ef839f2cedec72147eb4f82e5ca267ec7dbae0",
+    "text": "## 续接简报\n\n- **目标**：停止 invoice jobs 重复执行，同时保持现有 queue payload/schema，并维持 **at-most-once side effects**。\n- **关键约束**：\n  - 不得更改 queue payloads 或 schema。\n  - 必须先添加确定性的 fake-clock regression，之后才能考虑 retry policy。\n  - 不得声称尚未完成的测试或验证已通过。\n- **当前状态**：\n  - Broker logs 已确认仅投递一次；重复执行源于 worker 对同一个 leased job 启动两次。\n  - slow-clock 检查已复现竞态：lease 在首个 handler 写入 started marker 前到期。\n  - `src/worker/lease.ts` 已处于 modified 状态；此前报告称 marker 已移至 handler dispatch 之前，但尚无文件内容或 diff 可独立确认。\n  - `test/lease-race.test.ts` 仍 unchanged，确定性 regression 尚未添加。\n- **已作决定**：\n  - started marker 应在 handler dispatch 前持久化，以关闭 lease 到期与 marker 写入之间的窗口。\n  - retry policy 的评估必须推迟到 regression 添加并验证之后。\n- **已排除的失败路径**：\n  - 不再将问题归因于 broker 网络重试或重复投递；该假设与“一次 delivery、两次 worker start”的证据冲突。\n- **已完成**：\n  - 定位重复启动发生在 worker。\n  - 复现 lease-race 失败行为。\n  - 报告了 marker-before-dispatch 的实现修改。\n- **待完成**：\n  - 添加 deterministic fake-clock regression。\n  - 随后运行新增及相关测试，验证不会重复启动且保持 at-most-once side effects。\n  - 验证完成后再判断是否确有必要修改 retry policy。\n\n## 唯一正确的下一步\n\n在 `test/lease-race.test.ts` 中添加确定性的 fake-clock regression，覆盖“lease 在第一个 handler 写入 started marker 前到期，导致同一 leased job 被启动两次”的竞态；此步骤完成前不要修改 retry policy。"
+  },
+  "runId": "debugging-03-duplicate-jobs:source-assisted-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "569be092bf2d03da6b24b9ac18edb33f425fb26f7e24f9c84ae7d0e3683750fd",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

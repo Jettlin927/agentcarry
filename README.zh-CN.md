@@ -151,7 +151,8 @@ source-assisted 生成会把完整 v2 schema 同时放进 Claude CLI structured-
 
 评分覆盖关键约束、目标与状态、决策与失败尝试、已完成与待办、工作区证据和正确下一步。规则见[连续性 benchmark](docs/benchmarks/continuity-benchmark.md)。
 仓库还提供不会启动 Agent 的 36-run plan，以及可断点续跑且不覆盖 initial result 的 raw-output collector，固定记录 target model、settings、原始回复与所有 input token 类别。
-Benchmark v2 会把目标 CLI 的完整调用 input、经校准的固定 harness 开销和 AgentCarry 可控 payload 分开记录；40% 门槛只比较 AgentCarry payload 与 visible-transcript payload。已发布的 Phase 0 v1 报告及其原始指标保持冻结，不会回写。
+Benchmark v2 会把目标 CLI 的完整调用 input、经校准的固定 harness 开销和 AgentCarry 可控 payload 分开记录；visible-transcript 比率继续公开展示，但 40% 压缩门槛比较的是精简 continuation brief 与同一目标实测的原始 canonical Work Capsule。已发布的 Phase 0 v1 报告及其原始指标保持冻结，不会回写。
+自包含人工复核台会为每条结果记录通过/不通过，并允许人工修正逐项事实、重复失败路径和不受支持事实；这些人工结论会进入最终评分与 gate，不是只供展示的元数据。
 
 ### Benchmark v2 token 口径
 
@@ -161,10 +162,11 @@ Benchmark v2 会把目标 CLI 的完整调用 input、经校准的固定 harness
 fullCallInput = input_tokens + cache_creation_input_tokens + cache_read_input_tokens
 fixedOverhead = calibration.fullCallInput
 agentCarryPayload = fullCallInput - fixedOverhead
-payloadRatio = agentCarryPayload / visibleTranscriptPayloadBaseline
+visibleTranscriptPayloadRatio = agentCarryPayload / visibleTranscriptPayloadBaseline
+canonicalCompressionRatio = agentCarryPayload / canonicalWorkCapsulePayloadBaseline
 ```
 
-Scorer 会拒绝缺失、负数或算术关系不一致的计量；聚合报告分别展示完整调用、固定开销、payload 和 payload ratio。完整方法与 v1 冻结边界见[连续性 benchmark](docs/benchmarks/continuity-benchmark.md)，机器契约见 [`continuation-assessment.v2.schema.json`](benchmark/schema/continuation-assessment.v2.schema.json)。
+Collector 还会对 24 个 Capsule 的原始 canonical JSON 使用同一目标和同一固定开销校准做独立计量；这些调用不计入 36 条续接结果。Scorer 会拒绝缺失、负数或算术关系不一致的计量；聚合报告分别展示完整调用、固定开销、可见消息比率、canonical Capsule 基线和精简 brief 压缩率。完整方法与 v1 冻结边界见[连续性 benchmark](docs/benchmarks/continuity-benchmark.md)，机器契约见 [`continuation-assessment.v2.schema.json`](benchmark/schema/continuation-assessment.v2.schema.json)。
 
 ## 隐私与安全
 

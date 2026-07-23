@@ -1,0 +1,38 @@
+{
+  "fixtureId": "refactor-03-file-indexer",
+  "input": {
+    "canonicalWorkCapsulePayload": {
+      "sha256": "0c9637f4f0e11fec08b6aa41abceed39d71e61dc52a8c17ec4f0372770a6ffae",
+      "tokens": 1903,
+      "utf8Bytes": 6468
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 3254,
+    "promptSha256": "6fdc79e31e2e9a9a3387eceea24b44d561942c8d47bab92d036d52778c5bbee2",
+    "promptUtf8Bytes": 6581
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T21:25:28.167Z",
+    "startedAt": "2026-07-22T21:25:11.294Z"
+  },
+  "mode": "deterministic-capsule",
+  "purpose": "canonical-work-capsule-baseline",
+  "responseSha256": "dabfaf244f6408528b6ccaaf9de2f0f43a76a3b266913771dfc2f20bb624bbd6",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "2b86ba6d7a244cab256cc49a42634cfa03d57963cc588c9c3541401b45642636",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}

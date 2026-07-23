@@ -1,0 +1,212 @@
+{
+  "schemaVersion": "1.0.0",
+  "benchmarkId": "second-36",
+  "status": "advisory-only-pending-human-review",
+  "reviewer": {
+    "kind": "llm",
+    "name": "OpenAI Codex GPT-5.6",
+    "advisoryOnly": true,
+    "reviewedAt": "2026-07-22T21:35:00Z"
+  },
+  "defaultVerdict": "preserved",
+  "defaultRepeatedFailedPaths": [],
+  "defaultUnsupportedClaims": [],
+  "instructions": "Every ground-truth fact not listed under a run's exceptions has the advisory verdict preserved. This is an AI-only first pass over the exact second-36 outputs. A human must inspect every run and own the final verdicts before finalization.",
+  "runs": [
+    {
+      "runId": "architecture-01-streaming-log:visible-transcript:initial",
+      "exceptions": {
+        "a01-objective": { "verdict": "partial", "note": "保留流式低内存目标，但遗漏慢消费者 backpressure 仍会挂起。" },
+        "a01-failed-sqlite": { "verdict": "missing", "note": "未保留 SQLite 首事件等待 48 秒并因此被否决的证据。" },
+        "a01-progress": { "verdict": "partial", "note": "保留顺序、内存和 malformed recovery，遗漏吞吐已达标及 backpressure 挂起。" },
+        "a01-workspace": { "verdict": "partial", "note": "只提到 streaming reader，遗漏新 backpressure 测试和旧 reader 的修改状态。" },
+        "a01-next": { "verdict": "contradicted", "note": "建议一般性审查实现，而不是先诊断并修复已知的慢消费者挂起。" }
+      }
+    },
+    { "runId": "architecture-01-streaming-log:deterministic-capsule:initial", "exceptions": {} },
+    { "runId": "architecture-01-streaming-log:source-assisted-capsule:initial", "exceptions": {} },
+    {
+      "runId": "architecture-02-session-index:visible-transcript:initial",
+      "exceptions": {
+        "a02-objective": { "verdict": "partial", "note": "保留便携 JSONL 方向和启动性能，但遗漏 compaction 尚未实现。" },
+        "a02-failed-sqlite": { "verdict": "partial", "note": "指出 Windows 原生依赖不合要求，但未保留干净安装编译失败这一限定。" },
+        "a02-progress": { "verdict": "partial", "note": "保留追加和启动表现，遗漏 crash-safe compaction 仍待完成。" },
+        "a02-workspace": { "verdict": "partial", "note": "只明确 jsonl-store，遗漏新启动测试和 compact.ts 不存在。" },
+        "a02-next": { "verdict": "contradicted", "note": "建议验证现有实现，而不是先设计 crash-safe compaction 测试。" }
+      }
+    },
+    {
+      "runId": "architecture-02-session-index:deterministic-capsule:initial",
+      "exceptions": {
+        "a02-workspace": { "verdict": "partial", "note": "正确列出 jsonl-store 和启动测试，但没有确认 compact.ts 当前不存在。" },
+        "a02-next": { "verdict": "contradicted", "note": "直接要求实现 compaction，跳过先设计 crash-safe 测试。" }
+      }
+    },
+    {
+      "runId": "architecture-02-session-index:source-assisted-capsule:initial",
+      "exceptions": {
+        "a02-next": { "verdict": "contradicted", "note": "直接要求在 compact.ts 中实现替换，跳过测试优先的明确顺序。" }
+      }
+    },
+    {
+      "runId": "architecture-03-job-scheduler:visible-transcript:initial",
+      "exceptions": {
+        "a03-objective": { "verdict": "partial", "note": "说明取消仍待完成，但没有保留取消测试当前失败的具体状态。" },
+        "a03-failed-polling": { "verdict": "partial", "note": "保留轮询被否决，但遗漏启动延迟和 timing test 不稳定的原因。" },
+        "a03-progress": { "verdict": "partial", "note": "保留 FIFO 与并发通过，未明确取消的 waiter 仍会启动。" },
+        "a03-workspace": { "verdict": "missing", "note": "未保留 scheduler.ts 及两个新测试文件的工作区状态。" }
+      }
+    },
+    { "runId": "architecture-03-job-scheduler:deterministic-capsule:initial", "exceptions": {} },
+    { "runId": "architecture-03-job-scheduler:source-assisted-capsule:initial", "exceptions": {} },
+    {
+      "runId": "debugging-01-invoice-total:visible-transcript:initial",
+      "exceptions": {
+        "d01-workspace": { "verdict": "partial", "note": "保留 parser.ts 的修改状态，但遗漏 fix/invoice-total 分支。" }
+      }
+    },
+    { "runId": "debugging-01-invoice-total:deterministic-capsule:initial", "exceptions": {} },
+    { "runId": "debugging-01-invoice-total:source-assisted-capsule:initial", "exceptions": {} },
+    {
+      "runId": "debugging-02-unicode-watcher:visible-transcript:initial",
+      "exceptions": {
+        "d02-failed-utf8": { "verdict": "partial", "note": "拒绝 UTF-8 假设，但遗漏解码路径逐字匹配的证据。" },
+        "d02-workspace": { "verdict": "partial", "note": "保留 watch-path 修改，未明确新 Windows 测试文件状态。" }
+      }
+    },
+    { "runId": "debugging-02-unicode-watcher:deterministic-capsule:initial", "exceptions": {} },
+    {
+      "runId": "debugging-02-unicode-watcher:source-assisted-capsule:initial",
+      "exceptions": {
+        "d02-next": { "verdict": "partial", "note": "先只读检查现有测试是合理子步骤，但没有明确随后完成并运行该集成测试。" }
+      }
+    },
+    {
+      "runId": "debugging-03-duplicate-jobs:visible-transcript:initial",
+      "exceptions": {
+        "d03-failed-broker": { "verdict": "partial", "note": "要求避免未经验证的 broker 假设，但没有保留日志只显示一次 delivery 的反证。" }
+      }
+    },
+    {
+      "runId": "debugging-03-duplicate-jobs:deterministic-capsule:initial",
+      "exceptions": {},
+      "unsupportedClaims": ["The brief says the source marked the lease-ordering modification itself as failed or reverted; the source only establishes that it is unverified."]
+    },
+    { "runId": "debugging-03-duplicate-jobs:source-assisted-capsule:initial", "exceptions": {} },
+    {
+      "runId": "feature-01-pagination:visible-transcript:initial",
+      "exceptions": {
+        "f01-workspace": { "verdict": "missing", "note": "未保留 client.ts、response.ts 和 pages.test.ts 的文件状态。" },
+        "f01-next": { "verdict": "contradicted", "note": "先设计或实现 pages()，而 ground truth 要求先写 one-page-per-next 测试。" }
+      }
+    },
+    {
+      "runId": "feature-01-pagination:deterministic-capsule:initial",
+      "exceptions": {
+        "f01-next": { "verdict": "contradicted", "note": "直接实现 pages()，跳过测试优先的明确顺序。" }
+      }
+    },
+    {
+      "runId": "feature-01-pagination:source-assisted-capsule:initial",
+      "exceptions": {
+        "f01-workspace": { "verdict": "partial", "note": "保留两个实现文件的修改，但未明确 pages.test.ts unchanged。" },
+        "f01-next": { "verdict": "contradicted", "note": "直接实现 pages()，把 iterator 测试放到后面。" }
+      }
+    },
+    {
+      "runId": "feature-02-deploy-dry-run:visible-transcript:initial",
+      "exceptions": {
+        "f02-objective": { "verdict": "partial", "note": "保留 CLI 尚未接入，但遗漏 side-effect-free bundle preparation 已完成。" },
+        "f02-progress": { "verdict": "partial", "note": "保留 plan renderer 与 CLI 待办，遗漏 pure bundle preparation 测试已通过。" },
+        "f02-workspace": { "verdict": "missing", "note": "未保留 plan.ts、bundle.ts 和 cli/deploy.ts 的文件状态。" },
+        "f02-next": { "verdict": "contradicted", "note": "要求先修改 CLI，再补测试；ground truth 要求先写 executor-never-constructed 测试。" }
+      }
+    },
+    {
+      "runId": "feature-02-deploy-dry-run:deterministic-capsule:initial",
+      "exceptions": {
+        "f02-workspace": { "verdict": "partial", "note": "保留 plan.ts 和 bundle.ts 状态，但没有明确 cli/deploy.ts unchanged。" },
+        "f02-next": { "verdict": "contradicted", "note": "修改 CLI 与添加测试并列，未保留测试必须先行的顺序。" }
+      }
+    },
+    {
+      "runId": "feature-02-deploy-dry-run:source-assisted-capsule:initial",
+      "exceptions": {
+        "f02-next": { "verdict": "contradicted", "note": "直接修改 cli/deploy.ts，跳过先添加 executor 构造断言测试。" }
+      }
+    },
+    {
+      "runId": "feature-03-config-errors:visible-transcript:initial",
+      "exceptions": {
+        "f03-progress": { "verdict": "partial", "note": "保留解析、优先级和 formatter 待办，但未明确前两类测试已经通过。" },
+        "f03-workspace": { "verdict": "missing", "note": "未保留 parse.ts、precedence.ts 和 format-error.ts 的状态。" },
+        "f03-next": { "verdict": "contradicted", "note": "直接设计并实施 formatter，跳过先写 nested-secret regression。" }
+      }
+    },
+    {
+      "runId": "feature-03-config-errors:deterministic-capsule:initial",
+      "exceptions": {
+        "f03-next": { "verdict": "contradicted", "note": "直接实现 formatter redaction，未先写回归测试。" }
+      }
+    },
+    {
+      "runId": "feature-03-config-errors:source-assisted-capsule:initial",
+      "exceptions": {
+        "f03-workspace": { "verdict": "partial", "note": "把 format-error.ts 表述为本轮无变更，没有确认该文件当前不存在。" },
+        "f03-next": { "verdict": "contradicted", "note": "直接修改 formatter，跳过先写 nested-secret error regression。" }
+      }
+    },
+    {
+      "runId": "refactor-01-http-transport:visible-transcript:initial",
+      "exceptions": {
+        "r01-progress": { "verdict": "partial", "note": "保留请求抽取和 streaming 待办，但没有明确 auth retry 当前失败且应先修复。" },
+        "r01-workspace": { "verdict": "partial", "note": "保留 transport 新建的状态，但未完整说明 api-client.ts dirty 与 index.ts unchanged。" },
+        "r01-next": { "verdict": "contradicted", "note": "优先迁移 streaming；ground truth 要求先修复 header preservation 并重跑 auth retry test。" }
+      }
+    },
+    {
+      "runId": "refactor-01-http-transport:deterministic-capsule:initial",
+      "exceptions": {
+        "r01-next": { "verdict": "contradicted", "note": "把 streaming 转换与 header 修复并列，未保留先修 header 并重跑 auth retry test 的顺序。" }
+      }
+    },
+    { "runId": "refactor-01-http-transport:source-assisted-capsule:initial", "exceptions": {} },
+    {
+      "runId": "refactor-02-cli-renderers:visible-transcript:initial",
+      "exceptions": {
+        "r02-progress": { "verdict": "partial", "note": "保留文本完成与 JSON 路由待办，但没有明确诊断路由测试仍缺失。" },
+        "r02-workspace": { "verdict": "missing", "note": "未保留 commands.ts 及两个新 renderer 文件的状态。" },
+        "r02-next": { "verdict": "contradicted", "note": "直接修改中央分发路径，跳过先添加 JSON diagnostic-routing 测试。" }
+      }
+    },
+    {
+      "runId": "refactor-02-cli-renderers:deterministic-capsule:initial",
+      "exceptions": {
+        "r02-next": { "verdict": "contradicted", "note": "直接统一输出路由，未保留先写 diagnostic-routing 测试的顺序。" }
+      }
+    },
+    { "runId": "refactor-02-cli-renderers:source-assisted-capsule:initial", "exceptions": {} },
+    {
+      "runId": "refactor-03-file-indexer:visible-transcript:initial",
+      "exceptions": {
+        "r03-objective": { "verdict": "partial", "note": "保留 traversal、hashing 与 ignore 待办，但未明确 symlink-cycle handling 已完成。" },
+        "r03-decision-identity": { "verdict": "missing", "note": "未保留 visited directory identity 只用于 cycle detection 的决策。" },
+        "r03-progress": { "verdict": "partial", "note": "保留 streaming traversal 与 ignore 待办，遗漏 symlink-cycle 测试已通过。" },
+        "r03-workspace": { "verdict": "missing", "note": "未保留 index interface、local indexer 和 symlink regression 的文件状态。" },
+        "r03-next": { "verdict": "partial", "note": "要求实现 ignore 解析，但没有明确同一步还需添加并运行对应测试。" }
+      }
+    },
+    {
+      "runId": "refactor-03-file-indexer:deterministic-capsule:initial",
+      "exceptions": {
+        "r03-next": { "verdict": "partial", "note": "要求规划并实现 ignore 支持，但没有明确完成对应测试。" }
+      }
+    },
+    {
+      "runId": "refactor-03-file-indexer:source-assisted-capsule:initial",
+      "exceptions": {
+        "r03-next": { "verdict": "partial", "note": "把 ignore 测试放到实现之后，未完整保留 implement-and-test 的单一下一步。" }
+      }
+    }
+  ]
+}

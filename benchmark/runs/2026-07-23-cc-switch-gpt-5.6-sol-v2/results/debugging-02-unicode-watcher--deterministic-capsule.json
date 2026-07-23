@@ -1,0 +1,44 @@
+{
+  "fixtureId": "debugging-02-unicode-watcher",
+  "input": {
+    "agentCarryPayload": {
+      "contentType": "text/markdown",
+      "sha256": "57e7adb54cbfabcc8e276bf94a1ed572891efc61213f4f986e811230eea63ec6",
+      "text": "# AgentCarry Continuation Brief\n\n## First action\n- Add the Windows integration test. [evidence: d02-user-2]\n\n## Forbidden before first action\n- None evidenced.\n\n## Constraints\n- Fix missed config reloads on Windows Chinese paths without adding a watcher dependency. [evidence: d02-user-1]\n- Keep POSIX comparison case-sensitive and add the Windows integration test next. [evidence: d02-user-2]\n\n## Current state\n- Completed: I suspect UTF-8 decoding corrupts the watched path. [evidence: d02-assistant-1]\n- Completed: src/watch-path.ts now uses Windows-aware comparison; unit tests pass, but the real watcher integration test is pending. [evidence: d02-assistant-2]\n\n## Later actions\n- None evidenced.\n\n## Validations\n- Validation: UNKNOWN Source tool result d02-tool-1 — The decoded path exactly matches C:\\Users\\dev\\项目 空间\\配置.json. [evidence: d02-tool-1]\n- Validation: UNKNOWN Source tool result d02-tool-2 — The event path differs only by drive-letter case, and the current comparison is case-sensitive. [evidence: d02-tool-2]\n\n## Commands already run\n- None evidenced.\n\n## Transfer losses\n- WARNING DETERMINISTIC_SEMANTIC_HEURISTIC: Semantic categories were populated by deterministic event-role and text heuristics.\n- INFO HIDDEN_AGENT_STATE_UNAVAILABLE: Hidden reasoning, prompt caches, and native tool state are not present in the fixture.\n\n## Workspace\n- Root: C:\\Users\\dev\\项目 空间\n- Git: branch=fix/windows-watcher; head=d0200002; dirty=true\n- File: modified src/watch-path.ts [evidence: none]\n- File: created test/watch-windows.test.ts [evidence: none]\n",
+      "tokens": 382,
+      "utf8Bytes": 1584
+    },
+    "fixedOverheadInputTokens": 1351,
+    "fullCallInputTokens": 1733,
+    "promptSha256": "ee2e8b7158db0406ffa11386aa736cbd5043cee23fc87182fd6ae5e1b4b52ada",
+    "promptUtf8Bytes": 1697
+  },
+  "invocation": {
+    "completedAt": "2026-07-22T20:58:31.594Z",
+    "promptSha256": "ee2e8b7158db0406ffa11386aa736cbd5043cee23fc87182fd6ae5e1b4b52ada",
+    "startedAt": "2026-07-22T20:58:14.512Z"
+  },
+  "mode": "deterministic-capsule",
+  "output": {
+    "sha256": "e5c31908b42825968bcb58c6da463c29d45a0a1140aaf4ec0e9b807a4387ea6c",
+    "text": "## 续接简报\n\n- **目标**：修复 Windows 中文路径下配置变更可能无法触发重新加载的问题，且不引入新的 watcher 依赖。\n- **关键约束**：\n  - Windows 路径比较需兼容大小写差异。\n  - POSIX 路径比较必须继续区分大小写。\n  - 下一步必须优先完成 Windows 真实 watcher 集成测试。\n- **当前状态**：\n  - 分支：`fix/windows-watcher`，HEAD：`d0200002`，工作区未清理。\n  - `src/watch-path.ts` 已修改为 Windows 感知的路径比较。\n  - 单元测试据称已通过，但真实 watcher 集成测试仍待完成。\n  - 工作区显示已创建 `test/watch-windows.test.ts`，但其内容及完成度没有证据确认。\n- **已确定事实/决策**：\n  - 解码后的路径与 `C:\\Users\\dev\\项目 空间\\配置.json` 完全一致，因此 UTF-8 解码损坏并非已证实原因。\n  - watcher 事件路径仅存在盘符大小写差异；原有区分大小写的比较会导致不匹配。\n  - Windows 应采用大小写不敏感比较，POSIX 保持大小写敏感。\n- **失败路径**：不要继续按“UTF-8 解码破坏中文路径”的假设修复；现有结果已显示解码路径准确。\n- **已完成**：Windows 感知路径比较实现及相关单元测试。\n- **待完成**：确认并补全 Windows 集成测试，使其通过真实 watcher 在包含中文和空格的路径上验证配置重载，并覆盖盘符大小写差异。\n- **验证状态**：现有两项工具结果均标记为 `UNKNOWN`；不得据此声称集成测试已经通过。\n- **唯一正确的下一步**：打开并完成 `test/watch-windows.test.ts` 的 Windows 真实 watcher 集成测试；暂不继续修改实现或追查 UTF-8 解码。"
+  },
+  "runId": "debugging-02-unicode-watcher:deterministic-capsule:initial",
+  "schemaVersion": "2.0.0",
+  "sourceFingerprint": "be01c97c050e1cd2383abdec2bf2468ea7b5b0420030bb0a83cfc5376b6a7725",
+  "target": {
+    "agent": "claude",
+    "model": "gpt-5.6-sol",
+    "provider": "cc-switch-codex-oauth",
+    "settings": {
+      "maxTurns": 1,
+      "mcp": "empty-strict",
+      "permissionMode": "plan",
+      "persistence": "disabled",
+      "settingSources": "user",
+      "slashCommands": "disabled",
+      "systemPromptSha256": "9f380f2bc0f94a9164ac3cd8991044b19fab7e9359a40fa75697481f043f3982",
+      "tools": "disabled"
+    }
+  }
+}
